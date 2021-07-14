@@ -172,4 +172,4 @@ tag = 'monthly-2021-07'
 version = '3.0.0'
 
 [[bin]]
-name = 'node-template'
+name = 'node-subtensor'

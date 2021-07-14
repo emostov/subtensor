@@ -3701,7 +3701,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "node-template"
+name = "node-subtensor"
 version = "3.0.0"
 dependencies = [
  "frame-benchmarking",
