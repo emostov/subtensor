@@ -18,8 +18,8 @@ use frame_support::{IterableStorageMap, dispatch, ensure, traits::{
 		DispatchInfo, 
 		PostDispatchInfo, 
 		Pays
-	},
-	dispatch::DispatchResult};
+	}
+};
 
 use frame_support::sp_runtime::FixedPointOperand;
 use frame_support::dispatch::GetDispatchInfo;
