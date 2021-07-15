@@ -137,6 +137,8 @@ impl pallet_balances::Config for Test {
 	>;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 
@@ -171,7 +173,7 @@ type SignedExtra = (
 	frame_system::CheckEra<Test>,
 	frame_system::CheckNonce<Test>,
 	frame_system::CheckWeight<Test>,
-	//pallet_subtensor::ChargeTransactionPayment<Test>,
+	pallet_subtensor::ChargeTransactionPayment<Test>,
 	//pallet_transaction_payment::ChargeTransactionPaymentOld<Test>
 );
 
