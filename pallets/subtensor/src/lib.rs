@@ -316,7 +316,6 @@ pub mod pallet {
 	#[pallet::metadata(T::AccountId = "AccountId")]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-
         /// ---- Event created when a caller successfully set's their weights
 		/// on the chain.
 		WeightsSet(T::AccountId),
@@ -348,11 +347,6 @@ pub mod pallet {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Error names should be descriptive.
-		NoneValue,
-		/// Errors should have helpful documentation associated with them.
-		StorageOverflow,
-
         /// ---- Thrown when the user tries to subscribe a neuron which is not of type
 	    /// 4 (IPv4) or 6 (IPv6).
 		InvalidIpType,
@@ -457,15 +451,14 @@ pub mod pallet {
         /// --- Sets the caller weights for the incentive mechanism. The call can be
 		/// made from the hotkey account so is potentially insecure, however, the damage
 		/// of changing weights is minimal if caught early. This function includes all the
-		/// checks that the passed weights meet the requirements. Stored as u64s they represent
+		/// checks that the passed weights meet the requirements. Stored as u32s they represent
 		/// rational values in the range [0,1] which sum to 1 and can be interpreted as
 		/// probabilities. The specific weights determine how inflation propagates outward
-		/// from this peer. Because this function changes the inflation distribution it
-		/// triggers an emit before values are changed on the chain.
+		/// from this peer. 
 		/// 
-		/// Note: The 32 bit integers weights should represent 1.0 as the max u64.
-		/// However, the function normalizes all integers to u64_max anyway. This means that if the sum of all
-		/// elements is larger or smaller than the amount of elements * u64_max, all elements
+		/// Note: The 32 bit integers weights should represent 1.0 as the max u32.
+		/// However, the function normalizes all integers to u32_max anyway. This means that if the sum of all
+		/// elements is larger or smaller than the amount of elements * u32_max, all elements
 		/// will be corrected for this deviation. 
 		/// 
 		/// # Args:
