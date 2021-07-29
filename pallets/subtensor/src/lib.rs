@@ -10,7 +10,7 @@
 pub use pallet::*;
 
 use codec::{Decode, Encode};
-use frame_support::{IterableStorageMap, StorageDoubleMap, dispatch, ensure, traits::{
+use frame_support::{IterableStorageMap, dispatch, ensure, traits::{
 		Currency, 
 		ExistenceRequirement,
 		IsSubType, 
@@ -229,7 +229,6 @@ pub mod pallet {
 		u64,
 		ValueQuery,
 	>;
-
     #[pallet::storage]
     #[pallet::getter(fn bond_total)]
     pub(super) type BondTotals<T> = StorageMap<
