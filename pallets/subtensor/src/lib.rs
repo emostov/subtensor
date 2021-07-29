@@ -4,10 +4,13 @@
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
 
+/// ************************************************************
+///		Substrate Imports
+/// ************************************************************
 pub use pallet::*;
 
 use codec::{Decode, Encode};
-use frame_support::{IterableStorageMap, dispatch, ensure, traits::{
+use frame_support::{IterableStorageMap, StorageDoubleMap, dispatch, ensure, traits::{
 		Currency, 
 		ExistenceRequirement,
 		IsSubType, 
@@ -49,11 +52,15 @@ use sp_std::vec::Vec;
 use sp_std::vec;
 use sp_std::marker::PhantomData;
 
+/// ************************************************************
+///		Subtensor Imports
+/// ************************************************************
 mod weights;
 mod emission;
 mod staking;
 mod block_reward;
 mod subscribing;
+mod step;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -62,7 +69,14 @@ pub mod pallet {
     use sp_std::vec::Vec;
 	use sp_std::convert::TryInto;
 
-	/// Configure the pallet by specifying the parameters and types on which it depends.
+	#[pallet::pallet]
+	#[pallet::generate_store(pub(super) trait Store)]
+	pub struct Pallet<T>(_);
+
+	/// ************************************************************
+	///		Parameters
+	/// ************************************************************
+	/// Substensor parameters.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
@@ -75,13 +89,14 @@ pub mod pallet {
 		type TransactionByteFee: Get<BalanceOf<Self>>;
 	}
 
-    pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-    pub type NeuronMetadataOf<T> = NeuronMetadata<AccountIdOf<T>>;
-	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
-	pub struct Pallet<T>(_);
+	/// ************************************************************
+	///		Pallet Types
+	/// ************************************************************
+	/// Subtensor custom types.
+	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+	pub type NeuronMetadataOf<T> = NeuronMetadata<AccountIdOf<T>>;
+	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
     // ---- Neuron endpoint information
     #[derive(Encode, Decode, Default)]
@@ -124,61 +139,57 @@ pub mod pallet {
         pub coldkey: AccountId,
     }
 
-	// The pallet's runtime storage items.
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage
-	#[pallet::storage]
-	#[pallet::getter(fn something)]
-	// Learn more about declaring storage items:
-	// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-	pub type Something<T> = StorageValue<_, u32>;
+	/// ************************************************************
+	///		Storage Objects
+	/// ************************************************************
 
-    #[pallet::storage]
 	/// ---- Stores the amount of currently staked token.
-    pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
-
     #[pallet::storage]
+	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
+
 	/// ---- The next uid allocated to a subscribing neuron. Or a count of how many peers
 	/// have ever subscribed.
-    pub type NextUID<T> = StorageValue<_, u64, ValueQuery>;
-
     #[pallet::storage]
-    /// ---- The number of subscriptions this block, used in conjunction with ... 
+	pub type NextUID<T> = StorageValue<_, u64, ValueQuery>;
+
+	/// ---- The number of subscriptions this block, used in conjunction with ... 
+    #[pallet::storage]
     pub type SubscriptionsThisBlock<T> = StorageValue<_, u32, ValueQuery>;    
 
     #[pallet::storage]
     pub type LastSubscriptionBlock<T:Config> = StorageValue<_, T::BlockNumber, ValueQuery>;    
 
-    #[pallet::storage]
 	/// ---- The total amount of transaction fees accumulated during a block
+    #[pallet::storage]
     pub type TransactionFeePool<T> = StorageValue<_, u64, ValueQuery>;
 
+	/// --- The transaction fees that are added to the current block reward.
     #[pallet::storage]
-    /// --- The transaction fees that are added to the current block reward.
     pub type TransactionFeesForBlock<T> = StorageValue<_, u64, ValueQuery>;
 
+	/// ---- Active set map between a hotkey account and network uids.
+	/// Used by subtensor for checking peer existence.
     #[pallet::storage]
     #[pallet::getter(fn uid)]
-    /// ---- Active set map between a hotkey account and network uids.
-	/// Used by subtensor for checking peer existence.
     pub(super) type Active<T:Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn neuron)]
-    /// ----  Maps between a neuron's hotkey account address and additional 
+	/// ----  Maps between a neuron's hotkey account address and additional 
     /// metadata associated with that neuron. All other maps, map between the with a uid. 
     /// The metadata contains that uid, the ip, port, and coldkey address.
+    #[pallet::storage]
+    #[pallet::getter(fn neuron)]
     pub(super) type Neurons<T> = StorageMap<_, Identity, u64, NeuronMetadataOf<T>, ValueQuery>;
 
+	/// ---- Maps between a neuron's hotkey uid and the block number
+    /// when that peer last called an emission/subscribe.
     #[pallet::storage]
     #[pallet::getter(fn last_emit)]
-    /// ---- Maps between a neuron's hotkey uid and the block number
-    /// when that peer last called an emission/subscribe.
     pub(super) type LastEmit<T:Config> = StorageMap<_, Identity, u64, T::BlockNumber, ValueQuery>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn pending_emission)]
 	/// --- Maps between a neuron's hotkey uid and this peer's pending emission.
 	/// pending emission is the quantity 
+    #[pallet::storage]
+    #[pallet::getter(fn pending_emission)]
     pub(super) type PendingEmission<T:Config> = StorageMap<_, Identity, u64, u64, ValueQuery>;
 
     /// ---- List of values which map between a neuron's uid an that neuron's
@@ -187,15 +198,59 @@ pub mod pallet {
     /// value respectively. Each giga byte of chain storage can hold history for
     /// 83 million weights. 
     #[pallet::storage]
-    pub(super) type WeightUids<T> = StorageMap<_, Identity, u64, Vec<u64>, ValueQuery>;
+    pub(super) type WeightUids<T> = StorageMap<
+		_, 
+		Identity, 
+		u64, 
+		Vec<u64>, 
+		ValueQuery
+	>;
+    #[pallet::storage]
+    pub(super) type WeightVals<T> = StorageMap<
+		_, 
+		Identity, 
+		u64, 
+		Vec<u32>, 
+		ValueQuery
+	>;
+
+    /// ---- List of values which map between a neuron's uid an that neuron's
+    /// weights, a.k.a is row_weights in the square matrix W. Each outward edge
+    /// is represented by a (u64, u64) tuple determining the endpoint and weight
+    /// value respectively. Each giga byte of chain storage can hold history for
+    /// 83 million weights. 
+    #[pallet::storage]
+    pub(super) type Bonds<T> = StorageDoubleMap<
+		_,
+		Identity,
+		u64,
+		Identity,
+		u64,
+		u64,
+		ValueQuery,
+	>;
 
     #[pallet::storage]
-    pub(super) type WeightVals<T> = StorageMap<_, Identity, u64, Vec<u32>, ValueQuery>;
+    #[pallet::getter(fn bond_total)]
+    pub(super) type BondTotals<T> = StorageMap<
+		_, 
+		Identity, 
+		u64, 
+		u64, 
+		ValueQuery
+	>;
 
+
+	/// ---- List of stake values. Tokens staked into the incentive mechanism.
     #[pallet::storage]
     #[pallet::getter(fn stake)]
     pub(super) type Stake<T> = StorageMap<_, Identity, u64, u64, ValueQuery>;
 
+
+	/// ************************************************************
+	///		Genesis Configuration
+	/// ************************************************************
+	/// ---- Genesis Configuration (Mostly used for testing.)
     #[pallet::genesis_config]
     pub struct GenesisConfig {
         pub pending_emissions: Vec<(u64, u64)>,
@@ -250,16 +305,17 @@ pub mod pallet {
 			<Self as GenesisBuild<T>>::assimilate_storage(self, storage)
 		}
 	}
-
+	
+	
+	/// ************************************************************
+	///		Events
+	/// ************************************************************
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
 	#[pallet::event]
 	#[pallet::metadata(T::AccountId = "AccountId")]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		SomethingStored(u32, T::AccountId),
 
         /// ---- Event created when a caller successfully set's their weights
 		/// on the chain.
@@ -286,6 +342,9 @@ pub mod pallet {
 		Emission(T::AccountId, u64),
 	}
 
+	/// ************************************************************
+	///		Errors
+	/// ************************************************************
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
@@ -367,6 +426,9 @@ pub mod pallet {
         }
     }
 
+	/// ************************************************************
+	///		Block Hooks
+	/// ************************************************************
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 
@@ -376,14 +438,16 @@ pub mod pallet {
 		/// 	* 'n': (T::BlockNumber):
 		/// 		- The number of the block we are initializing.
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-		    Self::move_transaction_fee_pool_to_block_reward();
-			Self::update_pending_emissions()
+		    // Self::move_transaction_fee_pool_to_block_reward();
+			Self::block_step();
+			return 0;
 		}
-
-
 	}
     
 
+	/// ************************************************************
+	///		Dispatchable functions
+	/// ************************************************************
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
 	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
