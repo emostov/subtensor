@@ -23,12 +23,6 @@ impl<T: Config> Pallet<T> {
         // cold key, otherwise throw a NonAssociatedColdKey error.
         ensure!(Self::neuron_belongs_to_coldkey(&neuron, &coldkey), Error::<T>::NonAssociatedColdKey);
 
-        // --- We call the emit function for the associated hotkey. Neurons must call an emit before they change 
-        // their stake or else can cheat the system by adding stake just before
-        // and emission to maximize their inflation.
-        // TODO(const): can we pay for this transaction through inflation.
-        Self::emit_for_neuron(&neuron);
-
         // ---- We check that the calling coldkey contains enough funds to
         // create the staking transaction.
         let stake_as_balance = Self::u64_to_balance(stake_to_be_added);
@@ -76,15 +70,9 @@ impl<T: Config> Pallet<T> {
         // Check if uid is active
         ensure!(Self::is_uid_active(neuron.uid), Error::<T>::NotActive);
 
-
         // ---- We check that the NeuronMetadata is linked to the calling
         // cold key, otherwise throw a NonAssociatedColdKey error.
         ensure!(Self::neuron_belongs_to_coldkey(&neuron, &coldkey), Error::<T>::NonAssociatedColdKey);
-
-        // --- We call the emit function for the associated hotkey.
-        // Neurons must call an emit before they remove
-        // stake or they may be able to cheat their peers of inflation.
-        Self::emit_for_neuron(&neuron);
 
         // ---- We check that the hotkey has enough stake to withdraw
         // and then withdraw from the account.

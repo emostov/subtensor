@@ -131,7 +131,7 @@ impl<T: Config> Pallet<T> {
         for uid_i in 0..n {
             let dividends_i: I65F63 = dividends[ uid_i as usize ];
             let converted_dividends_i:u64 = dividends_i.to_num::<u64>();
-            Stake::<T>::mutate( uid_i as u64, |el| *el += converted_dividends_i );
+            // Stake::<T>::mutate( uid_i as u64, |el| *el += converted_dividends_i );
         }
 
     }

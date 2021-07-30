@@ -50,7 +50,6 @@ fn test_subscribe_ok_no_transaction_fee_is_charged() {
 }
 
 
-
 #[test]
 fn test_subscribe_ok() {
 	new_test_ext().execute_with(|| {
@@ -88,28 +87,6 @@ fn test_subscribe_ok() {
 
 		// Check if the balance of this hotkey account == 0
 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
-	});
-}
-
-#[test]
-fn test_subscriptions_per_block() {
-	new_test_ext().execute_with(|| {
-		let ip = ipv4(8,8,8,8);
-		let ip_type = 4;
-		let port = 1337;
-		let modality = 0;
-		let coldkey_account_id = 667; // N
-		for i in 0..= 24 {
-			assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(i), ip, port, ip_type, modality, coldkey_account_id));
-		}
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(25), ip, port, ip_type, modality, coldkey_account_id);
-		assert_eq!(result, Err(Error::<Test>::ToManySubscriptionsThisBlock.into()));
-		run_to_block(1);
-		for i in 0..= 24 {
-			assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(26 + i), ip, port, ip_type, modality, coldkey_account_id));
-		}
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(52), ip, port, ip_type, modality, coldkey_account_id);
-		assert_eq!(result, Err(Error::<Test>::ToManySubscriptionsThisBlock.into()));
 	});
 }
 
@@ -169,31 +146,31 @@ fn test_invalid_modality() {
 	});
 }
 
-/// This test tests the following
-/// Given an already subscribed neuron, resubscribing should not
-/// change the last emit data.
-#[test]
-fn test_subsribe_resubrice_emit_does_not_change() {
-	new_test_ext().execute_with(|| {
-        let hotkey_id = 1;
-		let coldkey_id = 2;
+// /// This test tests the following
+// /// Given an already subscribed neuron, resubscribing should not
+// /// change the last emit data.
+// #[test]
+// fn test_subsribe_resubrice_emit_does_not_change() {
+// 	new_test_ext().execute_with(|| {
+//         let hotkey_id = 1;
+// 		let coldkey_id = 2;
 
-		// Move the block_nr to some point in the future
-		run_to_block(10);
+// 		// Move the block_nr to some point in the future
+// 		run_to_block(10);
 
-		let mut neuron = subscribe_ok_neuron(hotkey_id, coldkey_id);
-		// The last_emit_block should be 10
+// 		let mut neuron = subscribe_ok_neuron(hotkey_id, coldkey_id);
+// 		// The last_emit_block should be 10
 
-		assert_eq!(Subtensor::get_last_emit_for_neuron(neuron.uid), 10);
+// 		assert_eq!(Subtensor::get_last_emit_for_neuron(neuron.uid), 10);
 
-		// Let's move the block counter again to simulate a jump
-		run_to_block(100);
+// 		// Let's move the block counter again to simulate a jump
+// 		run_to_block(100);
 
-		// A subsequent call to subscribe *should* change your last emit (reflecting the resubscribe)
-		neuron = subscribe_ok_neuron(hotkey_id, coldkey_id);
-		assert_eq!(Subtensor::get_last_emit_for_neuron(neuron.uid), 100);
-	});
-}
+// 		// A subsequent call to subscribe *should* change your last emit (reflecting the resubscribe)
+// 		neuron = subscribe_ok_neuron(hotkey_id, coldkey_id);
+// 		assert_eq!(Subtensor::get_last_emit_for_neuron(neuron.uid), 100);
+// 	});
+// }
 
 #[test]
 fn test_subscribe_update_ok() {

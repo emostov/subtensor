@@ -3707,7 +3707,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpc-core",
- "node-template-runtime",
+ "node-subtensor-runtime",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
  "sc-cli",
@@ -3739,7 +3739,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "node-template-runtime"
+name = "node-subtensor-runtime"
 version = "3.0.0"
 dependencies = [
  "frame-benchmarking",
@@ -3755,7 +3755,6 @@ dependencies = [
  "pallet-randomness-collective-flip",
  "pallet-subtensor",
  "pallet-sudo",
- "pallet-template",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
@@ -4064,20 +4063,6 @@ dependencies = [
  "sp-io 3.0.0 (git+https://github.com/paritytech/substrate.git?tag=monthly-2021-07)",
  "sp-runtime 3.0.0 (git+https://github.com/paritytech/substrate.git?tag=monthly-2021-07)",
  "sp-std 3.0.0 (git+https://github.com/paritytech/substrate.git?tag=monthly-2021-07)",
-]
-
-[[package]]
-name = "pallet-template"
-version = "3.0.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "parity-scale-codec 2.1.3",
- "serde",
- "sp-core 3.0.0 (git+https://github.com/paritytech/substrate.git?tag=monthly-2021-07)",
- "sp-io 3.0.0 (git+https://github.com/paritytech/substrate.git?tag=monthly-2021-07)",
- "sp-runtime 3.0.0 (git+https://github.com/paritytech/substrate.git?tag=monthly-2021-07)",
 ]
 
 [[package]]

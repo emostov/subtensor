@@ -5,12 +5,12 @@
 /// <https://substrate.dev/docs/en/knowledgebase/runtime/frame>
 
 /// ************************************************************
-///		Substrate Imports
+/// -Substrate-Imports
 /// ************************************************************
 pub use pallet::*;
 
 use codec::{Decode, Encode};
-use frame_support::{IterableStorageMap, dispatch, ensure, traits::{
+use frame_support::{dispatch, ensure, traits::{
 		Currency, 
 		ExistenceRequirement,
 		IsSubType, 
@@ -53,12 +53,10 @@ use sp_std::vec;
 use sp_std::marker::PhantomData;
 
 /// ************************************************************
-///		Subtensor Imports
+///	-Subtensor-Imports
 /// ************************************************************
 mod weights;
-mod emission;
 mod staking;
-mod block_reward;
 mod subscribing;
 mod step;
 
@@ -74,7 +72,7 @@ pub mod pallet {
 	pub struct Pallet<T>(_);
 
 	/// ************************************************************
-	///		Parameters
+	///	-Parameters
 	/// ************************************************************
 	/// Substensor parameters.
 	#[pallet::config]
@@ -91,7 +89,7 @@ pub mod pallet {
 
 
 	/// ************************************************************
-	///		Pallet Types
+	///	-Pallet-Types
 	/// ************************************************************
 	/// Subtensor custom types.
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
@@ -140,58 +138,74 @@ pub mod pallet {
     }
 
 	/// ************************************************************
-	///		Storage Objects
+	///	-Storage Objects
 	/// ************************************************************
 
 	/// ---- Stores the amount of currently staked token.
     #[pallet::storage]
-	pub type TotalStake<T> = StorageValue<_, u64, ValueQuery>;
+	pub type TotalStake<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
 
 	/// ---- The next uid allocated to a subscribing neuron. Or a count of how many peers
 	/// have ever subscribed.
     #[pallet::storage]
-	pub type NextUID<T> = StorageValue<_, u64, ValueQuery>;
-
-	/// ---- The number of subscriptions this block, used in conjunction with ... 
-    #[pallet::storage]
-    pub type SubscriptionsThisBlock<T> = StorageValue<_, u32, ValueQuery>;    
-
-    #[pallet::storage]
-    pub type LastSubscriptionBlock<T:Config> = StorageValue<_, T::BlockNumber, ValueQuery>;    
-
-	/// ---- The total amount of transaction fees accumulated during a block
-    #[pallet::storage]
-    pub type TransactionFeePool<T> = StorageValue<_, u64, ValueQuery>;
-
-	/// --- The transaction fees that are added to the current block reward.
-    #[pallet::storage]
-    pub type TransactionFeesForBlock<T> = StorageValue<_, u64, ValueQuery>;
+	pub type NextUID<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
 
 	/// ---- Active set map between a hotkey account and network uids.
 	/// Used by subtensor for checking peer existence.
-    #[pallet::storage]
+	#[pallet::storage]
     #[pallet::getter(fn uid)]
-    pub(super) type Active<T:Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
+    pub(super) type Active<T:Config> = StorageMap<
+		_, 
+		Blake2_128Concat, 
+		T::AccountId, 
+		u64, 
+		ValueQuery
+	>;
 
 	/// ----  Maps between a neuron's hotkey account address and additional 
     /// metadata associated with that neuron. All other maps, map between the with a uid. 
     /// The metadata contains that uid, the ip, port, and coldkey address.
     #[pallet::storage]
     #[pallet::getter(fn neuron)]
-    pub(super) type Neurons<T> = StorageMap<_, Identity, u64, NeuronMetadataOf<T>, ValueQuery>;
+    pub(super) type Neurons<T> = StorageMap<
+		_, 
+		Identity, 
+		u64, 
+		NeuronMetadataOf<T>, 
+		ValueQuery
+	>;
 
 	/// ---- Maps between a neuron's hotkey uid and the block number
     /// when that peer last called an emission/subscribe.
     #[pallet::storage]
     #[pallet::getter(fn last_emit)]
-    pub(super) type LastEmit<T:Config> = StorageMap<_, Identity, u64, T::BlockNumber, ValueQuery>;
+    pub(super) type LastEmit<T:Config> = StorageMap<
+		_, 
+		Identity, 
+		u64, 
+		T::BlockNumber, 
+		ValueQuery
+	>;
 
-	/// --- Maps between a neuron's hotkey uid and this peer's pending emission.
-	/// pending emission is the quantity 
-    #[pallet::storage]
-    #[pallet::getter(fn pending_emission)]
-    pub(super) type PendingEmission<T:Config> = StorageMap<_, Identity, u64, u64, ValueQuery>;
-
+	/// ---- List of stake values. Tokens staked into the incentive mechanism.
+	#[pallet::storage]
+	#[pallet::getter(fn stake)]
+	pub(super) type Stake<T> = StorageMap<
+		_, 
+		Identity,
+		u64, 
+		u64, 
+		ValueQuery
+	>;
+	
     /// ---- List of values which map between a neuron's uid an that neuron's
     /// weights, a.k.a is row_weights in the square matrix W. Each outward edge
     /// is represented by a (u64, u64) tuple determining the endpoint and weight
@@ -240,30 +254,20 @@ pub mod pallet {
 	>;
 
 
-	/// ---- List of stake values. Tokens staked into the incentive mechanism.
-    #[pallet::storage]
-    #[pallet::getter(fn stake)]
-    pub(super) type Stake<T> = StorageMap<_, Identity, u64, u64, ValueQuery>;
-
-
 	/// ************************************************************
-	///		Genesis Configuration
+	///	-Genesis-Configuration
 	/// ************************************************************
 	/// ---- Genesis Configuration (Mostly used for testing.)
     #[pallet::genesis_config]
     pub struct GenesisConfig {
-        pub pending_emissions: Vec<(u64, u64)>,
         pub stake: Vec<(u64, u64)>,
-        pub transaction_fee_pool: u64,
     }
 
 	#[cfg(feature = "std")]
 	impl Default for GenesisConfig {
 		fn default() -> Self {
 			Self {
-				pending_emissions: Default::default(),
 				stake: Default::default(),
-				transaction_fee_pool: Default::default(),
 			}
 		}
 	}
@@ -271,16 +275,8 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T:Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
-            for (uid, emission) in &self.pending_emissions {
-                PendingEmission::<T>::insert(uid, emission);
-            };
-
             for (uid, stake) in &self.stake {
                 Stake::<T>::insert(uid, stake);
-            };
-
-            if self.transaction_fee_pool > 0 {
-                TransactionFeePool::<T>::put(self.transaction_fee_pool);
             };
         }
 	}
@@ -307,7 +303,7 @@ pub mod pallet {
 	
 	
 	/// ************************************************************
-	///		Events
+	///	-Events
 	/// ************************************************************
 	// Pallets use events to inform users when important changes are made.
 	// https://substrate.dev/docs/en/knowledgebase/runtime/events
@@ -341,7 +337,7 @@ pub mod pallet {
 	}
 
 	/// ************************************************************
-	///		Errors
+	///	-Errors
 	/// ************************************************************
 	// Errors inform users that something went wrong.
 	#[pallet::error]
@@ -356,10 +352,6 @@ pub mod pallet {
 		/// --- Thrown when an invalid modality attempted on subscribe.
 		/// Currently the chain only accepts modality TEXT = 0.
 		InvalidModality,
-
-		/// --- Thrown when subscriptions this block have exeeded the number of 
-		/// allowed.
-		ToManySubscriptionsThisBlock,
 
 		/// ---- Thrown when the caller attempts to set the weight keys
 		/// and values but these vectors have different size.
@@ -420,7 +412,7 @@ pub mod pallet {
     }
 
 	/// ************************************************************
-	///		Block Hooks
+	/// -Block-Hooks
 	/// ************************************************************
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
@@ -439,7 +431,7 @@ pub mod pallet {
     
 
 	/// ************************************************************
-	///		Dispatchable functions
+	///	-Dispatchable-functions
 	/// ************************************************************
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
@@ -684,7 +676,7 @@ pub mod pallet {
 
 
 /************************************************************
-	CallType definition
+-CallType-definition
 ************************************************************/
 
 #[derive(Debug, PartialEq)]
@@ -742,7 +734,7 @@ impl<T: Config> Pallet<T> where
 
 
 /************************************************************
-	ChargeTransactionPayment definition
+-ChargeTransactionPayment definition
 ************************************************************/
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
@@ -756,10 +748,7 @@ impl<T: Config + Send + Sync> ChargeTransactionPayment<T> where
         Self(Default::default())
     }
 
-    pub fn can_pay_set_weights(who: &T::AccountId) -> Result<TransactionFee, TransactionValidityError> {
-        let transaction_fee = Pallet::<T>::get_transaction_fee_for_emission(who);
-        Ok(transaction_fee)
-    }
+
 
     pub fn can_pay_add_stake(who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
         let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
@@ -821,170 +810,170 @@ impl<T: Config + Send + Sync> ChargeTransactionPayment<T> where
 }
 
 
-impl<T: Config + Send + Sync> sp_std::fmt::Debug for ChargeTransactionPayment<T> {
-    fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-        write!(f, "ChargeTransactionPayment")
-    }
-}
 
-impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
-    where
-        T::Call: Dispatchable<Info=DispatchInfo, PostInfo=PostDispatchInfo>,
-        <T as frame_system::Config>::Call: IsSubType<Call<T>>,
-{
-	const IDENTIFIER: &'static str = "ChargeTransactionPayment";
+// impl<T: Config + Send + Sync> sp_std::fmt::Debug for ChargeTransactionPayment<T> {
+//     fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
+//         write!(f, "ChargeTransactionPayment")
+//     }
+// }
 
-    type AccountId = T::AccountId;
-    type Call = T::Call;
-    //<T as frame_system::Trait>::Call;
-    type AdditionalSigned = ();
-    type Pre = (CallType, u64, Self::AccountId);
-    fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> { Ok(()) }
+// impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
+//     where
+//         T::Call: Dispatchable<Info=DispatchInfo, PostInfo=PostDispatchInfo>,
+//         <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+// {
+// 	const IDENTIFIER: &'static str = "ChargeTransactionPayment";
 
-    fn validate(
-        &self,
-        who: &Self::AccountId,
-        call: &Self::Call,
-        info: &DispatchInfoOf<Self::Call>,
-        len: usize,
-    ) -> TransactionValidity {
-        match call.is_sub_type() {
-            Some(Call::set_weights(..)) => {
-                let transaction_fee = Self::can_pay_set_weights(who)?;
-                Ok(ValidTransaction {
-                    priority: Self::get_priority_set_weights(transaction_fee, len as u64),
-                    longevity: 1,
-                    ..Default::default()
-                })
-            }
-            Some(Call::add_stake(..)) => {
-                let _transaction_fee = Self::can_pay_add_stake(who, len as u64)?;
-                Ok(ValidTransaction {
-                    priority: Self::get_priority_vanilla(),
-                    ..Default::default()
-                })
-            }
-            Some(Call::remove_stake(hotkey_id, ..)) => {
-                let _transaction_fee = Self::can_pay_remove_stake(who, hotkey_id, len as u64)?;
-                Ok(ValidTransaction {
-                    priority: Self::get_priority_vanilla(),
-                    ..Default::default()
-                })
-            }
-            Some(Call::subscribe(..)) => {
-                let _transaction_fee = Self::can_pay_subscribe()?;
-                Ok(ValidTransaction {
-                    priority: Self::get_priority_vanilla(),
-                    ..Default::default()
-                })
-            }
-            _ => {
-                let _transaction_fee = Self::can_pay_other(info, who, len as u64)?;
-                Ok(ValidTransaction {
-                    priority: Self::get_priority_vanilla(),
-                    ..Default::default()
-                })
-            }
-        }
-    }
+//     type AccountId = T::AccountId;
+//     type Call = T::Call;
+//     //<T as frame_system::Trait>::Call;
+//     type AdditionalSigned = ();
+//     type Pre = (CallType, u64, Self::AccountId);
+//     fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> { Ok(()) }
 
-    // NOTE: Add later when we put in a pre and post dispatch step.
-    fn pre_dispatch(
-        self,
-        who: &Self::AccountId,
-        call: &Self::Call,
-        info: &DispatchInfoOf<Self::Call>,
-        len: usize,
-    ) -> Result<Self::Pre, TransactionValidityError> {
+//     fn validate(
+//         &self,
+//         who: &Self::AccountId,
+//         call: &Self::Call,
+//         info: &DispatchInfoOf<Self::Call>,
+//         len: usize,
+//     ) -> TransactionValidity {
+//         match call.is_sub_type() {
+//             Some(Call::set_weights(..)) => {
+//                 let transaction_fee = Self::can_pay_set_weights(who)?;
+//                 Ok(ValidTransaction {
+//                     priority: Self::get_priority_set_weights(transaction_fee, len as u64),
+//                     longevity: 1,
+//                     ..Default::default()
+//                 })
+//             }
+//             Some(Call::add_stake(..)) => {
+//                 let _transaction_fee = Self::can_pay_add_stake(who, len as u64)?;
+//                 Ok(ValidTransaction {
+//                     priority: Self::get_priority_vanilla(),
+//                     ..Default::default()
+//                 })
+//             }
+//             Some(Call::remove_stake(hotkey_id, ..)) => {
+//                 let _transaction_fee = Self::can_pay_remove_stake(who, hotkey_id, len as u64)?;
+//                 Ok(ValidTransaction {
+//                     priority: Self::get_priority_vanilla(),
+//                     ..Default::default()
+//                 })
+//             }
+//             Some(Call::subscribe(..)) => {
+//                 let _transaction_fee = Self::can_pay_subscribe()?;
+//                 Ok(ValidTransaction {
+//                     priority: Self::get_priority_vanilla(),
+//                     ..Default::default()
+//                 })
+//             }
+//             _ => {
+//                 let _transaction_fee = Self::can_pay_other(info, who, len as u64)?;
+//                 Ok(ValidTransaction {
+//                     priority: Self::get_priority_vanilla(),
+//                     ..Default::default()
+//                 })
+//             }
+//         }
+//     }
 
-        //debug::info!(&("PRE DISPATCH: Transaction length: {:?}", len));
+//     // NOTE: Add later when we put in a pre and post dispatch step.
+//     fn pre_dispatch(
+//         self,
+//         who: &Self::AccountId,
+//         call: &Self::Call,
+//         info: &DispatchInfoOf<Self::Call>,
+//         len: usize,
+//     ) -> Result<Self::Pre, TransactionValidityError> {
 
-        match call.is_sub_type() {
-            Some(Call::set_weights(..)) => {
-                // To pay for the set_weights operation, the self_weight of a neuron is used for payment
-                // This can be >= 0, however the lower the self weight, the lower the priority in the block
-                // and may result the transaction is not put into a block
-                let transaction_fee = Self::can_pay_set_weights(who)?;
-                Ok((CallType::SetWeights, transaction_fee, who.clone())) // 0 indicates that post_dispatch should use the self-weight to pay for the transaction
-            }
-            Some(Call::add_stake(..)) => {
-                // The transaction fee for the add_stake function is paid from the coldkey balance
-                // let transaction_fee = Module::<T>::calculate_transaction_fee(len as u64);
-                // let transaction_fee_as_balance = Module::<T>::u64_to_balance( transaction_fee );
-                let transaction_fee = Self::can_pay_add_stake(who, len as u64)?;
-                Ok((CallType::AddStake, transaction_fee, who.clone()))
-            }
-            Some(Call::remove_stake(hotkey_id, ..)) => {
-                // The tranaction fee for the remove_stake call is paid from the coldkey balance
-                // after the transaction completes. For this, a check is done on both the stake
-                // as well as the coldkey balance to see if one of both is sufficient to pay
-                // for the transaction
+//         //debug::info!(&("PRE DISPATCH: Transaction length: {:?}", len));
 
-                let transaction_fee = Self::can_pay_remove_stake(who, hotkey_id, len as u64)?;
-                Ok((CallType::RemoveStake, transaction_fee, who.clone()))
-            }
-            Some(Call::subscribe(..)) => {
-                let transaction_fee = Self::can_pay_subscribe()?;
-                Ok((CallType::Subscribe, transaction_fee, who.clone()))
-            }
-            _ => {
-                let transaction_fee = Self::can_pay_other(info, who, len as u64)?;
-                Ok((CallType::Other, transaction_fee, who.clone()))
-            }
-        }
-    }
+//         match call.is_sub_type() {
+//             Some(Call::set_weights(..)) => {
+//                 // To pay for the set_weights operation, the self_weight of a neuron is used for payment
+//                 // This can be >= 0, however the lower the self weight, the lower the priority in the block
+//                 // and may result the transaction is not put into a block
+//                 let transaction_fee = Self::can_pay_set_weights(who)?;
+//                 Ok((CallType::SetWeights, transaction_fee, who.clone())) // 0 indicates that post_dispatch should use the self-weight to pay for the transaction
+//             }
+//             Some(Call::add_stake(..)) => {
+//                 // The transaction fee for the add_stake function is paid from the coldkey balance
+//                 // let transaction_fee = Module::<T>::calculate_transaction_fee(len as u64);
+//                 // let transaction_fee_as_balance = Module::<T>::u64_to_balance( transaction_fee );
+//                 let transaction_fee = Self::can_pay_add_stake(who, len as u64)?;
+//                 Ok((CallType::AddStake, transaction_fee, who.clone()))
+//             }
+//             Some(Call::remove_stake(hotkey_id, ..)) => {
+//                 // The tranaction fee for the remove_stake call is paid from the coldkey balance
+//                 // after the transaction completes. For this, a check is done on both the stake
+//                 // as well as the coldkey balance to see if one of both is sufficient to pay
+//                 // for the transaction
+//                 let transaction_fee = Self::can_pay_remove_stake(who, hotkey_id, len as u64)?;
+//                 Ok((CallType::RemoveStake, transaction_fee, who.clone()))
+//             }
+//             Some(Call::subscribe(..)) => {
+//                 let transaction_fee = Self::can_pay_subscribe()?;
+//                 Ok((CallType::Subscribe, transaction_fee, who.clone()))
+//             }
+//             _ => {
+//                 let transaction_fee = Self::can_pay_other(info, who, len as u64)?;
+//                 Ok((CallType::Other, transaction_fee, who.clone()))
+//             }
+//         }
+//     }
 
-    fn post_dispatch(
-        pre: Self::Pre,
-        info: &DispatchInfoOf<Self::Call>,
-        _post_info: &PostDispatchInfoOf<Self::Call>,
-        _len: usize,
-        result: &dispatch::DispatchResult,
-    ) -> Result<(), TransactionValidityError> {
-        let call_type = pre.0;
-        let transaction_fee = pre.1;
-        let account_id = pre.2;
-        let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee).unwrap();
+//     fn post_dispatch(
+//         pre: Self::Pre,
+//         info: &DispatchInfoOf<Self::Call>,
+//         _post_info: &PostDispatchInfoOf<Self::Call>,
+//         _len: usize,
+//         result: &dispatch::DispatchResult,
+//     ) -> Result<(), TransactionValidityError> {
+//         let call_type = pre.0;
+//         let transaction_fee = pre.1;
+//         let account_id = pre.2;
+//         let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee).unwrap();
 
-        match result {
-            Ok(_) => {
-                match call_type {
-                    CallType::SetWeights => {
-                        // account_id = hotkey_id, since this method is called with the hotkey
-                        let uid = Pallet::<T>::get_uid_for_hotkey(&account_id);
-                        Pallet::<T>::remove_stake_from_neuron_hotkey_account(uid, transaction_fee);
-                        Pallet::<T>::update_transaction_fee_pool(transaction_fee);
-                        Ok(Default::default())
-                    }
-                    CallType::AddStake => {
-                        // account_id = coldkey_id, since this method is called with the coldkey
-                        Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
-                        Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
-                        Ok(Default::default())
-                    }
-                    CallType::RemoveStake => {
-                        // account_id = coldkey_id, since this method is called with the coldkey
-                        Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
-                        Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
-                        Ok(Default::default())
-                    }
-                    CallType::Subscribe => {
-                        Ok(Default::default())
-                    }
-                    _ => {
-                        // Default behaviour for calls not otherwise specified
-                        match info.pays_fee {
-                            Pays::No => Ok(Default::default()),
-                            Pays::Yes => {
-                                Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
-                                Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
-                                Ok(Default::default())
-                            }
-                        }
-                    }
-                }
-            }
-            Err(_) => Ok(Default::default())
-        }
-    }
-}
+//         match result {
+//             Ok(_) => {
+//                 match call_type {
+//                     CallType::SetWeights => {
+//                         // account_id = hotkey_id, since this method is called with the hotkey
+//                         let uid = Pallet::<T>::get_uid_for_hotkey(&account_id);
+//                         Pallet::<T>::remove_stake_from_neuron_hotkey_account(uid, transaction_fee);
+//                         // Pallet::<T>::update_transaction_fee_pool(transaction_fee);
+//                         Ok(Default::default())
+//                     }
+//                     CallType::AddStake => {
+//                         // account_id = coldkey_id, since this method is called with the coldkey
+//                         Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
+//                         // Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
+//                         Ok(Default::default())
+//                     }
+//                     CallType::RemoveStake => {
+//                         // account_id = coldkey_id, since this method is called with the coldkey
+//                         Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
+//                         // Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
+//                         Ok(Default::default())
+//                     }
+//                     CallType::Subscribe => {
+//                         Ok(Default::default())
+//                     }
+//                     _ => {
+//                         // Default behaviour for calls not otherwise specified
+//                         match info.pays_fee {
+//                             Pays::No => Ok(Default::default()),
+//                             Pays::Yes => {
+//                                 Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
+//                                 // Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
+//                                 Ok(Default::default())
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//             Err(_) => Ok(Default::default())
+//         }
+//     }
+// }

@@ -30,65 +30,65 @@ fn test_set_weights_dispatch_info_ok() {
 }
 
 
-#[test]
-fn test_set_weights_transaction_fee_pool_and_neuron_receive_funds() {
-	new_test_ext().execute_with(|| {
+// #[test]
+// fn test_set_weights_transaction_fee_pool_and_neuron_receive_funds() {
+// 	new_test_ext().execute_with(|| {
         
-		let w_uids = vec![1, 2]; // When applied to neuron_1, this will set 50% to himself and 50% to neuron_2
-		let w_vals = vec![50, 50]; // The actual numbers are irrelevant for this test though
+// 		let w_uids = vec![1, 2]; // When applied to neuron_1, this will set 50% to himself and 50% to neuron_2
+// 		let w_vals = vec![50, 50]; // The actual numbers are irrelevant for this test though
 
-		let neuron_1_id = 1;
-		let neuron_2_id = 2;
+// 		let neuron_1_id = 1;
+// 		let neuron_2_id = 2;
 
-		let block_reward = U64F64::from_num(500_000_000);
-		let neuron_1_stake = 1_000_000_000;  // This is the stake that will be given to neuron 1
-		let expected_transaction_fee_pool = (block_reward as U64F64 * U64F64::from_num(0.01)).round().to_num::<u64>(); // This is the stake to be expected after applying set_weights
-		let expected_neuron_1_stake = neuron_1_stake + (block_reward * U64F64::from_num(0.99)).round().to_num::<u64>();
-
-
-		// let bleh = U64F64::from_num(500_000_000) * U64F64::from_num(0.99);
-		// assert_eq!(4444,bleh);
+// 		let block_reward = U64F64::from_num(500_000_000);
+// 		let neuron_1_stake = 1_000_000_000;  // This is the stake that will be given to neuron 1
+// 		let expected_transaction_fee_pool = (block_reward as U64F64 * U64F64::from_num(0.01)).round().to_num::<u64>(); // This is the stake to be expected after applying set_weights
+// 		let expected_neuron_1_stake = neuron_1_stake + (block_reward * U64F64::from_num(0.99)).round().to_num::<u64>();
 
 
-		let _adam    = subscribe_ok_neuron(0, 666);
-		let _neuron1 = subscribe_ok_neuron(neuron_1_id, 666); // uid 1
-		let _neuron2 = subscribe_ok_neuron(neuron_2_id, 666);
+// 		// let bleh = U64F64::from_num(500_000_000) * U64F64::from_num(0.99);
+// 		// assert_eq!(4444,bleh);
 
-		// Add 1 Tao to neuron 1. He now hold 100% of the stake, so will get the full emission,
-		// also he only has a self_weight.
 
-		Subtensor::add_stake_to_neuron_hotkey_account(_neuron1.uid, neuron_1_stake);
+// 		let _adam    = subscribe_ok_neuron(0, 666);
+// 		let _neuron1 = subscribe_ok_neuron(neuron_1_id, 666); // uid 1
+// 		let _neuron2 = subscribe_ok_neuron(neuron_2_id, 666);
 
-		// Move to block, to build up pending emission
-		mock::run_to_block(1); 
+// 		// Add 1 Tao to neuron 1. He now hold 100% of the stake, so will get the full emission,
+// 		// also he only has a self_weight.
 
-        // This will emit .5 TAO to neuron 1, since he has 100% of the total stake
-        assert_eq!(Subtensor::get_pending_emission_for_neuron(_neuron1.uid), 500_000_000);
-		// Verify transacion fee pool == 0
-		assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
+// 		Subtensor::add_stake_to_neuron_hotkey_account(_neuron1.uid, neuron_1_stake);
 
-		// Define the call
-		let call = Call::Subtensor(SubtensorCall::set_weights(w_uids, w_vals));
+// 		// Move to block, to build up pending emission
+// 		mock::run_to_block(1); 
 
-		// Setup the extrinsic
-		let xt = TestXt::new(call, mock::sign_extra(_neuron1.uid,0)); // Apply t
-		// Execute. This will trigger the set_weights function to emit, before the new weights are set.
-		// Resulting in neuron1 getting 99% of the block reward and 1% going to the transaction pool
-		let result = mock::Executive::apply_extrinsic(xt);
+//         // This will emit .5 TAO to neuron 1, since he has 100% of the total stake
+//         assert_eq!(Subtensor::get_pending_emission_for_neuron(_neuron1.uid), 500_000_000);
+// 		// Verify transacion fee pool == 0
+// 		assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
+
+// 		// Define the call
+// 		let call = Call::Subtensor(SubtensorCall::set_weights(w_uids, w_vals));
+
+// 		// Setup the extrinsic
+// 		let xt = TestXt::new(call, mock::sign_extra(_neuron1.uid,0)); // Apply t
+// 		// Execute. This will trigger the set_weights function to emit, before the new weights are set.
+// 		// Resulting in neuron1 getting 99% of the block reward and 1% going to the transaction pool
+// 		let result = mock::Executive::apply_extrinsic(xt);
         
-		// Verify success
-        println!("Result: {:?}", result);
+// 		// Verify success
+//         println!("Result: {:?}", result);
 
-		assert_ok!(result);
+// 		assert_ok!(result);
 
-		let transaction_fees_pool = Subtensor::get_transaction_fee_pool();
-		let neuron_1_new_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_1_id);
-        println!("new stake: {:?}", neuron_1_new_stake);
+// 		let transaction_fees_pool = Subtensor::get_transaction_fee_pool();
+// 		let neuron_1_new_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_1_id);
+//         println!("new stake: {:?}", neuron_1_new_stake);
 
-		assert_eq!(transaction_fees_pool, expected_transaction_fee_pool);
-		assert_eq!(neuron_1_new_stake, expected_neuron_1_stake);  // Neuron 1 maintains his original stake + 99% of the block reward
-	});
-}
+// 		assert_eq!(transaction_fees_pool, expected_transaction_fee_pool);
+// 		assert_eq!(neuron_1_new_stake, expected_neuron_1_stake);  // Neuron 1 maintains his original stake + 99% of the block reward
+// 	});
+// }
 
 
 
@@ -130,52 +130,52 @@ fn set_weights_ok_no_weights() {
 	});
 }
 
-#[test]
-fn set_weights_ok_with_weights() {
-	new_test_ext().execute_with(|| {
-		let neurons = vec![
-			subscribe_neuron(55, 10, 666, 4, 0, 66),
-			subscribe_neuron(66, 10, 666, 4, 0, 66),
-			subscribe_neuron(77, 10, 666, 4, 0, 66)
-		];
+// #[test]
+// fn set_weights_ok_with_weights() {
+// 	new_test_ext().execute_with(|| {
+// 		let neurons = vec![
+// 			subscribe_neuron(55, 10, 666, 4, 0, 66),
+// 			subscribe_neuron(66, 10, 666, 4, 0, 66),
+// 			subscribe_neuron(77, 10, 666, 4, 0, 66)
+// 		];
 
-		let initial_stakes = vec![10000,0,0];
+// 		let initial_stakes = vec![10000,0,0];
 
-		let weight_uids = vec![neurons[1].uid, neurons[2].uid];
-		let weight_values = vec![u32::MAX / 2, u32::MAX / 2]; // Set equal weights to ids 2,3
+// 		let weight_uids = vec![neurons[1].uid, neurons[2].uid];
+// 		let weight_values = vec![u32::MAX / 2, u32::MAX / 2]; // Set equal weights to ids 2,3
 
-		// Expectations
-		let expect_weight_uids = vec![neurons[1].uid, neurons[2].uid];
-		let expect_weight_values = vec![u32::MAX / 2, u32::MAX / 2];
+// 		// Expectations
+// 		let expect_weight_uids = vec![neurons[1].uid, neurons[2].uid];
+// 		let expect_weight_values = vec![u32::MAX / 2, u32::MAX / 2];
 
-		// Dish out the stake for all neurons
-		for (i, neuron) in neurons.iter().enumerate() {
-			Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, initial_stakes[i]);
-		}
+// 		// Dish out the stake for all neurons
+// 		for (i, neuron) in neurons.iter().enumerate() {
+// 			Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, initial_stakes[i]);
+// 		}
 
-		// Perform tests
+// 		// Perform tests
 
-		// First call to set the weights. An emit is triggered, but since there are no weights, no emission occurs
-		assert_ok!(Subtensor::set_weights(Origin::signed(55), weight_uids.clone(), weight_values.clone()));
+// 		// First call to set the weights. An emit is triggered, but since there are no weights, no emission occurs
+// 		assert_ok!(Subtensor::set_weights(Origin::signed(55), weight_uids.clone(), weight_values.clone()));
 
-		// Increase the block number to trigger emit. It starts at block 0
-		run_to_block(1);
+// 		// Increase the block number to trigger emit. It starts at block 0
+// 		run_to_block(1);
 
-		// Second set weights. This should cause inflation to be distributed and end up in hotkey accounts.
-		assert_ok!(Subtensor::set_weights(Origin::signed(55), weight_uids.clone(), weight_values.clone()));
-		assert_eq!(Subtensor::get_weights_for_neuron(&neurons[0]), (expect_weight_uids, expect_weight_values));
+// 		// Second set weights. This should cause inflation to be distributed and end up in hotkey accounts.
+// 		assert_ok!(Subtensor::set_weights(Origin::signed(55), weight_uids.clone(), weight_values.clone()));
+// 		assert_eq!(Subtensor::get_weights_for_neuron(&neurons[0]), (expect_weight_uids, expect_weight_values));
 
-		let mut stakes: Vec<u64> = vec![];
-		for neuron in neurons {
-			stakes.push(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid));
-		}
+// 		let mut stakes: Vec<u64> = vec![];
+// 		for neuron in neurons {
+// 			stakes.push(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid));
+// 		}
 
-		assert_eq!(stakes[0], initial_stakes[0]); // Stake of sender should remain unchanged
-		assert!(stakes[1] >  initial_stakes[1]); // The stake of destination 1 should have increased
-		assert!(stakes[2] >  initial_stakes[2]); // The stake destination 2 should habe increased
-		assert_eq!(stakes[1], stakes[2]); // The stakes should have increased the same
-	});
-}
+// 		assert_eq!(stakes[0], initial_stakes[0]); // Stake of sender should remain unchanged
+// 		assert!(stakes[1] >  initial_stakes[1]); // The stake of destination 1 should have increased
+// 		assert!(stakes[2] >  initial_stakes[2]); // The stake destination 2 should habe increased
+// 		assert_eq!(stakes[1], stakes[2]); // The stakes should have increased the same
+// 	});
+// }
 
 #[test]
 fn test_weights_err_weights_vec_not_equal_size() {

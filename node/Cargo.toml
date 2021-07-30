@@ -1,6 +1,6 @@
 [features]
 default = []
-runtime-benchmarks = ['node-template-runtime/runtime-benchmarks']
+runtime-benchmarks = ['node-subtensor-runtime/runtime-benchmarks']
 
 [build-dependencies.substrate-build-script-utils]
 git = 'https://github.com/paritytech/substrate.git'
@@ -34,7 +34,7 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'monthly-2021-07'
 version = '3.0.0'
 
-[dependencies.node-template-runtime]
+[dependencies.node-subtensor-runtime]
 path = '../runtime'
 version = '3.0.0'
 

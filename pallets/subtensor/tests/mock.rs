@@ -172,8 +172,8 @@ impl frame_support::traits::Get<sp_version::RuntimeVersion> for RuntimeVersion {
 type SignedExtra = (
 	frame_system::CheckEra<Test>,
 	frame_system::CheckNonce<Test>,
-	frame_system::CheckWeight<Test>,
-	pallet_subtensor::ChargeTransactionPayment<Test>,
+	frame_system::CheckWeight<Test>
+	// pallet_subtensor::ChargeTransactionPayment<Test>,
 	//pallet_transaction_payment::ChargeTransactionPaymentOld<Test>
 );
 
@@ -209,8 +209,8 @@ fn extra(nonce: u64) -> SignedExtra {
 	(
 		frame_system::CheckEra::from(Era::Immortal),
 		frame_system::CheckNonce::from(nonce),
-		frame_system::CheckWeight::new(),
-		pallet_subtensor::ChargeTransactionPayment::new(),
+		frame_system::CheckWeight::new()
+		// pallet_subtensor::ChargeTransactionPayment::new(),
 		// pallet_transaction_payment::ChargeTransactionPayment::from(0)
 	)
 }
@@ -240,58 +240,18 @@ pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExterna
 	t.into()
 }
 
-#[allow(dead_code)]
-pub fn test_ext_with_pending_emissions(emissions : Vec<(u64, u64)>) -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default()
-	.build_storage::<Test>()
-	.unwrap();
 
-	pallet_subtensor::GenesisConfig {
-		pending_emissions: emissions,
-		stake: vec![],
-		transaction_fee_pool : 0,
-	}.assimilate_storage::<Test>(&mut t)
-		.unwrap();
-
-	t.into()
-
-}
-
-#[allow(dead_code)]
-pub fn test_ext_with_stake(_ : Vec<(u64, u64)>) -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default()
-	.build_storage::<Test>()
-	.unwrap();
-
-	pallet_subtensor::GenesisConfig {
-		pending_emissions: vec![],
-		stake: vec![],
-		transaction_fee_pool: 0,
-	}.assimilate_storage::<Test>(&mut t)
-		.unwrap();
-
-	t.into()
-
-}
-
-
-#[allow(dead_code)]
-pub fn test_ext_with_transaction_fee_pool(transaction_fee_pool : u64) -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Test>()
-		.unwrap();
-
-	
-	pallet_subtensor::GenesisConfig {
-		pending_emissions: vec![],
-		stake: vec![],
-		transaction_fee_pool
-	}.assimilate_storage::<Test>(&mut t)
-		.unwrap();
-
-	t.into()
-
-}
+// #[allow(dead_code)]
+// pub fn test_ext_with_stake(stake : Vec<(u64, u64)>) -> sp_io::TestExternalities {
+// 	let mut t = frame_system::GenesisConfig::default()
+// 	.build_storage::<Test>()
+// 	.unwrap();
+// 	pallet_subtensor::GenesisConfig {
+// 		stake: vec![]
+// 	}.assimilate_storage::<Test>(&mut t)
+// 		.unwrap();
+// 	t.into()
+// }
 
 #[allow(dead_code)]
 pub fn subscribe_neuron(hotkey_account_id : u64, ip: u128, port: u16, ip_type : u8, modality: u8, coldkey_acount_id : u64) -> NeuronMetadata<u64> {

@@ -13,7 +13,6 @@ impl<T: Config> Pallet<T> {
         ensure!(is_valid_modality(modality), Error::<T>::InvalidModality);
         ensure!(is_valid_ip_type(ip_type), Error::<T>::InvalidIpType);
         ensure!(is_valid_ip_address(ip_type, ip), Error::<T>::InvalidIpAddress);
-        ensure!(Self::check_and_increment_subscriptions_per_block(), Error::<T>::ToManySubscriptionsThisBlock);
 
         // --- We switch here between an update and a subscribe.
         if !Self::is_hotkey_active(&hotkey_id) {
@@ -29,7 +28,6 @@ impl<T: Config> Pallet<T> {
 
             // -- We initialize table values for this peer.
             Self::create_hotkey_account(neuron.uid);
-            Self::update_last_emit_for_neuron(neuron.uid);
             Self::init_weight_matrix_for_neuron(&neuron);
 
             // --- We deposit the neuron added event.
@@ -41,10 +39,6 @@ impl<T: Config> Pallet<T> {
             // --- If the neuron is already subscribed, we allow an update to their
             // modality and ip.
             let neuron = Self::update_neuron_in_metagraph(uid, ip, port, ip_type);
-            Self::update_last_emit_for_neuron(neuron.uid);
-
-            // --- We call the emit for the resubscribe.
-            Self::emit_for_neuron( &neuron );
 
             // --- We deposit the neuron updated event
             Self::deposit_event(Event::NeuronUpdated(uid));
@@ -100,26 +94,6 @@ impl<T: Config> Pallet<T> {
 
         Neurons::<T>::insert(uid, &new_metadata);
         return new_metadata;
-    }
-
-    pub fn check_and_increment_subscriptions_per_block() -> bool {
-        let num_allowed_subscriptions = 25;
-        let current_block: T::BlockNumber = system::Pallet::<T>::block_number();
-        let last_subscription: T::BlockNumber = LastSubscriptionBlock::<T>::get();
-        if last_subscription < current_block {
-            SubscriptionsThisBlock::<T>::put(1);
-            LastSubscriptionBlock::<T>::put(current_block);
-            return true;
-        } else {
-            let subs_this_block = SubscriptionsThisBlock::<T>::get();
-            if subs_this_block >= num_allowed_subscriptions {
-                return false;
-            } else {
-                SubscriptionsThisBlock::<T>::put(subs_this_block + 1);
-                LastSubscriptionBlock::<T>::put(current_block);
-                return true;
-            }
-        }
     }
 }
 
