@@ -2,7 +2,6 @@ use frame_support::{assert_ok};
 use frame_system::{Config};
 mod mock;
 use mock::*;
-use mock::{TestXt};
 use frame_support::sp_runtime::DispatchError;
 use pallet_subtensor::{Error};
 use frame_support::weights::{GetDispatchInfo, DispatchInfo, DispatchClass, Pays};
@@ -32,37 +31,37 @@ fn test_add_stake_dispatch_info_ok() {
 	This test also covers any signed extensions
 ************************************************************/
 
-#[test]
-fn test_add_stake_transaction_fee_ends_up_in_transaction_fee_pool() {
-	let test_neuron_cold_key = 1;
-	let test_neuron_hot_key = 2;
+// #[test]
+// fn test_add_stake_transaction_fee_ends_up_in_transaction_fee_pool() {
+// 	let test_neuron_cold_key = 1;
+// 	let test_neuron_hot_key = 2;
 
-	// Give account id 1 10^9 rao ( 1 Tao )
-	let balances = vec![(test_neuron_cold_key, 1_000_000_000)];
+// 	// Give account id 1 10^9 rao ( 1 Tao )
+// 	let balances = vec![(test_neuron_cold_key, 1_000_000_000)];
 
-	mock::test_ext_with_balances(balances).execute_with(|| {
-		// Register neuron_1
-		let test_neuron = subscribe_ok_neuron(test_neuron_hot_key, test_neuron_cold_key);
+// 	mock::test_ext_with_balances(balances).execute_with(|| {
+// 		// Register neuron_1
+// 		let test_neuron = subscribe_ok_neuron(test_neuron_hot_key, test_neuron_cold_key);
 
-		// Verify start situation
-        let start_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
-		let start_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(test_neuron.uid);
-		assert_eq!(start_balance, 1_000_000_000);
-		assert_eq!(start_stake, 0);
+// 		// Verify start situation
+//         let start_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
+// 		let start_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(test_neuron.uid);
+// 		assert_eq!(start_balance, 1_000_000_000);
+// 		assert_eq!(start_stake, 0);
 
-		let call = Call::Subtensor(SubtensorCall::add_stake(test_neuron_hot_key, 500_000_000));
-		let xt = TestXt::new(call, mock::sign_extra(test_neuron_cold_key, 0));
-		let result = mock::Executive::apply_extrinsic(xt);
+// 		let call = Call::Subtensor(SubtensorCall::add_stake(test_neuron_hot_key, 500_000_000));
+// 		let xt = TestXt::new(call, mock::sign_extra(test_neuron_cold_key, 0));
+// 		let result = mock::Executive::apply_extrinsic(xt);
 
-		assert_ok!(result);
+// 		assert_ok!(result);
 
-		let end_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
-		let transaction_fee_pool = Subtensor::get_transaction_fee_pool();
+// 		let end_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
+// 		let transaction_fee_pool = Subtensor::get_transaction_fee_pool();
 
-		assert_eq!(end_balance, 499_997_100);
-		assert_eq!(transaction_fee_pool, 2900);
-	});
-}
+// 		assert_eq!(end_balance, 499_997_100);
+// 		assert_eq!(transaction_fee_pool, 2900);
+// 	});
+// }
 
 
 #[test]
@@ -227,28 +226,28 @@ fn test_remove_stake_dispatch_info_ok() {
 	});
 }
 
-#[test]
-fn test_remove_stake_ok_transaction_fee_ends_up_in_transaction_fee_pool() {
-	let coldkey_id = 667;
-	let initial_stake : u64 = 1_000_000_000;
-	let hotkey_id = 1;
+// #[test]
+// fn test_remove_stake_ok_transaction_fee_ends_up_in_transaction_fee_pool() {
+// 	let coldkey_id = 667;
+// 	let initial_stake : u64 = 1_000_000_000;
+// 	let hotkey_id = 1;
 
-	test_ext_with_balances(vec![(coldkey_id, initial_stake as u128)]).execute_with(|| {
-        let _adam = subscribe_ok_neuron(0,667);
-		let _neuron = subscribe_ok_neuron(hotkey_id, coldkey_id);
-		assert_ok!(Subtensor::add_stake(Origin::signed(coldkey_id), hotkey_id, initial_stake));
+// 	test_ext_with_balances(vec![(coldkey_id, initial_stake as u128)]).execute_with(|| {
+//         let _adam = subscribe_ok_neuron(0,667);
+// 		let _neuron = subscribe_ok_neuron(hotkey_id, coldkey_id);
+// 		assert_ok!(Subtensor::add_stake(Origin::signed(coldkey_id), hotkey_id, initial_stake));
 
 
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(hotkey_id), 1_000_000_000);
+// 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(hotkey_id), 1_000_000_000);
 
-		let call = Call::Subtensor(SubtensorCall::remove_stake(hotkey_id, 500_000_000));
-		let xt = TestXt::new(call, mock::sign_extra(coldkey_id, 0));
-		let result = mock::Executive::apply_extrinsic(xt);
-		assert_ok!(result);
+// 		let call = Call::Subtensor(SubtensorCall::remove_stake(hotkey_id, 500_000_000));
+// 		let xt = TestXt::new(call, mock::sign_extra(coldkey_id, 0));
+// 		let result = mock::Executive::apply_extrinsic(xt);
+// 		assert_ok!(result);
 
-		assert!(Subtensor::get_transaction_fee_pool() > 0);
-	});
-}
+// 		assert!(Subtensor::get_transaction_fee_pool() > 0);
+// 	});
+// }
 
 
 #[test]

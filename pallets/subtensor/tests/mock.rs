@@ -173,8 +173,8 @@ type SignedExtra = (
 	frame_system::CheckEra<Test>,
 	frame_system::CheckNonce<Test>,
 	frame_system::CheckWeight<Test>,
-	pallet_subtensor::ChargeTransactionPayment<Test>,
-	//pallet_transaction_payment::ChargeTransactionPaymentOld<Test>
+	//pallet_subtensor::ChargeTransactionPayment<Test>,
+	pallet_transaction_payment::ChargeTransactionPayment<Test>
 );
 
 
@@ -210,8 +210,8 @@ fn extra(nonce: u64) -> SignedExtra {
 		frame_system::CheckEra::from(Era::Immortal),
 		frame_system::CheckNonce::from(nonce),
 		frame_system::CheckWeight::new(),
-		pallet_subtensor::ChargeTransactionPayment::new(),
-		// pallet_transaction_payment::ChargeTransactionPayment::from(0)
+		//pallet_subtensor::ChargeTransactionPayment::new(),
+		pallet_transaction_payment::ChargeTransactionPayment::from(0)
 	)
 }
 

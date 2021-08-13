@@ -1,11 +1,9 @@
 mod mock;
 use mock::*;
-use mock::{TestXt};
 use pallet_subtensor::{Error};
 use frame_support::weights::{GetDispatchInfo, DispatchInfo, DispatchClass, Pays};
 use frame_support::{assert_ok};
 use sp_runtime::DispatchError;
-use fixed::types::U64F64;
 
 
 /***************************
@@ -30,65 +28,65 @@ fn test_set_weights_dispatch_info_ok() {
 }
 
 
-#[test]
-fn test_set_weights_transaction_fee_pool_and_neuron_receive_funds() {
-	new_test_ext().execute_with(|| {
+// #[test]
+// fn test_set_weights_transaction_fee_pool_and_neuron_receive_funds() {
+// 	new_test_ext().execute_with(|| {
         
-		let w_uids = vec![1, 2]; // When applied to neuron_1, this will set 50% to himself and 50% to neuron_2
-		let w_vals = vec![50, 50]; // The actual numbers are irrelevant for this test though
+// 		let w_uids = vec![1, 2]; // When applied to neuron_1, this will set 50% to himself and 50% to neuron_2
+// 		let w_vals = vec![50, 50]; // The actual numbers are irrelevant for this test though
 
-		let neuron_1_id = 1;
-		let neuron_2_id = 2;
+// 		let neuron_1_id = 1;
+// 		let neuron_2_id = 2;
 
-		let block_reward = U64F64::from_num(500_000_000);
-		let neuron_1_stake = 1_000_000_000;  // This is the stake that will be given to neuron 1
-		let expected_transaction_fee_pool = (block_reward as U64F64 * U64F64::from_num(0.01)).round().to_num::<u64>(); // This is the stake to be expected after applying set_weights
-		let expected_neuron_1_stake = neuron_1_stake + (block_reward * U64F64::from_num(0.99)).round().to_num::<u64>();
-
-
-		// let bleh = U64F64::from_num(500_000_000) * U64F64::from_num(0.99);
-		// assert_eq!(4444,bleh);
+// 		let block_reward = U64F64::from_num(500_000_000);
+// 		let neuron_1_stake = 1_000_000_000;  // This is the stake that will be given to neuron 1
+// 		let expected_transaction_fee_pool = (block_reward as U64F64 * U64F64::from_num(0.01)).round().to_num::<u64>(); // This is the stake to be expected after applying set_weights
+// 		let expected_neuron_1_stake = neuron_1_stake + (block_reward * U64F64::from_num(0.99)).round().to_num::<u64>();
 
 
-		let _adam    = subscribe_ok_neuron(0, 666);
-		let _neuron1 = subscribe_ok_neuron(neuron_1_id, 666); // uid 1
-		let _neuron2 = subscribe_ok_neuron(neuron_2_id, 666);
+// 		// let bleh = U64F64::from_num(500_000_000) * U64F64::from_num(0.99);
+// 		// assert_eq!(4444,bleh);
 
-		// Add 1 Tao to neuron 1. He now hold 100% of the stake, so will get the full emission,
-		// also he only has a self_weight.
 
-		Subtensor::add_stake_to_neuron_hotkey_account(_neuron1.uid, neuron_1_stake);
+// 		let _adam    = subscribe_ok_neuron(0, 666);
+// 		let _neuron1 = subscribe_ok_neuron(neuron_1_id, 666); // uid 1
+// 		let _neuron2 = subscribe_ok_neuron(neuron_2_id, 666);
 
-		// Move to block, to build up pending emission
-		mock::run_to_block(1); 
+// 		// Add 1 Tao to neuron 1. He now hold 100% of the stake, so will get the full emission,
+// 		// also he only has a self_weight.
 
-        // This will emit .5 TAO to neuron 1, since he has 100% of the total stake
-        assert_eq!(Subtensor::get_pending_emission_for_neuron(_neuron1.uid), 500_000_000);
-		// Verify transacion fee pool == 0
-		assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
+// 		Subtensor::add_stake_to_neuron_hotkey_account(_neuron1.uid, neuron_1_stake);
 
-		// Define the call
-		let call = Call::Subtensor(SubtensorCall::set_weights(w_uids, w_vals));
+// 		// Move to block, to build up pending emission
+// 		mock::run_to_block(1); 
 
-		// Setup the extrinsic
-		let xt = TestXt::new(call, mock::sign_extra(_neuron1.uid,0)); // Apply t
-		// Execute. This will trigger the set_weights function to emit, before the new weights are set.
-		// Resulting in neuron1 getting 99% of the block reward and 1% going to the transaction pool
-		let result = mock::Executive::apply_extrinsic(xt);
+//         // This will emit .5 TAO to neuron 1, since he has 100% of the total stake
+//         assert_eq!(Subtensor::get_pending_emission_for_neuron(_neuron1.uid), 500_000_000);
+// 		// Verify transacion fee pool == 0
+// 		assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
+
+// 		// Define the call
+// 		let call = Call::Subtensor(SubtensorCall::set_weights(w_uids, w_vals));
+
+// 		// Setup the extrinsic
+// 		let xt = TestXt::new(call, mock::sign_extra(_neuron1.uid,0)); // Apply t
+// 		// Execute. This will trigger the set_weights function to emit, before the new weights are set.
+// 		// Resulting in neuron1 getting 99% of the block reward and 1% going to the transaction pool
+// 		let result = mock::Executive::apply_extrinsic(xt);
         
-		// Verify success
-        println!("Result: {:?}", result);
+// 		// Verify success
+//         println!("Result: {:?}", result);
 
-		assert_ok!(result);
+// 		assert_ok!(result);
 
-		let transaction_fees_pool = Subtensor::get_transaction_fee_pool();
-		let neuron_1_new_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_1_id);
-        println!("new stake: {:?}", neuron_1_new_stake);
+// 		let transaction_fees_pool = Subtensor::get_transaction_fee_pool();
+// 		let neuron_1_new_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_1_id);
+//         println!("new stake: {:?}", neuron_1_new_stake);
 
-		assert_eq!(transaction_fees_pool, expected_transaction_fee_pool);
-		assert_eq!(neuron_1_new_stake, expected_neuron_1_stake);  // Neuron 1 maintains his original stake + 99% of the block reward
-	});
-}
+// 		assert_eq!(transaction_fees_pool, expected_transaction_fee_pool);
+// 		assert_eq!(neuron_1_new_stake, expected_neuron_1_stake);  // Neuron 1 maintains his original stake + 99% of the block reward
+// 	});
+// }
 
 
 
