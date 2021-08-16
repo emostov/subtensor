@@ -445,7 +445,7 @@ pub mod pallet {
 		/// 		- When the amount to stake exceeds the amount of balance in the
 		/// 		associated colkey account.
 		///
-		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn add_stake(origin:OriginFor<T>, hotkey: T::AccountId, ammount_staked: u64) -> DispatchResult {
 			Self::do_add_stake(origin, hotkey, ammount_staked)
 		}
@@ -477,7 +477,7 @@ pub mod pallet {
 		/// 		- When the amount to unstake exceeds the quantity staked in the
 		/// 		associated hotkey staking account.
 		///
-		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn remove_stake(origin:OriginFor<T>, hotkey: T::AccountId, ammount_unstaked: u64) -> DispatchResult {
 			Self::do_remove_stake(origin, hotkey, ammount_unstaked)
 		}

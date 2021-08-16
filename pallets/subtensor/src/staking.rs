@@ -1,3 +1,5 @@
+use frame_support::{log::debug};
+
 use super::*;
 
 impl<T: Config> Pallet<T> {
@@ -10,7 +12,7 @@ impl<T: Config> Pallet<T> {
         // ---- We check the transaction is signed by the caller
         // and retrieve the T::AccountId pubkey information.
         let coldkey = ensure_signed(origin)?;
-        //debug(&("--- Called add_stake with coldkey id {:?}, hotkey {:?} and amount_staked {:?}", coldkey, hotkey, stake_to_be_added));
+        debug!("--- Called add_stake with coldkey id {:?}, hotkey {:?} and amount_staked {:?}", &coldkey, &hotkey, &stake_to_be_added);
 
         // Check if the hotkey is active
         ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotActive);

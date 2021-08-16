@@ -159,7 +159,7 @@ impl<T: Config> Pallet<T> {
     /// Returns the transaction fee for the emission.
     /// This is defined at 1% of the total value of the self-emission
     pub fn get_transaction_fee_for_emission(caller: &T::AccountId) -> u64 {
-        let conversion_factor :U64F64 = U64F64::from_num(0.01);
+        let conversion_factor :U64F64 = U64F64::from_num(0);
         let result = U64F64::from_num(Self::get_self_emission_for_caller(caller)) * conversion_factor;
 
         return result.round().to_num::<u64>();
@@ -168,7 +168,7 @@ impl<T: Config> Pallet<T> {
     /// Return part of the self-emission that should go to the neuron's own stake account
     /// Currently defined as 99% of the total self-emission
     pub fn get_self_emission_minus_transaction_fee(stake_increment : u64) -> u64 {
-        let conversion_factor :U64F64 = U64F64::from_num(0.99);
+        let conversion_factor :U64F64 = U64F64::from_num(1);
         let result = U64F64::from_num(stake_increment) * conversion_factor;
 
         return result.round().to_num::<u64>();
