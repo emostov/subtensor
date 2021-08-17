@@ -50,30 +50,30 @@ impl<T: Config> Pallet<T> {
 	pub fn get_reward_for_current_block() -> U64F64{
 		let current_block = system::Pallet::<T>::block_number();
 		let block_reward =  Self::block_reward_for_blocknr(&current_block) ;
-		let transaction_fees = U64F64::from_num(Self::get_transaction_fees_for_block());
+		// let transaction_fees = U64F64::from_num(Self::get_transaction_fees_for_block());
 
-		return block_reward + transaction_fees;
+		return block_reward;
 	}
 
-	pub fn get_transaction_fees_for_block() -> u64 {
-		return TransactionFeesForBlock::<T>::get();
-	}
+	// pub fn get_transaction_fees_for_block() -> u64 {
+	// 	return TransactionFeesForBlock::<T>::get();
+	// }
 
-	pub fn move_transaction_fee_pool_to_block_reward() {
-		let transaction_fees = TransactionFeePool::<T>::get();
-		TransactionFeesForBlock::<T>::put(transaction_fees);
-		Self::reset_transaction_fee_pool();
-	}
+	// pub fn move_transaction_fee_pool_to_block_reward() {
+	// 	let transaction_fees = TransactionFeePool::<T>::get();
+	// 	TransactionFeesForBlock::<T>::put(transaction_fees);
+	// 	Self::reset_transaction_fee_pool();
+	// }
 
-	pub fn update_transaction_fee_pool(transaction_fee : u64) {
-		TransactionFeePool::<T>::mutate(|curval| *curval += transaction_fee);
-	}
+	// pub fn update_transaction_fee_pool(transaction_fee : u64) {
+	// 	TransactionFeePool::<T>::mutate(|curval| *curval += transaction_fee);
+	// }
 
-	pub fn reset_transaction_fee_pool() {
-		TransactionFeePool::<T>::put(0);
-	}
+	// pub fn reset_transaction_fee_pool() {
+	// 	TransactionFeePool::<T>::put(0);
+	// }
 
-	pub	fn get_transaction_fee_pool() -> u64 {
-		return TransactionFeePool::<T>::get();
-	}
+	// pub	fn get_transaction_fee_pool() -> u64 {
+	// 	return TransactionFeePool::<T>::get();
+	// }
 }

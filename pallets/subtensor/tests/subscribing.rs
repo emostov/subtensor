@@ -103,13 +103,13 @@ fn test_subscriptions_per_block() {
 			assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(i), ip, port, ip_type, modality, coldkey_account_id));
 		}
 		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(25), ip, port, ip_type, modality, coldkey_account_id);
-		assert_eq!(result, Err(Error::<Test>::ToManySubscriptionsThisBlock.into()));
+		assert_eq!(result, Err(Error::<Test>::TooManySubscriptionsThisBlock.into()));
 		run_to_block(1);
 		for i in 0..= 24 {
 			assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(26 + i), ip, port, ip_type, modality, coldkey_account_id));
 		}
 		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(52), ip, port, ip_type, modality, coldkey_account_id);
-		assert_eq!(result, Err(Error::<Test>::ToManySubscriptionsThisBlock.into()));
+		assert_eq!(result, Err(Error::<Test>::TooManySubscriptionsThisBlock.into()));
 	});
 }
 

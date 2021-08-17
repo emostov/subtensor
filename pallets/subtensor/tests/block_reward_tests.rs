@@ -15,14 +15,14 @@ fn test_block_reward_for_blocks_0_and_1_without_transaction_fees() {
 }
 
 
-#[test]
-fn test_block_reward_including_transaction_fees() {
-	test_ext_with_transaction_fee_pool(1_000).execute_with(|| {
-        assert_eq!(Subtensor::get_reward_for_current_block(), 500_000_000);
-        run_to_block(1);
-        assert_eq!(Subtensor::get_reward_for_current_block(), 500_001_000);
-	});
-}
+// #[test]
+// fn test_block_reward_including_transaction_fees() {
+// 	test_ext_with_transaction_fee_pool(1_000).execute_with(|| {
+//         assert_eq!(Subtensor::get_reward_for_current_block(), 500_000_000);
+//         run_to_block(1);
+//         assert_eq!(Subtensor::get_reward_for_current_block(), 500_001_000);
+// 	});
+// }
 
 #[test]
 fn test_block_reward_at_halvings() {
@@ -72,16 +72,16 @@ fn test_roughly_21000000() {
 	This block tests the accumulation of transaction fees 
 	and their proportion of the block reward.
 ************************************************************/
-#[test]
-fn test_accumulated_transaction_fees_are_moved_to_block_reward_on_next_block() {
-	test_ext_with_transaction_fee_pool(1000).execute_with(|| {
-        // Move to next block
-        run_to_block(1);
+// #[test]
+// fn test_accumulated_transaction_fees_are_moved_to_block_reward_on_next_block() {
+// 	test_ext_with_transaction_fee_pool(1000).execute_with(|| {
+//         // Move to next block
+//         run_to_block(1);
 
-        let result = Subtensor::get_reward_for_current_block();
-        assert_eq!(result, 500_000_000 + 1000);
-	});
-}
+//         let result = Subtensor::get_reward_for_current_block();
+//         assert_eq!(result, 500_000_000 + 1000);
+// 	});
+// }
 
 
 
@@ -89,37 +89,37 @@ fn test_accumulated_transaction_fees_are_moved_to_block_reward_on_next_block() {
 /************************************************************	
 	move_transaction_fee_pool_to_block_reward::() tests
 ************************************************************/
-#[test]
-fn test_move_transaction_fee_pool_to_block_reward_ok() {
-	test_ext_with_transaction_fee_pool(1_000).execute_with(|| {
-        Subtensor::move_transaction_fee_pool_to_block_reward();
+// #[test]
+// fn test_move_transaction_fee_pool_to_block_reward_ok() {
+// 	test_ext_with_transaction_fee_pool(1_000).execute_with(|| {
+//         Subtensor::move_transaction_fee_pool_to_block_reward();
 
-        assert_eq!(Subtensor::get_transaction_fees_for_block(), 1000);
-        assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
-	});
-}
+//         assert_eq!(Subtensor::get_transaction_fees_for_block(), 1000);
+//         assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
+// 	});
+// }
 
 /************************************************************	
 	update_transaction_fee_pool::() tests
 ************************************************************/
-#[test]
-fn test_update_transaction_fee_pool_ok() {
-	new_test_ext().execute_with(|| {
-        assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
+// #[test]
+// fn test_update_transaction_fee_pool_ok() {
+// 	new_test_ext().execute_with(|| {
+//         assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
 
-        Subtensor::update_transaction_fee_pool(10_000);
-        assert_eq!(Subtensor::get_transaction_fee_pool(), 10_000);
-	});
-}
+//         Subtensor::update_transaction_fee_pool(10_000);
+//         assert_eq!(Subtensor::get_transaction_fee_pool(), 10_000);
+// 	});
+// }
 
 
 /************************************************************	
 	reset_transaction_fee_pool::() tests
 ************************************************************/
-#[test]
-fn test_reset_transaction_fee_pool_ok() {
-	test_ext_with_transaction_fee_pool(1_000).execute_with(|| {
-        Subtensor::reset_transaction_fee_pool();
-        assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
-	});
-}
+// #[test]
+// fn test_reset_transaction_fee_pool_ok() {
+// 	test_ext_with_transaction_fee_pool(1_000).execute_with(|| {
+//         Subtensor::reset_transaction_fee_pool();
+//         assert_eq!(Subtensor::get_transaction_fee_pool(), 0);
+// 	});
+// }

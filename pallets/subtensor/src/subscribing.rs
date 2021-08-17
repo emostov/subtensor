@@ -1,3 +1,5 @@
+use frame_support::log::debug;
+
 use super::*;
 
 impl<T: Config> Pallet<T> {
@@ -13,20 +15,22 @@ impl<T: Config> Pallet<T> {
         ensure!(is_valid_modality(modality), Error::<T>::InvalidModality);
         ensure!(is_valid_ip_type(ip_type), Error::<T>::InvalidIpType);
         ensure!(is_valid_ip_address(ip_type, ip), Error::<T>::InvalidIpAddress);
-        ensure!(Self::check_and_increment_subscriptions_per_block(), Error::<T>::ToManySubscriptionsThisBlock);
+        ensure!(Self::check_and_increment_subscriptions_per_block(), Error::<T>::TooManySubscriptionsThisBlock);
 
         // --- We switch here between an update and a subscribe.
         if !Self::is_hotkey_active(&hotkey_id) {
+            debug!("Adding neuron to metagraph with hotkey {:?}", hotkey_id.clone());
             // --- We get the next available subscription uid.
             let uid = Self::get_next_uid();
-
+            debug!("Got UID {:?} for neuron with hotkey {:?}", uid, hotkey_id.clone());
             // -- We add this hotkey to the active set.
             Self::add_hotkey_to_active_set(&hotkey_id, uid);
-
+            debug!("Adding neuron with UID {} to active set with hotkey {:?}", uid, hotkey_id.clone());
             // ---- If the neuron is not-already subscribed, we create a 
             // new entry in the table with the new metadata.
             let neuron = Self::add_neuron_to_metagraph(ip, port, ip_type, modality, coldkey, hotkey_id.clone(), uid);
-
+            debug!("Added neuron to metagraph with hotkey {:?}", hotkey_id.clone());
+            
             // -- We initialize table values for this peer.
             Self::create_hotkey_account(neuron.uid);
             Self::update_last_emit_for_neuron(neuron.uid);
@@ -41,6 +45,7 @@ impl<T: Config> Pallet<T> {
             // --- If the neuron is already subscribed, we allow an update to their
             // modality and ip.
             let neuron = Self::update_neuron_in_metagraph(uid, ip, port, ip_type);
+            debug!("Updated neuron to metagraph with hotkey {:?}", hotkey_id.clone());
             Self::update_last_emit_for_neuron(neuron.uid);
 
             // --- We call the emit for the resubscribe.

@@ -35,7 +35,7 @@ mod subscribing;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, Printable, traits::{Currency}};
+	use frame_support::{Printable, dispatch::DispatchResult, log::debug, pallet_prelude::*, traits::{Currency}};
 	use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
 	use sp_std::convert::TryInto;
@@ -178,7 +178,7 @@ pub mod pallet {
     pub struct GenesisConfig {
         pub pending_emissions: Vec<(u64, u64)>,
         pub stake: Vec<(u64, u64)>,
-        pub transaction_fee_pool: u64,
+        //pub transaction_fee_pool: u64,
     }
 
 	#[cfg(feature = "std")]
@@ -187,7 +187,7 @@ pub mod pallet {
 			Self {
 				pending_emissions: Default::default(),
 				stake: Default::default(),
-				transaction_fee_pool: Default::default(),
+				//transaction_fee_pool: Default::default(),
 			}
 		}
 	}
@@ -203,9 +203,9 @@ pub mod pallet {
                 Stake::<T>::insert(uid, stake);
             };
 
-            if self.transaction_fee_pool > 0 {
-                TransactionFeePool::<T>::put(self.transaction_fee_pool);
-            };
+            // if self.transaction_fee_pool > 0 {
+            //     TransactionFeePool::<T>::put(self.transaction_fee_pool);
+            // };
         }
 	}
 
@@ -285,7 +285,7 @@ pub mod pallet {
 
 		/// --- Thrown when subscriptions this block have exeeded the number of 
 		/// allowed.
-		ToManySubscriptionsThisBlock,
+		TooManySubscriptionsThisBlock,
 
 		/// ---- Thrown when the caller attempts to set the weight keys
 		/// and values but these vectors have different size.
@@ -354,7 +354,7 @@ pub mod pallet {
 		/// 	* 'n': (T::BlockNumber):
 		/// 		- The number of the block we are initializing.
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-		    Self::move_transaction_fee_pool_to_block_reward();
+		    //Self::move_transaction_fee_pool_to_block_reward();
 			Self::update_pending_emissions()
 		}
 
@@ -514,6 +514,7 @@ pub mod pallet {
 		/// 		- On subscription of new metadata attached to the calling hotkey.
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn subscribe(origin:OriginFor<T>, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId) -> DispatchResult {
+			debug!("Subscribing neuron with coldkey {:?}", coldkey.clone());
 			Self::do_subscribe(origin, ip, port, ip_type, modality, coldkey)
 		}
 	}
@@ -596,10 +597,10 @@ pub mod pallet {
 			return len * 100;
 		}
 
-		pub fn can_pay_transaction_fee_from_coldkey_account(balance: <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance, amount: u64, transaction_fee: u64) -> bool
-		{
-			return balance - Self::u64_to_balance(amount).unwrap() > Self::u64_to_balance(transaction_fee).unwrap();
-		}
+		// pub fn can_pay_transaction_fee_from_coldkey_account(balance: <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance, amount: u64, transaction_fee: u64) -> bool
+		// {
+		// 	return balance - Self::u64_to_balance(amount).unwrap() > Self::u64_to_balance(transaction_fee).unwrap();
+		// }
 	}
 }
 
