@@ -154,22 +154,22 @@ pub fn akatsuki_config() -> Result<ChainSpec, String> {
 		move || network_genesis(
 			wasm_binary,
 			vec![
-				authority_keys_from_ss58("5CCfqZuwygPhjQN2SYobCjyKDJtN2HhNsUESFkqfF1FPFK2q", "5HaTasFAThLhHQjYbxaSLbCcFpMr5U48j57cdrKBnPKDzo7y"), // Paul
-				authority_keys_from_ss58("5ELRcx6SiGr3c3T6qAAUQz2EeUDJUq2QdgCBG1k8A2mYDm39", "5DkDqEhXGmPwYktt5E3PKfXujAZw1T4xF6T9t1YRaBonJ9e4"), // Philip
-				authority_keys_from_ss58("5GzwfhtLyKQ1KoiAdmFw5kFytxESU2K3uo27ZAkBswxHPWuC", "5GLzcfVersKv1TotgXvd5AiNfU6XdEXhPdhjL7dMcsovnQmk"), // Andrew
-				authority_keys_from_ss58("5DPuSeJQpEbmS4uz27upUAmUTuwVfJob6pJVn6ahcjf8suqe", "5CcCpjr33kq5NUDeYxWr4df8v4X6MkSAqUSUonzzLAYm4VxE"), // James
-				authority_keys_from_ss58("5HmPj6eAFR9VXYst9X9KE9FZYJVhULTgcbJXaWNp611sVKDS", "5CrG4gHMxDyFVW2Sn1W2VSAJBUvsB1wuLGdupexYTTD6N4SW"), // John
-				authority_keys_from_ss58("5HMXmC3tTJVsqz1LftwZAfRTch1sdsimHbmsw4kGUfzVvJXA", "5EZM4K9pLRCFXCfj1Mr9SiQ4xiM15hnECEofQUqSRwjLiseb"), // Judas
+				authority_keys_from_ss58("5Gv554G6gywaFUaEAskoSZ69jdgYdEAAgqhnoLfrksdGYsh5", "5HNBWX7gjLKMKZzXt3Wn45AkRyQ9LdfpyybdaQhTysMmnkSj"), // Paul
+				authority_keys_from_ss58("5FvfEym8jKoCMJranXN2U5f2Fz7NqkadoavBy7juZe5LDkGf", "5FCzDGaZoefkaEzWu4e6mt6wwBVWz4eFeypPzWK8zCDr6em4"), // Philip
+				authority_keys_from_ss58("5GdtFphJbgJYiEGw8zwi8HFv6R4fcHKRVKmdxrgHcpG4wMV3", "5FeyW31sU9xVgE8vmceDVLjiTTxtdzbWLPd86AxG6bMLFk5h"), // Andrew
+				authority_keys_from_ss58("5ERXaaihfnguCSJm7apZwd71E8tdaZwv7fc2mQwtBzAWSoNX", "5Ekft5ksqGVPgFwFPpnr5Lb8N96pZ6P9gDJbR4u4y7CMVexV"), // James
+				authority_keys_from_ss58("5DAcWDLpBeA8i9jRczb86W73R5E9WyA1M4uWxKwj4P7kMJdx", "5ENtBbFFsnrDQLzrneBzY97ECd2Hoi1H971EVmNdC6oyHdCA"), // John
+				authority_keys_from_ss58("5CwaxWBVEfqopGTkU5NuY9aKhuzFwP73xuq7rSxj6DoZNFXd", "5GzAu666KMxCJZXu8hBLqJAgkcqGEuVXD7sWTH9YEbj7Kv84"), // Judas
 			],
-			AccountId::from_ss58check("5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt").unwrap(), // Sudo
+			AccountId::from_ss58check("5FyVxvrk91qqcqc6w8wNLahukhkbAdkr4qYxn1iDMQcn2SMr").unwrap(), // Sudo
 			vec![
-				AccountId::from_ss58check("5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt").unwrap(), // Sudo
+				AccountId::from_ss58check("5FyVxvrk91qqcqc6w8wNLahukhkbAdkr4qYxn1iDMQcn2SMr").unwrap(), // Sudo
 			],
 			true,
 		),
 		vec![
-			MultiaddrWithPeerId::from_str("/dns4/Peter.akatsuki.bittensor.com/tcp/30333/ws/p2p/12D3KooWRxmVnU2EMar4Bsg3sYfVJVEhpLqy9Us82AgzRHpnjBES").unwrap(),
-			MultiaddrWithPeerId::from_str("/dns4/Thaddeus.akatsuki.bittensor.com/tcp/30333/ws/p2p/12D3KooWG5XbAU9gdGCHJyAy2BwK95gqjYz48AUzwY5ruDK6FCB6").unwrap()
+			MultiaddrWithPeerId::from_str("/dns4/peter.akatsuki.opentensor.ai/tcp/30333/ws/p2p/12D3KooWJ17iyN1cjGJgyoKmEfurAeu8SkhkbazH8uTmjbZTN8u6").unwrap(),
+			MultiaddrWithPeerId::from_str("/dns4/thaddeus.akatsuki.opentensor.ai/tcp/30333/ws/p2p/12D3KooWLzTauTT5AbEN6xpZYYmwudfrLtLeZLTJokHNt9Qix5AA").unwrap()
 	    ],
 		None,
 		None,
