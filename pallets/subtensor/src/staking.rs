@@ -106,6 +106,11 @@ impl<T: Config> Pallet<T> {
         return TotalStake::<T>::get();
     }
 
+    pub fn get_rank_of_neuron( neuron: &NeuronMetadataOf<T> ) -> u64 {
+        let ranks: Vec<u64> = Ranks::<T>::get();
+        ranks[ neuron.uid as usize ]
+    }
+
     /// Increases the amount of stake of the entire stake pool by the supplied amount
     ///
     pub fn increase_total_stake(increment: u64) {

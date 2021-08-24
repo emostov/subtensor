@@ -32,37 +32,33 @@ fn test_add_stake_dispatch_info_ok() {
 	This test also covers any signed extensions
 ************************************************************/
 
-// #[test]
-// fn test_add_stake_transaction_fee_ends_up_in_transaction_fee_pool() {
-// 	let test_neuron_cold_key = 1;
-// 	let test_neuron_hot_key = 2;
+#[test]
+fn test_add_stake_transaction_fee_ends_up_in_transaction_fee_pool() {
+	let test_neuron_cold_key = 1;
+	let test_neuron_hot_key = 2;
 
-// 	// Give account id 1 10^9 rao ( 1 Tao )
-// 	let balances = vec![(test_neuron_cold_key, 1_000_000_000)];
+	// Give account id 1 10^9 rao ( 1 Tao )
+	let balances = vec![(test_neuron_cold_key, 1_000_000_000)];
 
-// 	mock::test_ext_with_balances(balances).execute_with(|| {
-// 		// Register neuron_1
-// 		let test_neuron = subscribe_ok_neuron(test_neuron_hot_key, test_neuron_cold_key);
+	mock::test_ext_with_balances(balances).execute_with(|| {
+		// Register neuron_1
+		let test_neuron = subscribe_ok_neuron(test_neuron_hot_key, test_neuron_cold_key);
 
-// 		// Verify start situation
-//         let start_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
-// 		let start_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(test_neuron.uid);
-// 		assert_eq!(start_balance, 1_000_000_000);
-// 		assert_eq!(start_stake, 0);
+		// Verify start situation
+        let start_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
+		let start_stake = Subtensor::get_stake_of_neuron_hotkey_account_by_uid(test_neuron.uid);
+		assert_eq!(start_balance, 1_000_000_000);
+		assert_eq!(start_stake, 0);
 
-// 		let call = Call::Subtensor(SubtensorCall::add_stake(test_neuron_hot_key, 500_000_000));
-// 		let xt = TestXt::new(call, mock::sign_extra(test_neuron_cold_key, 0));
-// 		let result = mock::Executive::apply_extrinsic(xt);
+		let call = Call::Subtensor(SubtensorCall::add_stake(test_neuron_hot_key, 500_000_000));
+		let xt = TestXt::new(call, mock::sign_extra(test_neuron_cold_key, 0));
+		let result = mock::Executive::apply_extrinsic( xt );
+		assert_ok!(result);
 
-// 		assert_ok!(result);
-
-// 		let end_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
-// 		//let transaction_fee_pool = Subtensor::get_transaction_fee_pool();
-
-// 		assert_eq!(end_balance, 499_997_100);
-// 		//assert_eq!(transaction_fee_pool, 2900);
-// 	});
-// }
+		let end_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
+		assert_eq!(end_balance, 500_000_000);
+	});
+}
 
 
 #[test]
@@ -101,55 +97,43 @@ fn test_add_stake_ok_no_emission() {
 	});
 }
 
-// #[test]
-// fn test_add_stake_ok_with_emission() {
-// 	new_test_ext().execute_with(|| {
-//        	let neuron_src_hotkey_id = 1;
-// 		let neuron_dest_hotkey_id = 2;
-// 		let coldkey_account_id = 667;
+#[test]
+fn test_dividends_with_run_to_block() {
+	new_test_ext().execute_with(|| {
+       	let neuron_src_hotkey_id = 1;
+		let neuron_dest_hotkey_id = 2;
+		let coldkey_account_id = 667;
 
-// 		let transfer_amount:u64 = 10000;
-// 		let initial_stake:u64 = 5000;
+		let initial_stake:u64 = 5000;
 
-// 		// Subscribe neuron, this will set a self weight
-// 		let _adam = subscribe_ok_neuron(0, coldkey_account_id);
-// 		let neuron_src = subscribe_ok_neuron(neuron_src_hotkey_id, coldkey_account_id);
-// 		let neuron_dest = subscribe_ok_neuron(neuron_dest_hotkey_id, coldkey_account_id);
+		// Subscribe neuron, this will set a self weight
+		let _adam = subscribe_ok_neuron(0, coldkey_account_id);
+		let neuron_src = subscribe_ok_neuron(neuron_src_hotkey_id, coldkey_account_id);
+		let neuron_dest = subscribe_ok_neuron(neuron_dest_hotkey_id, coldkey_account_id);
 
-// 		// We will need to set a weight to another neuron to test for emission later on.
-// 		// This is because the self weight will be used to pay for the transaction, and as such
-// 		// does not end up in the neuron's own account.
-// 		let _ = Subtensor::set_weights(Origin::signed(neuron_src_hotkey_id), vec![neuron_dest.uid], vec![100]);
+		// We will need to set a weight to another neuron to test for emission later on.
+		// This is because the self weight will be used to pay for the transaction, and as such
+		// does not end up in the neuron's own account.
+		let _ = Subtensor::set_weights(Origin::signed(neuron_src_hotkey_id), vec![neuron_dest.uid], vec![100]);
 
+		// Add some stake to the hotkey account, so we can test for emission before the transfer takes place
+		Subtensor::add_stake_to_neuron_hotkey_account(neuron_src.uid, initial_stake);
 
-// 		// Give it some $$$ in his coldkey balance
-// 		Subtensor::add_balance_to_coldkey_account(&coldkey_account_id, transfer_amount.into());
+		// Check if the initial stake has arrived
+		assert_eq!( Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake );
 
-// 		// Add some stake to the hotkey account, so we can test for emission before the transfer takes place
-// 		Subtensor::add_stake_to_neuron_hotkey_account(neuron_src.uid, initial_stake);
+		assert_eq!( Subtensor::get_neuron_count(), 3 );
 
-// 		// Check if the initial stake has arrived
-// 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake);
+		// Run a couple of blocks to check if emission works
+		run_to_block( 2 );
 
-// 		// Run a couple of blocks to check if emission works
-// 		run_to_block(5);
+		// Check if the stake is equal to the inital stake + transfer
+		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake + 1 );
 
-// 		// Initiate transfer
-// 		assert_ok!(Subtensor::do_add_stake(Origin::signed(coldkey_account_id), neuron_src_hotkey_id, transfer_amount));
-
-// 		// Check if the stake is equal to the inital stake + transfer
-// 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake + transfer_amount);
-
-// 		// Check if the balance has been reduced by the transfer amount
-// 		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_account_id), 0);
-
-// 		// Check if the total stake is bigger than the sum of initial stake + transferred amount
-// 		assert!(Subtensor::get_total_stake() > initial_stake + transfer_amount);
-
-// 		// Check if the destination neuron has received emission
-// 		assert!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_dest.uid) > 0);
-// 	});
-// }
+		// Check if the stake is equal to the inital stake + transfer
+		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_dest.uid), 0);
+	});
+}
 
 #[test]
 fn test_add_stake_err_signature() {

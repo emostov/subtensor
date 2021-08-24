@@ -9,48 +9,49 @@
 /// ************************************************************
 pub use pallet::*;
 
-use codec::{Decode, Encode};
+// use codec::{Decode, Encode};
 use frame_support::{dispatch, ensure, traits::{
 		Currency, 
 		ExistenceRequirement,
-		IsSubType, 
+		// IsSubType, 
 		tokens::{
 			WithdrawReasons
 		}
-	}, weights::{
-		DispatchInfo, 
-		PostDispatchInfo, 
-		Pays
-	}
+	},
+	// }, weights::{
+	// 	DispatchInfo, 
+	// 	PostDispatchInfo, 
+	// 	Pays
+	// }
 };
 
-use frame_support::sp_runtime::FixedPointOperand;
-use frame_support::dispatch::GetDispatchInfo;
-use frame_support::sp_runtime::transaction_validity::ValidTransaction;
+// use frame_support::sp_runtime::FixedPointOperand;
+// use frame_support::dispatch::GetDispatchInfo;
+// use frame_support::sp_runtime::transaction_validity::ValidTransaction;
 use frame_system::{
 	self as system, 
 	ensure_signed
 };
 
-use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
 use substrate_fixed::types::U64F64;
-use sp_runtime::{
-	traits::{
-		Dispatchable, 
-		DispatchInfoOf, 
-		SignedExtension, 
-		PostDispatchInfoOf
-	},
-	transaction_validity::{
-        TransactionValidityError, 
-		TransactionValidity, 
-		InvalidTransaction,
-    }
-};
-use sp_std::convert::TryInto;
+// use sp_runtime::{
+// 	traits::{
+// 		Dispatchable, 
+// 		DispatchInfoOf, 
+// 		SignedExtension, 
+// 		PostDispatchInfoOf
+// 	},
+// 	transaction_validity::{
+//         TransactionValidityError, 
+// 		TransactionValidity, 
+// 		InvalidTransaction,
+//     }
+// };
+// use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
 use sp_std::vec;
-use sp_std::marker::PhantomData;
+use sp_std::collections::btree_map;
+// use sp_std::marker::PhantomData;
 
 /// ************************************************************
 ///	-Subtensor-Imports
@@ -95,8 +96,6 @@ pub mod pallet {
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	pub type NeuronMetadataOf<T> = NeuronMetadata<AccountIdOf<T>>;
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-    // ---- Neuron endpoint information
     #[derive(Encode, Decode, Default)]
     pub struct NeuronMetadata<AccountId> {
         /// ---- The endpoint's u128 encoded ip address of type v6 or v4.
@@ -125,14 +124,14 @@ pub mod pallet {
         pub modality: u8,
 
         /// ---- The associated hotkey account.
-        /// Subscribing, emitting and changing weights can be made by this
+        /// Subscribing and changing weights can be made by this
         /// account. Subscription can never change the associated coldkey
         /// account.
         pub hotkey: AccountId,
 
         /// ---- The associated coldkey account.
         /// Staking and unstaking transactions must be made by this account.
-        /// The hotkey account (in the Neurons map) has permission to call emit
+        /// The hotkey account (in the Neurons map) has permission to call
         /// subscribe and unsubscribe.
         pub coldkey: AccountId,
     }
@@ -140,11 +139,103 @@ pub mod pallet {
 	/// ************************************************************
 	///	-Storage Objects
 	/// ************************************************************
+	
+	/// ---- Stores last block ranks.
+	#[pallet::storage]
+	pub type Ranks<T> = StorageValue<
+		_, 
+		Vec<u64>, 
+		ValueQuery
+	>;
 
+	/// ---- Stores last block trust scores.
+	#[pallet::storage]
+	pub type Trust<T> = StorageValue<
+		_, 
+		Vec<u64>, 
+		ValueQuery
+	>;
+
+	/// ---- Stores last block incentive scores.
+	#[pallet::storage]
+	pub type Incentive<T> = StorageValue<
+		_, 
+		Vec<u64>, 
+		ValueQuery
+	>;
+
+	/// ---- Stores last block inflation amounts.
+	#[pallet::storage]
+	pub type Inflation<T> = StorageValue<
+		_, 
+		Vec<u64>, 
+		ValueQuery
+	>;
+
+	/// ---- Stores last block dividends.
+	#[pallet::storage]
+	pub type Dividends<T> = StorageValue<
+		_, 
+		Vec<u64>, 
+		ValueQuery
+	>;
+
+	/// ---- List of stake values. Tokens staked into the incentive mechanism.
+	#[pallet::storage]
+	#[pallet::getter(fn stake)]
+	pub(super) type Stake<T> = StorageMap<
+		_, 
+		Identity,
+		u64, 
+		u64, 
+		ValueQuery
+	>;
 	/// ---- Stores the amount of currently staked token.
-    #[pallet::storage]
+	#[pallet::storage]
 	pub type TotalStake<T> = StorageValue<
 		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	/// ---- List of values which map between a neuron's uid an that neuron's
+    /// weights, a.k.a is row_weights in the square matrix W. Each outward edge
+    /// is represented by a (u64, u64) tuple determining the endpoint and weight
+    /// value respectively. Each giga byte of chain storage can hold history for
+    /// 83 million weights. 
+    #[pallet::storage]
+    pub(super) type WeightUids<T> = StorageMap<
+		_, 
+		Identity, 
+		u64, 
+		Vec<u64>, 
+		ValueQuery
+	>;
+    #[pallet::storage]
+    pub(super) type WeightVals<T> = StorageMap<
+		_, 
+		Identity, 
+		u64, 
+		Vec<u32>, 
+		ValueQuery
+	>;
+
+    #[pallet::storage]
+    pub(super) type Bonds<T> = StorageDoubleMap<
+		_,
+		Identity,
+		u64,
+		Identity,
+		u64,
+		u64,
+		ValueQuery,
+	>;
+    #[pallet::storage]
+    #[pallet::getter(fn bond_total)]
+    pub(super) type BondTotals<T> = StorageMap<
+		_, 
+		Identity, 
+		u64, 
 		u64, 
 		ValueQuery
 	>;
@@ -170,7 +261,7 @@ pub mod pallet {
 		ValueQuery
 	>;
 
-	/// ----  Maps between a neuron's hotkey account address and additional 
+	/// ----  Maps between a neuron's hotkey uid and additional 
     /// metadata associated with that neuron. All other maps, map between the with a uid. 
     /// The metadata contains that uid, the ip, port, and coldkey address.
     #[pallet::storage]
@@ -182,78 +273,7 @@ pub mod pallet {
 		NeuronMetadataOf<T>, 
 		ValueQuery
 	>;
-
-	/// ---- Maps between a neuron's hotkey uid and the block number
-    /// when that peer last called an emission/subscribe.
-    #[pallet::storage]
-    #[pallet::getter(fn last_emit)]
-    pub(super) type LastEmit<T:Config> = StorageMap<
-		_, 
-		Identity, 
-		u64, 
-		T::BlockNumber, 
-		ValueQuery
-	>;
-
-	/// ---- List of stake values. Tokens staked into the incentive mechanism.
-	#[pallet::storage]
-	#[pallet::getter(fn stake)]
-	pub(super) type Stake<T> = StorageMap<
-		_, 
-		Identity,
-		u64, 
-		u64, 
-		ValueQuery
-	>;
-	
-    /// ---- List of values which map between a neuron's uid an that neuron's
-    /// weights, a.k.a is row_weights in the square matrix W. Each outward edge
-    /// is represented by a (u64, u64) tuple determining the endpoint and weight
-    /// value respectively. Each giga byte of chain storage can hold history for
-    /// 83 million weights. 
-    #[pallet::storage]
-    pub(super) type WeightUids<T> = StorageMap<
-		_, 
-		Identity, 
-		u64, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-    #[pallet::storage]
-    pub(super) type WeightVals<T> = StorageMap<
-		_, 
-		Identity, 
-		u64, 
-		Vec<u32>, 
-		ValueQuery
-	>;
-
-    /// ---- List of values which map between a neuron's uid an that neuron's
-    /// weights, a.k.a is row_weights in the square matrix W. Each outward edge
-    /// is represented by a (u64, u64) tuple determining the endpoint and weight
-    /// value respectively. Each giga byte of chain storage can hold history for
-    /// 83 million weights. 
-    #[pallet::storage]
-    pub(super) type Bonds<T> = StorageDoubleMap<
-		_,
-		Identity,
-		u64,
-		Identity,
-		u64,
-		u64,
-		ValueQuery,
-	>;
-    #[pallet::storage]
-    #[pallet::getter(fn bond_total)]
-    pub(super) type BondTotals<T> = StorageMap<
-		_, 
-		Identity, 
-		u64, 
-		u64, 
-		ValueQuery
-	>;
-
-
+   
 	/// ************************************************************
 	///	-Genesis-Configuration
 	/// ************************************************************
@@ -330,10 +350,6 @@ pub mod pallet {
 		/// --- Event created when stake has been removed from 
 		/// the staking account into the coldkey account.
 		StakeRemoved(T::AccountId, u64),
-
-		/// --- Event created when a transaction triggers and incentive
-		/// mechanism emission.
-		Emission(T::AccountId, u64),
 	}
 
 	/// ************************************************************
@@ -364,10 +380,6 @@ pub mod pallet {
 		/// ---- Thrown when a caller attempts to set weight to at least one uid that
 		/// does not exist in the metagraph.
 		InvalidUid,
-
-		/// ---- Thrown when the caller triggers an emit but the computed amount
-		/// to emit is zero.
-		NothingToEmit,
 
 		/// ---- Thrown when the caller requests setting or removing data from
 		/// a neuron which does not exist in the active set.
@@ -403,7 +415,6 @@ pub mod pallet {
             match self {
                 Error::AlreadyActive => "The node with the supplied public key is already active".print(),
                 Error::NotActive => "The node with the supplied public key is not active".print(),
-                Error::NothingToEmit => "There is nothing to emit".print(),
                 Error::WeightVecNotEqualSize => "The vec of keys and the vec of values are not of the same size".print(),
                 Error::NonAssociatedColdKey => "The used cold key is not associated with the hot key acccount".print(),
                 _ => "Invalid Error Case".print(),
@@ -422,7 +433,7 @@ pub mod pallet {
 		/// # Args:
 		/// 	* 'n': (T::BlockNumber):
 		/// 		- The number of the block we are initializing.
-		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+		fn on_initialize( _n: BlockNumberFor<T> ) -> Weight {
 		    // Self::move_transaction_fee_pool_to_block_reward();
 			Self::block_step();
 			return 0;
@@ -463,7 +474,7 @@ pub mod pallet {
 		/// 		- The u64 integer encoded weights. Interpreted as rational
 		/// 		values in the range [0,1]. They must sum to in32::MAX.
 		///
-		/// # Emits:
+		/// # Event:
 		/// 	* WeightsSet;
 		/// 		- On successfully setting the weights on chain.
 		///
@@ -500,7 +511,7 @@ pub mod pallet {
 		/// 		- The ammount to transfer from the balances account of the cold key
 		/// 		into the staking account of the hotkey.
 		///
-		/// # Emits:
+		/// # Event:
 		/// 	* 'StakeAdded':
 		/// 		- On the successful staking of funds.
 		///
@@ -535,7 +546,7 @@ pub mod pallet {
 		/// 		- The ammount to transfer from the staking account into the balance
 		/// 		of the coldkey.
 		///
-		/// # Emits:
+		/// # Event:
 		/// 	* 'StakeRemoved':
 		/// 		- On successful withdrawl.
 		///
@@ -576,7 +587,7 @@ pub mod pallet {
 		/// 	* 'coldkey' (T::AccountId):
 		/// 		- The associated coldkey to be attached to the account.
 		///
-		/// # Emits:
+		/// # Event:
 		/// 	* 'NeuronAdded':
 		/// 		- On subscription of a new neuron to the active set.
 		///
@@ -617,7 +628,7 @@ pub mod pallet {
 		}
 
 		// --- Returns true if the uid is active, i.e. there
-		// is a staking, last_emit, and neuron account associated
+		// is a staking, last_update, and neuron account associated
 		// with this uid.
 		pub fn is_uid_active(uid: u64) -> bool {
 			return Neurons::<T>::contains_key(uid);
@@ -660,16 +671,6 @@ pub mod pallet {
 			NextUID::<T>::put(uid + 1);
 			uid
 		}
-
-
-		pub fn calculate_transaction_fee(len: u64) -> u64 {
-			return len * 100;
-		}
-
-		pub fn can_pay_transaction_fee_from_coldkey_account(balance: <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance, amount: u64, transaction_fee: u64) -> bool
-		{
-			return balance - Self::u64_to_balance(amount).unwrap() > Self::u64_to_balance(transaction_fee).unwrap();
-		}
 	}
 }
 
@@ -679,135 +680,135 @@ pub mod pallet {
 -CallType-definition
 ************************************************************/
 
-#[derive(Debug, PartialEq)]
-pub enum CallType {
-    SetWeights,
-    AddStake,
-    RemoveStake,
-    Subscribe,
-    Other,
-}
+// #[derive(Debug, PartialEq)]
+// pub enum CallType {
+//     SetWeights,
+//     AddStake,
+//     RemoveStake,
+//     Subscribe,
+//     Other,
+// }
 
-impl Default for CallType {
-    fn default() -> Self {
-        CallType::Other
-    }
-}
-
-
-type TransactionFee = u64;
-
-impl<T: Config> Pallet<T> where
-	BalanceOf<T>: FixedPointOperand
-{
-	/// Query the data that we know about the fee of a given `call`.
-	///
-	/// This module is not and cannot be aware of the internals of a signed extension, for example
-	/// a tip. It only interprets the extrinsic as some encoded value and accounts for its weight
-	/// and length, the runtime's extrinsic base weight, and the current fee multiplier.
-	///
-	/// All dispatchables must be annotated with weight and will have some fee info. This function
-	/// always returns.
-	pub fn query_info<Extrinsic: GetDispatchInfo>(
-		unchecked_extrinsic: Extrinsic,
-		_len: u32,
-	) -> RuntimeDispatchInfo<BalanceOf<T>>
-	where
-		T: Send + Sync,
-		BalanceOf<T>: Send + Sync,
-		T::Call: Dispatchable<Info=DispatchInfo>,
-	{
-		// NOTE: we can actually make it understand `ChargeTransactionPayment`, but would be some
-		// hassle for sure. We have to make it aware of the index of `ChargeTransactionPayment` in
-		// `Extra`. Alternatively, we could actually execute the tx's per-dispatch and record the
-		// balance of the sender before and after the pipeline.. but this is way too much hassle for
-		// a very very little potential gain in the future.
-		let dispatch_info = <Extrinsic as GetDispatchInfo>::get_dispatch_info(&unchecked_extrinsic);
-
-	    let partial_fee = <BalanceOf<T>>::from(0u32);
-		let DispatchInfo { weight, class, .. } = dispatch_info;
-
-		RuntimeDispatchInfo { weight, class, partial_fee }
-	}
-}
+// impl Default for CallType {
+//     fn default() -> Self {
+//         CallType::Other
+//     }
+// }
 
 
+// type TransactionFee = u64;
 
-/************************************************************
--ChargeTransactionPayment definition
-************************************************************/
+// impl<T: Config> Pallet<T> where
+// 	BalanceOf<T>: FixedPointOperand
+// {
+// 	/// Query the data that we know about the fee of a given `call`.
+// 	///
+// 	/// This module is not and cannot be aware of the internals of a signed extension, for example
+// 	/// a tip. It only interprets the extrinsic as some encoded value and accounts for its weight
+// 	/// and length, the runtime's extrinsic base weight, and the current fee multiplier.
+// 	///
+// 	/// All dispatchables must be annotated with weight and will have some fee info. This function
+// 	/// always returns.
+// 	pub fn query_info<Extrinsic: GetDispatchInfo>(
+// 		unchecked_extrinsic: Extrinsic,
+// 		_len: u32,
+// 	) -> RuntimeDispatchInfo<BalanceOf<T>>
+// 	where
+// 		T: Send + Sync,
+// 		BalanceOf<T>: Send + Sync,
+// 		T::Call: Dispatchable<Info=DispatchInfo>,
+// 	{
+// 		// NOTE: we can actually make it understand `ChargeTransactionPayment`, but would be some
+// 		// hassle for sure. We have to make it aware of the index of `ChargeTransactionPayment` in
+// 		// `Extra`. Alternatively, we could actually execute the tx's per-dispatch and record the
+// 		// balance of the sender before and after the pipeline.. but this is way too much hassle for
+// 		// a very very little potential gain in the future.
+// 		let dispatch_info = <Extrinsic as GetDispatchInfo>::get_dispatch_info(&unchecked_extrinsic);
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq)]
-pub struct ChargeTransactionPayment<T: Config + Send + Sync>(pub PhantomData<T>);
+// 	    let partial_fee = <BalanceOf<T>>::from(0u32);
+// 		let DispatchInfo { weight, class, .. } = dispatch_info;
 
-impl<T: Config + Send + Sync> ChargeTransactionPayment<T> where
-    T::Call: Dispatchable<Info=DispatchInfo, PostInfo=PostDispatchInfo>,
-    <T as frame_system::Config>::Call: IsSubType<Call<T>>,
-{
-    pub fn new() -> Self {
-        Self(Default::default())
-    }
+// 		RuntimeDispatchInfo { weight, class, partial_fee }
+// 	}
+// }
 
 
 
-    pub fn can_pay_add_stake(who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
-        let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
-        let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee);
+// /************************************************************
+// -ChargeTransactionPayment definition
+// ************************************************************/
 
-        if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance.unwrap()) {
-            Ok(transaction_fee)
-        } else {
-            Err(InvalidTransaction::Payment.into())
-        }
-    }
+// #[derive(Encode, Decode, Clone, Eq, PartialEq)]
+// pub struct ChargeTransactionPayment<T: Config + Send + Sync>(pub PhantomData<T>);
 
-    pub fn can_pay_remove_stake(who: &T::AccountId, hotkey_id: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
-        let neuron = Pallet::<T>::get_neuron_for_hotkey(&hotkey_id);
-        let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
-        let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee).unwrap();
+// impl<T: Config + Send + Sync> ChargeTransactionPayment<T> where
+//     T::Call: Dispatchable<Info=DispatchInfo, PostInfo=PostDispatchInfo>,
+//     <T as frame_system::Config>::Call: IsSubType<Call<T>>,
+// {
+//     pub fn new() -> Self {
+//         Self(Default::default())
+//     }
 
-        if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance) ||
-            Pallet::<T>::has_enough_stake(&neuron, transaction_fee) {
-            Ok(transaction_fee)
-        } else {
-            Err(InvalidTransaction::Payment.into())
-        }
-    }
 
-    pub fn can_pay_subscribe() -> Result<TransactionFee, TransactionValidityError> {
-        Ok(0)
-    }
 
-    pub fn can_pay_other(info: &DispatchInfoOf<T::Call>, who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
-        let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
+//     pub fn can_pay_add_stake(who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
+//         let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
+//         let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee);
 
-        if info.pays_fee == Pays::No {
-            return Ok(transaction_fee);
-        }
+//         if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance.unwrap()) {
+//             Ok(transaction_fee)
+//         } else {
+//             Err(InvalidTransaction::Payment.into())
+//         }
+//     }
 
-        let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee);
-        if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance.unwrap()) {
-            Ok(transaction_fee)
-        } else {
-            Err(InvalidTransaction::Payment.into())
-        }
-    }
+//     pub fn can_pay_remove_stake(who: &T::AccountId, hotkey_id: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
+//         let neuron = Pallet::<T>::get_neuron_for_hotkey(&hotkey_id);
+//         let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
+//         let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee).unwrap();
 
-    pub fn get_priority_set_weights(transaction_fee: u64, len: u64) -> u64 {
-        // Sanity check
-        if len == 0 {
-            return 0;
-        }
-        return transaction_fee / len;
-    }
+//         if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance) ||
+//             Pallet::<T>::has_enough_stake(&neuron, transaction_fee) {
+//             Ok(transaction_fee)
+//         } else {
+//             Err(InvalidTransaction::Payment.into())
+//         }
+//     }
 
-    pub fn get_priority_vanilla() -> u64 {
-        // Just return a rediculously high priority. This means that all extrinsics exept
-        // the set_weights function will have a priority over the set_weights calls.
-        // This should probably be refined in the future.
-        return u64::max_value();
-    }
-}
+//     pub fn can_pay_subscribe() -> Result<TransactionFee, TransactionValidityError> {
+//         Ok(0)
+//     }
+
+//     pub fn can_pay_other(info: &DispatchInfoOf<T::Call>, who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
+//         let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
+
+//         if info.pays_fee == Pays::No {
+//             return Ok(transaction_fee);
+//         }
+
+//         let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee);
+//         if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance.unwrap()) {
+//             Ok(transaction_fee)
+//         } else {
+//             Err(InvalidTransaction::Payment.into())
+//         }
+//     }
+
+//     pub fn get_priority_set_weights(transaction_fee: u64, len: u64) -> u64 {
+//         // Sanity check
+//         if len == 0 {
+//             return 0;
+//         }
+//         return transaction_fee / len;
+//     }
+
+//     pub fn get_priority_vanilla() -> u64 {
+//         // Just return a rediculously high priority. This means that all extrinsics exept
+//         // the set_weights function will have a priority over the set_weights calls.
+//         // This should probably be refined in the future.
+//         return u64::max_value();
+//     }
+// }
 
 
 

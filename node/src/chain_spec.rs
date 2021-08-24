@@ -73,9 +73,10 @@ pub fn development_config() -> Result<ChainSpec, String> {
 				authority_keys_from_seed("Alice"),
 			],
 			// Sudo account
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
+			AccountId::from_ss58check("5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt").unwrap(), // Sudo
 			// Pre-funded accounts
 			vec![
+				AccountId::from_ss58check("5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt").unwrap(), // Sudo
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				get_account_id_from_seed::<sr25519::Public>("Bob"),
 				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
@@ -225,7 +226,7 @@ fn network_genesis(
 		},
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1000 tokens for sudo.
-			balances: endowed_accounts.iter().cloned().map(|k|(k, u128::pow(10,12))).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k|(k, u64::pow(10,9))).collect(),
 		},
 		aura: AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),

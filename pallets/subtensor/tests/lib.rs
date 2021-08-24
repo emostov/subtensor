@@ -1,15 +1,15 @@
-use pallet_subtensor::{ChargeTransactionPayment, Error, CallType};
-use frame_support::{assert_ok};
+// use pallet_subtensor::{ChargeTransactionPayment, Error, CallType};
+// use frame_support::{assert_ok};
 
-mod mock;
+// mod mock;
 
-use mock::*;
-use frame_support::weights::{DispatchInfo, Pays};
-use frame_support::weights::PostDispatchInfo;
-use sp_std::marker::PhantomData;
-use sp_runtime::traits::SignedExtension;
-use sp_runtime::transaction_validity::{InvalidTransaction, ValidTransaction};
-use frame_support::dispatch::GetDispatchInfo;
+// use mock::*;
+// use frame_support::weights::{DispatchInfo, Pays};
+// use frame_support::weights::PostDispatchInfo;
+// use sp_std::marker::PhantomData;
+// use sp_runtime::traits::SignedExtension;
+// use sp_runtime::transaction_validity::{InvalidTransaction, ValidTransaction};
+// use frame_support::dispatch::GetDispatchInfo;
 
 // #[test]
 // fn fee_from_emission_works() {
