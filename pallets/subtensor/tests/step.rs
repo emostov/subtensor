@@ -27,6 +27,15 @@ fn test_step_with_neuron_no_balances() {
     new_test_ext().execute_with( || {
         subscribe_ok_neuron( hotkey, coldkey );
         run_to_block( 1 );
+        assert_eq!( Subtensor::get_total_stake(), 0);
+        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_ranks(), vec![0] );
+        assert_eq!( Subtensor::get_trust(), vec![0] );
+        assert_eq!( Subtensor::get_active(), vec![1] );
+        assert_eq!( Subtensor::get_consensus(), vec![0] );
+        assert_eq!( Subtensor::get_incentive(), vec![0] );
+        assert_eq!( Subtensor::get_inflation(), vec![0] );
+        assert_eq!( Subtensor::get_dividends(), vec![0] );
     });
 }
 
@@ -40,32 +49,59 @@ fn test_step_with_neuron_with_balances() {
         let neuron = subscribe_ok_neuron( hotkey, coldkey );
         Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, initial_stake);
         run_to_block( 1 );
-		assert_eq!( Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), initial_stake + 1000000000);
+		assert_eq!( Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), initial_stake);
+        assert_eq!( Subtensor::get_total_stake(), initial_stake + initial_stake );
+        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_ranks(), vec![0] );
+        assert_eq!( Subtensor::get_trust(), vec![0] );
+        assert_eq!( Subtensor::get_active(), vec![1] );
+        assert_eq!( Subtensor::get_consensus(), vec![0] );
+        assert_eq!( Subtensor::get_incentive(), vec![0] );
+        assert_eq!( Subtensor::get_inflation(), vec![0] );
+        assert_eq!( Subtensor::get_dividends(), vec![0] );
     });
 }
 
 #[test]
 fn test_step_with_two_neurons_and_balances() {
     new_test_ext().execute_with( || {
+        let initial_stake: u64 = 1000000000;
         let neuron1 = subscribe_ok_neuron( 1, 2 );
         let neuron2 = subscribe_ok_neuron( 3, 4 );
-        Subtensor::add_stake_to_neuron_hotkey_account(neuron1.uid, 1000000000);
-        Subtensor::add_stake_to_neuron_hotkey_account(neuron2.uid, 1000000000);
+        Subtensor::add_stake_to_neuron_hotkey_account(neuron1.uid, initial_stake);
+        Subtensor::add_stake_to_neuron_hotkey_account(neuron2.uid, initial_stake);
         run_to_block( 1 );
-		assert_eq!( Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron1.uid), 1000000000 + 500000000);
-		assert_eq!( Subtensor::get_rank_of_neuron(&neuron2), 1000000000 + 500000000);
+		assert_eq!( Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron1.uid), initial_stake);
+        assert_eq!( Subtensor::get_total_stake(), initial_stake + initial_stake );
+        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_ranks(), vec![0,0] );
+        assert_eq!( Subtensor::get_trust(), vec![0,0] );
+        assert_eq!( Subtensor::get_active(), vec![1,1] );
+        assert_eq!( Subtensor::get_consensus(), vec![0,0] );
+        assert_eq!( Subtensor::get_incentive(), vec![0,0] );
+        assert_eq!( Subtensor::get_inflation(), vec![0,0] );
+        assert_eq!( Subtensor::get_dividends(), vec![0,0] );
     });
 }
 
 #[test]
 fn test_step_with_total_stake() {
     new_test_ext().execute_with( || {
+        let initial_stake: u64 = 1000000000;
         let neuron1 = subscribe_ok_neuron( 1, 2 );
         let neuron2 = subscribe_ok_neuron( 3, 4 );
-        Subtensor::add_stake_to_neuron_hotkey_account(neuron1.uid, 1000000000);
-        Subtensor::add_stake_to_neuron_hotkey_account(neuron2.uid, 1000000000);
+        Subtensor::add_stake_to_neuron_hotkey_account(neuron1.uid, initial_stake);
+        Subtensor::add_stake_to_neuron_hotkey_account(neuron2.uid, initial_stake);
         run_to_block( 1 );
-		assert_eq!( Subtensor::get_total_stake(), 1000000000 + 1000000000 + 1000000000);
+        assert_eq!( Subtensor::get_total_stake(), initial_stake + initial_stake );
+        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_ranks(), vec![0,0] );
+        assert_eq!( Subtensor::get_trust(), vec![0,0] );
+        assert_eq!( Subtensor::get_active(), vec![1,1] );
+        assert_eq!( Subtensor::get_consensus(), vec![0,0] );
+        assert_eq!( Subtensor::get_incentive(), vec![0,0] );
+        assert_eq!( Subtensor::get_inflation(), vec![0,0] );
+        assert_eq!( Subtensor::get_dividends(), vec![0,0] );
     });
 }
 
@@ -97,7 +133,6 @@ fn test_ten_steps_with_two_neurons_and_balances() {
 		assert_eq!( Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron2.uid), 1000000000 + 500000000 * 10 );
     });
 }
-
 
 #[test]
 fn test_step_two_neurons_with_balances_and_weights() {

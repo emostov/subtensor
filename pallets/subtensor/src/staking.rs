@@ -102,9 +102,6 @@ impl<T: Config> Pallet<T> {
         return Stake::<T>::get(uid);
     }
 
-    pub fn get_total_stake() -> u64 {
-        return TotalStake::<T>::get();
-    }
 
     pub fn get_rank_of_neuron( neuron: &NeuronMetadataOf<T> ) -> u64 {
         let ranks: Vec<u64> = Ranks::<T>::get();

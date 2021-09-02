@@ -111,11 +111,6 @@ fn test_dividends_with_run_to_block() {
 		let neuron_src = subscribe_ok_neuron(neuron_src_hotkey_id, coldkey_account_id);
 		let neuron_dest = subscribe_ok_neuron(neuron_dest_hotkey_id, coldkey_account_id);
 
-		// We will need to set a weight to another neuron to test for emission later on.
-		// This is because the self weight will be used to pay for the transaction, and as such
-		// does not end up in the neuron's own account.
-		let _ = Subtensor::set_weights(Origin::signed(neuron_src_hotkey_id), vec![neuron_dest.uid], vec![100]);
-
 		// Add some stake to the hotkey account, so we can test for emission before the transfer takes place
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron_src.uid, initial_stake);
 
@@ -128,7 +123,7 @@ fn test_dividends_with_run_to_block() {
 		run_to_block( 2 );
 
 		// Check if the stake is equal to the inital stake + transfer
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake + 1 );
+		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_src.uid), initial_stake);
 
 		// Check if the stake is equal to the inital stake + transfer
 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron_dest.uid), 0);
