@@ -42,7 +42,7 @@ fn set_weights_ok_no_weights() {
 		let hotkey_account_id:u64 = 55; // Arbitrary number
 		let initial_stake = 10000;
 
-		let weights_keys : Vec<AccountId> = vec![];
+		let weights_keys : Vec<u32> = vec![];
 		let weight_values : Vec<u32> = vec![];
 
 		// == Expectations ==
@@ -50,7 +50,7 @@ fn set_weights_ok_no_weights() {
 		let expect_total_stake:u64 = 10000; // The total stake should remain the same
 
 		// Let's subscribe a new neuron to the chain
-		let neuron = subscribe_neuron(hotkey_account_id, 10, 666, 4, 0, 66);
+		let neuron = subscribe_neuron(hotkey_account_id, 0, 10, 666, 4, 0, 66);
 
 		// Let's give it some stake.
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, initial_stake);
@@ -66,9 +66,9 @@ fn set_weights_ok_no_weights() {
 #[test]
 fn test_weights_err_weights_vec_not_equal_size() {
 	new_test_ext().execute_with(|| {
-    let _neuron = subscribe_neuron(666, 5, 66, 4, 0, 77);
+    let _neuron = subscribe_neuron(666, 0, 5, 66, 4, 0, 77);
 
-		let weights_keys: Vec<AccountId> = vec![1, 2, 3, 4, 5, 6];
+		let weights_keys: Vec<u32> = vec![1, 2, 3, 4, 5, 6];
 		let weight_values: Vec<u32> = vec![1, 2, 3, 4, 5]; // Uneven sizes
 
 		let result = Subtensor::set_weights(Origin::signed(666), weights_keys, weight_values);
@@ -80,8 +80,8 @@ fn test_weights_err_weights_vec_not_equal_size() {
 #[test]
 fn test_weights_err_has_duplicate_ids() {
 	new_test_ext().execute_with(|| {
-    let _neuron = subscribe_neuron(666, 5, 66, 4, 0, 77);
-		let weights_keys: Vec<AccountId> = vec![1, 2, 3, 4, 5, 6, 6, 6]; // Contains duplicates
+    let _neuron = subscribe_neuron(666, 0, 5, 66, 4, 0, 77);
+		let weights_keys: Vec<u32> = vec![1, 2, 3, 4, 5, 6, 6, 6]; // Contains duplicates
 		let weight_values: Vec<u32> = vec![1, 2, 3, 4, 5, 6, 7, 8];
 
 		let result = Subtensor::set_weights(Origin::signed(666), weights_keys, weight_values);
@@ -93,7 +93,7 @@ fn test_weights_err_has_duplicate_ids() {
 #[test]
 fn test_no_signature() {
 	new_test_ext().execute_with(|| {
-		let weights_keys: Vec<AccountId> = vec![];
+		let weights_keys: Vec<u32> = vec![];
 		let weight_values: Vec<u32> = vec![];
 
 		let result = Subtensor::set_weights(Origin::none(), weights_keys, weight_values);
@@ -104,7 +104,7 @@ fn test_no_signature() {
 #[test]
 fn test_set_weights_err_not_active() {
 	new_test_ext().execute_with(|| {
-		let weights_keys: Vec<AccountId> = vec![1, 2, 3, 4, 5, 6];
+		let weights_keys: Vec<u32> = vec![1, 2, 3, 4, 5, 6];
 		let weight_values: Vec<u32> = vec![1, 2, 3, 4, 5, 6];
 
 		let result = Subtensor::set_weights(Origin::signed(1), weights_keys, weight_values);
@@ -117,8 +117,8 @@ fn test_set_weights_err_not_active() {
 #[test]
 fn test_set_weights_err_invalid_uid() {
 	new_test_ext().execute_with(|| {
-        let _neuron = subscribe_neuron(55, 33, 55, 4, 0, 66);
-		let weight_keys : Vec<AccountId> = vec![9999999999]; // Does not exist
+        let _neuron = subscribe_neuron(55, 0, 33, 55, 4, 0, 66);
+		let weight_keys : Vec<u32> = vec![99999]; // Does not exist
 		let weight_values : Vec<u32> = vec![88]; // random value
 
 		let result = Subtensor::set_weights(Origin::signed(55), weight_keys, weight_values);

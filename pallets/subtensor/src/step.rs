@@ -105,13 +105,13 @@ impl<T: Config> Pallet<T> {
         let mut dividends: Vec<u64> = vec![0;n];
         let mut bond_totals: Vec<u64> = vec![0; n];
         let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
-        let mut weights: Vec<Vec<(u64,u32)>> = vec![];
-        let mut active_uids: Vec<u64> = vec![];
+        let mut weights: Vec<Vec<(u32,u32)>> = vec![];
+        let mut active_uids: Vec<u32> = vec![];
         let mut active: Vec<u64> = vec![0;n];
 
         // Pull active data into local cache.
         let mut total_active_stake: u64 = 0;
-        for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 
             // Filter on active.
             if current_block - neuron_i.last_update < active_threshold {
@@ -146,7 +146,7 @@ impl<T: Config> Pallet<T> {
             // Only accumulate rank, trust and bonds for active neurons.
             //let mut neuron_i: NeuronMetadataOf<T> = neurons[ uid_to_index[ *uid_i as usize ] as usize ];
             let stake_i: I65F63 = I65F63::from_num( stake[ *uid_i as usize ] );
-            let weights_i: &Vec<(u64, u32)> = &weights[ index_i as usize ];
+            let weights_i: &Vec<(u32, u32)> = &weights[ index_i as usize ];
 
             // Iterate over weights.
             for ( uid_j, weight_ij ) in weights_i.iter() {
@@ -239,11 +239,11 @@ impl<T: Config> Pallet<T> {
 
         // Compute trust and ranks.
         let mut total_dividends: u64 = 0;
-        let mut sparse_bonds: Vec<Vec<(u64,u64)>> = vec![vec![]; n];
+        let mut sparse_bonds: Vec<Vec<(u32,u64)>> = vec![vec![]; n];
         for uid_i in active_uids.iter() {
 
             // To be filled: Sparsified bonds.
-            let mut sparse_bonds_row: Vec<(u64, u64)> = vec![];
+            let mut sparse_bonds_row: Vec<(u32, u64)> = vec![];
 
             // Only count bond dividends between active uids.
             for uid_j in active_uids.iter() {
@@ -253,7 +253,7 @@ impl<T: Config> Pallet<T> {
                 let total_bonds_j: u64 = bond_totals[ *uid_j as usize ];
                 if total_bonds_j != 0 && bonds_ij != 0 {
                     // Get bonds from i to j.
-                    sparse_bonds_row.push( (*uid_j as u64, bonds_ij) );
+                    sparse_bonds_row.push( (*uid_j as u32, bonds_ij) );
 
                     // Ownership fraction.
                     let ownership_fraction_ij: I65F63 = I65F63::from_num( bonds_ij ) / I65F63::from_num( total_bonds_j );
@@ -294,7 +294,7 @@ impl<T: Config> Pallet<T> {
         }
 
 
-        for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
             if active[ uid_i as usize ] == 0 {
                 neuron_i.active = 0;

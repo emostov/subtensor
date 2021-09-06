@@ -14,13 +14,14 @@ use sp_std::if_std; // Import into scope the if_std! macro.
 #[test]
 fn test_subscribe_ok_dispatch_info_ok() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let ip = ipv4(8,8,8,8);
 		let port = 8883;
 		let ip_type = 4;
 		let modality = 0;
 		let coldkey_id = 7787;
 
-        let call = Call::Subtensor(SubtensorCall::subscribe(ip, port, ip_type, modality, coldkey_id));
+        let call = Call::Subtensor(SubtensorCall::subscribe(version, ip, port, ip_type, modality, coldkey_id));
 
 		assert_eq!(call.get_dispatch_info(), DispatchInfo {
 			weight: 0,
@@ -32,6 +33,7 @@ fn test_subscribe_ok_dispatch_info_ok() {
 
 #[test]
 fn test_subscribe_ok_no_transaction_fee_is_charged() {
+	let version = 0;
 	let ip = ipv4(8,8,8,8);
 	let port = 8883;
 	let ip_type = 4;
@@ -41,7 +43,7 @@ fn test_subscribe_ok_no_transaction_fee_is_charged() {
 	new_test_ext().execute_with(|| {
         let _adam = subscribe_ok_neuron(0, coldkey_id);
 
-		let call = Call::Subtensor(SubtensorCall::subscribe(ip, port, ip_type, modality, coldkey_id));
+		let call = Call::Subtensor(SubtensorCall::subscribe(version, ip, port, ip_type, modality, coldkey_id));
 		let xt = TestXt::new(call, mock::sign_extra(coldkey_id, 0));
 		let result = mock::Executive::apply_extrinsic(xt);
 		assert_ok!(result);
@@ -54,6 +56,7 @@ fn test_subscribe_ok_no_transaction_fee_is_charged() {
 #[test]
 fn test_subscribe_ok() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let hotkey_account_id = 1;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
@@ -62,7 +65,7 @@ fn test_subscribe_ok() {
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 
 		// Subscribe and check extrinsic output
-		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id));
+		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id));
 		let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
 
 		// Check uid setting functionality
@@ -94,6 +97,7 @@ fn test_subscribe_ok() {
 #[test]
 fn test_active_hotkey_with_wrong_coldkey() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let hotkey_account_id = 1;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
@@ -103,10 +107,10 @@ fn test_active_hotkey_with_wrong_coldkey() {
 		let coldkey_account_id_b = 668; // The other neighbor, much nicer guy this one.
 
 		// This line links the hotkey to the coldkey on first subscription
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id_a);
+		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id_a);
 		assert_ok!(result);
 
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id_b);
+		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id_b);
 		assert_eq!(result, Err(Error::<Test>::NonAssociatedColdKey.into()));
 	});
 }
@@ -114,6 +118,7 @@ fn test_active_hotkey_with_wrong_coldkey() {
 #[test]
 fn test_active_hotkey_with_right_coldkey() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let hotkey_account_id = 1;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
@@ -122,10 +127,10 @@ fn test_active_hotkey_with_right_coldkey() {
 		let coldkey_account_id = 667;
 
 		// This line links the hotkey to the coldkey on first subscription
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id);
+		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id);
 		assert_ok!(result);
 
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id);
+		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id);
 		assert_ok!(result);
 	});
 }
@@ -134,6 +139,7 @@ fn test_active_hotkey_with_right_coldkey() {
 #[test]
 fn test_invalid_modality() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let hotkey_account_id = 1;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
@@ -142,7 +148,7 @@ fn test_invalid_modality() {
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 
 		// Subscribe and check extrinsic output
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id);
+		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id);
 		assert_eq!(result, Err(Error::<Test>::InvalidModality.into()));
 	});
 }
@@ -150,7 +156,7 @@ fn test_invalid_modality() {
 #[test]
 fn test_subscribe_update_ok() {
 	new_test_ext().execute_with(|| {
-		
+		let version = 0;
 		let hotkey_account_id = 1;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
@@ -159,7 +165,7 @@ fn test_subscribe_update_ok() {
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 
 		// Subscribe and check extrinsic output
-		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id));
+		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id));
 		let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
 
 		// Check uid setting functionality
@@ -191,7 +197,7 @@ fn test_subscribe_update_ok() {
 		let new_ip_type = 6; // change to 6.
 		let new_port = port + 1; // off by one.
 		let new_modality = modality; // off by once
-		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), new_ip, new_port, new_ip_type, new_modality, coldkey_account_id));
+		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, new_ip, new_port, new_ip_type, new_modality, coldkey_account_id));
 		let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
 
 		// UID, coldkey and hotkey are the same.
@@ -227,6 +233,7 @@ fn test_subscribe_update_ok() {
 #[test]
 fn test_subscribe_update_coldkey_modality_not_changed_ok() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let hotkey_account_id = 1;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
@@ -235,7 +242,7 @@ fn test_subscribe_update_coldkey_modality_not_changed_ok() {
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 
 		// Subscribe and check extrinsic output
-		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id));
+		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id));
 
 		// Subscribe again, this time an update. hotkey and cold key are the same.
 		let new_coldkey_account_id = 667;
@@ -243,7 +250,7 @@ fn test_subscribe_update_coldkey_modality_not_changed_ok() {
 		let new_ip_type = 6; // change to 6.
 		let new_port = port + 1; // off by one.
 		let new_modality = modality; // has to be modality 0.
-		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), new_ip, new_port, new_ip_type, new_modality, new_coldkey_account_id));
+		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, new_ip, new_port, new_ip_type, new_modality, new_coldkey_account_id));
 		let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
 
 		// UID, modality, coldkey and hotkey are the same.
@@ -276,6 +283,7 @@ fn test_subscribe_update_coldkey_modality_not_changed_ok() {
 #[test]
 fn test_subscribe_already_active() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
         let hotkey_account_id = 1;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
@@ -284,17 +292,18 @@ fn test_subscribe_already_active() {
 		let coldkey_account_id = 667;
 
 		// This first subscription should succeed without problems
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id);
+		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id);
 		assert_ok!(result);
 
 		// The second should fail when using the same hotkey account id
-		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id));
+		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id));
 	});
 }
 
 #[test]
 fn test_subscribe_failed_invalid_ip_type() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let hotkey_account_id = 1;
 		let ip = ipv4(127,0,0,1);
 		let ip_type = 10;  // Not 4 or 6
@@ -303,7 +312,7 @@ fn test_subscribe_failed_invalid_ip_type() {
 		let coldkey_account_id = 667;
 
 		// This first subscription should succeed without problems
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id);
+		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id);
 		assert_eq!(result, Err(Error::<Test>::InvalidIpType.into()));
 	});
 }
@@ -311,6 +320,7 @@ fn test_subscribe_failed_invalid_ip_type() {
 #[test]
 fn test_subscribe_failed_invalid_ip_address() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let hotkey_account_id = 1;
 		let ip = ipv6(0,0,0,0,0,0,0,1); // Ipv6 localhost, invalid
 		let ip_type = 6;
@@ -319,7 +329,7 @@ fn test_subscribe_failed_invalid_ip_address() {
 		let coldkey_account_id = 667;
 
 		// This first subscription should succeed without problems
-		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_account_id);
+		let result = Subtensor::subscribe(<<Test as Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_account_id);
 		assert_eq!(result, Err(Error::<Test>::InvalidIpAddress.into()));
 	});
 }
@@ -327,7 +337,7 @@ fn test_subscribe_failed_invalid_ip_address() {
 #[test]
 fn test_subscribe_failed_no_signature() {
 	new_test_ext().execute_with(|| {
-
+		let version = 0;
 		let ip = ipv6(0,0,0,0,0,0,1,1); // Ipv6 localhost, valid
 		let ip_type = 6;
 		let port = 1337;
@@ -335,7 +345,7 @@ fn test_subscribe_failed_no_signature() {
 		let coldkey_account_id = 667;
 
 
-        let result = Subtensor::subscribe(<<Test as Config>::Origin>::none(), ip, port, ip_type, modality, coldkey_account_id);
+        let result = Subtensor::subscribe(<<Test as Config>::Origin>::none(), version, ip, port, ip_type, modality, coldkey_account_id);
 		assert_eq!(result, Err(DispatchError::BadOrigin.into()));
 	});
 }
@@ -349,13 +359,14 @@ fn test_subscribe_failed_no_signature() {
 fn test_init_weight_matrix_for_neuron() {
 	new_test_ext().execute_with(|| {
 		let account_id = 55;
+		let version = 0;
 		let ip = ipv4(8,8,8,8);
 		let port = 55;
 		let ip_type = 4;
 		let modality = 0;
 		let coldkey = 66;
 
-        let neuron = subscribe_neuron(account_id, ip, port, ip_type, modality, coldkey);
+        let neuron = subscribe_neuron(account_id, version, ip, port, ip_type, modality, coldkey);
 		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), vec![u32::MAX]);
 	});
 }
@@ -368,13 +379,14 @@ fn test_init_weight_matrix_for_neuron() {
 fn test_add_neuron_to_metagraph_ok() {
 	new_test_ext().execute_with(|| {
         let account_id = 55;
+		let version = 0;
 		let ip = ipv4(8,8,8,8);
 		let port = 55;
 		let ip_type = 4;
 		let coldkey = 66;
 		let modality = 0;
 
-		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(account_id), ip, port, ip_type, modality, coldkey));
+		assert_ok!(Subtensor::subscribe(<<Test as Config>::Origin>::signed(account_id), version, ip, port, ip_type, modality, coldkey));
 		let neuron = Subtensor::get_neuron_for_hotkey(&account_id);
 		assert_eq!(neuron.ip, ip);
 		assert_eq!(neuron.port, port);

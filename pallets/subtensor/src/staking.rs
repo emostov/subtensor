@@ -99,7 +99,7 @@ impl<T: Config> Pallet<T> {
     --==[[  Helper functions   ]]==--
     *********************************/
 
-    pub fn get_stake_of_neuron_hotkey_account_by_uid(uid: u64) -> u64 {
+    pub fn get_stake_of_neuron_hotkey_account_by_uid(uid: u32) -> u64 {
         return Self::get_neuron_for_uid(uid).stake
     }
 
@@ -137,7 +137,7 @@ impl<T: Config> Pallet<T> {
     /// is calculated and this should always <= 1. Having this function be atomic, fills this
     /// requirement.
     ///
-    pub fn add_stake_to_neuron_hotkey_account(uid: u64, amount: u64) {
+    pub fn add_stake_to_neuron_hotkey_account(uid: u32, amount: u64) {
         assert!(Self::is_uid_active(uid));
 
         let mut neuron: NeuronMetadataOf<T> = Self::get_neuron_for_uid( uid );
@@ -167,7 +167,7 @@ impl<T: Config> Pallet<T> {
     ///
     /// Furthermore, a check to see if the uid is active before this method is called is also required
     ///
-    pub fn remove_stake_from_neuron_hotkey_account(uid: u64, amount: u64) {
+    pub fn remove_stake_from_neuron_hotkey_account(uid: u32, amount: u64) {
         assert!(Self::is_uid_active(uid));
 
         let mut neuron: NeuronMetadataOf<T> = Self::get_neuron_for_uid( uid );
@@ -246,7 +246,7 @@ impl<T: Config> Pallet<T> {
     /// Returns true if there is an entry for uid in the Stake map,
     /// false otherwise
     ///
-    pub fn has_hotkey_account(uid: &u64) -> bool {
+    pub fn has_hotkey_account(uid: &u32) -> bool {
         return Neurons::<T>::contains_key(*uid);
     }
 

@@ -2,7 +2,7 @@ use super::*;
 use sp_std::if_std; // Import into scope the if_std! macro.
 
 impl<T: Config> Pallet<T> {
-    pub fn do_subscribe( origin: T::Origin, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId ) -> dispatch::DispatchResult {
+    pub fn do_subscribe( origin: T::Origin, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId ) -> dispatch::DispatchResult {
 
         // --- We check the callers (hotkey) signature.
         let hotkey_id = ensure_signed(origin)?;
@@ -26,6 +26,7 @@ impl<T: Config> Pallet<T> {
             // ---- If the neuron is not-already subscribed, we create a 
             // new entry in the table with the new metadata.
             let neuron = NeuronMetadataOf::<T> {
+                version: version,
                 ip: ip,
                 port: port,
                 ip_type: ip_type,
@@ -60,6 +61,7 @@ impl<T: Config> Pallet<T> {
 
             // --- We get the neuron assoicated with this hotkey.
             let mut neuron = Self::get_neuron_for_uid(uid);
+            neuron.version = version;
             neuron.ip = ip;
             neuron.port = port;
             neuron.ip_type = ip_type;

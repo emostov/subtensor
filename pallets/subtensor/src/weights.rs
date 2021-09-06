@@ -1,7 +1,7 @@
 use super::*;
 
 impl<T: Config> Pallet<T> {
-    pub fn do_set_weights(origin: T::Origin, uids: Vec<u64>, values: Vec<u32>) -> dispatch::DispatchResult
+    pub fn do_set_weights(origin: T::Origin, uids: Vec<u32>, values: Vec<u32>) -> dispatch::DispatchResult
     {
         // ---- We check the caller signature
         let hotkey_id = ensure_signed(origin)?;
@@ -23,7 +23,7 @@ impl<T: Config> Pallet<T> {
         let normalized_values = normalize(values);
 
         // Zip weights.
-        let mut zipped_weights: Vec<(u64,u32)> = vec![];
+        let mut zipped_weights: Vec<(u32,u32)> = vec![];
         for (uid, val) in uids.iter().zip(normalized_values.iter()) {
             zipped_weights.push((*uid, *val))
         }
@@ -71,7 +71,7 @@ impl<T: Config> Pallet<T> {
     //     neuron.weights = weights;
     // }
     
-    pub fn contains_invalid_uids(uids: &Vec<u64>) -> bool {
+    pub fn contains_invalid_uids(uids: &Vec<u32>) -> bool {
         for uid in uids {
             if !Self::is_uid_active(*uid) {
                 return true;
@@ -81,7 +81,7 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-fn uids_match_values(uids: &Vec<u64>, values: &Vec<u32>) -> bool {
+fn uids_match_values(uids: &Vec<u32>, values: &Vec<u32>) -> bool {
     return uids.len() == values.len();
 }
 
@@ -89,8 +89,8 @@ fn uids_match_values(uids: &Vec<u64>, values: &Vec<u32>) -> bool {
 * This function tests if the uids half of the weight matrix contains duplicate uid's.
 * If it does, an attacker could
 */
-fn has_duplicate_uids(items: &Vec<u64>) -> bool {
-    let mut parsed: Vec<u64> = Vec::new();
+fn has_duplicate_uids(items: &Vec<u32>) -> bool {
+    let mut parsed: Vec<u32> = Vec::new();
     for item in items {
         if parsed.contains(&item) { return true; }
         parsed.push(item.clone());

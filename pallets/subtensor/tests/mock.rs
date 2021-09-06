@@ -254,8 +254,8 @@ pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExterna
 // }
 
 #[allow(dead_code)]
-pub fn subscribe_neuron(hotkey_account_id : u64, ip: u128, port: u16, ip_type : u8, modality: u8, coldkey_acount_id : u64) -> NeuronMetadata<u64> {
-	let result = Subtensor::subscribe(<<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_acount_id);
+pub fn subscribe_neuron(hotkey_account_id : u64, version: u32, ip: u128, port: u16, ip_type : u8, modality: u8, coldkey_acount_id : u64) -> NeuronMetadata<u64> {
+	let result = Subtensor::subscribe(<<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality, coldkey_acount_id);
 	assert_ok!(result);
 	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
 	neuron
@@ -263,7 +263,7 @@ pub fn subscribe_neuron(hotkey_account_id : u64, ip: u128, port: u16, ip_type : 
 
 #[allow(dead_code)]
 pub fn subscribe_ok_neuron(hotkey_account_id : u64,  coldkey_account_id : u64) -> NeuronMetadata<u64> {
-	return subscribe_neuron(hotkey_account_id, ipv4(8,8,8,8), 66, 4, 0, coldkey_account_id );
+	return subscribe_neuron(hotkey_account_id, 0, ipv4(8,8,8,8), 66, 4, 0, coldkey_account_id );
 }
 
 #[allow(dead_code)]

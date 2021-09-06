@@ -70,7 +70,7 @@ fn test_add_stake_ok_no_emission() {
 		let coldkey_account_id = 55453;
 
 		// Subscribe neuron
-		let neuron = subscribe_neuron(hotkey_account_id, ip,port, ip_type, modality,  coldkey_account_id);
+		let neuron = subscribe_neuron(hotkey_account_id, 0, ip,port, ip_type, modality,  coldkey_account_id);
 
 		// Give it some $$$ in his coldkey balance
 		Subtensor::add_balance_to_coldkey_account(&coldkey_account_id, 10000);
@@ -155,11 +155,12 @@ fn test_add_stake_err_not_active() {
 #[test]
 fn test_add_stake_err_neuron_does_not_belong_to_coldkey() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let coldkey_id = 544;
 		let hotkey_id = 54544;
 		let other_cold_key = 99498;
 
-		let _neuron = subscribe_neuron(hotkey_id, ipv4(8, 8, 8, 8), 66, 4, 0, coldkey_id);
+		let _neuron = subscribe_neuron(hotkey_id, version, ipv4(8, 8, 8, 8), 66, 4, 0, coldkey_id);
 
 		// Perform the request which is signed by a different cold key
 		let result = Subtensor::add_stake(<<Test as Config>::Origin>::signed(other_cold_key), hotkey_id, 1000);
@@ -170,11 +171,12 @@ fn test_add_stake_err_neuron_does_not_belong_to_coldkey() {
 #[test]
 fn test_add_stake_err_not_enough_belance() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let coldkey_id = 544;
 		let hotkey_id = 54544;
 
 
-		let _neuron = subscribe_neuron(hotkey_id, ipv4(8, 8, 8, 8), 66, 4, 0, coldkey_id);
+		let _neuron = subscribe_neuron(hotkey_id, version, ipv4(8, 8, 8, 8), 66, 4, 0, coldkey_id);
 
 		// Lets try to stake with 0 balance in cold key account
 		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_id), 0);
@@ -207,12 +209,13 @@ fn test_remove_stake_dispatch_info_ok() {
 #[test]
 fn test_remove_stake_ok_no_emission() {
 	new_test_ext().execute_with(|| {
+		let version = 0;
 		let coldkey_account_id = 4343;
 		let hotkey_account_id = 4968585;
 		let amount = 10000;
 
 		// Let's spin up a neuron
-		let neuron = subscribe_neuron(hotkey_account_id, ipv4(8,8,8,8), 66, 4, 0, coldkey_account_id);
+		let neuron = subscribe_neuron(hotkey_account_id, version, ipv4(8,8,8,8), 66, 4, 0, coldkey_account_id);
 
 		// Some basic assertions
 		assert_eq!(Subtensor::get_total_stake(), 0);

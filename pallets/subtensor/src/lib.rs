@@ -98,6 +98,10 @@ pub mod pallet {
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
     #[derive(Encode, Decode, Default)]
     pub struct NeuronMetadata<AccountId> {
+
+		/// ---- The endpoint's code version.
+        pub version: u32,
+
         /// ---- The endpoint's u128 encoded ip address of type v6 or v4.
         pub ip: u128,
 
@@ -107,11 +111,8 @@ pub mod pallet {
         /// ---- The endpoint's ip type, 4 for ipv4 and 6 for ipv6.
         pub ip_type: u8,
 
-        /// ---- The endpoint's unique identifier. The chain can have
-        /// 18,446,744,073,709,551,615 neurons before we overflow. However
-        /// by this point the chain would be 10 terabytes just from metadata
-        /// alone.
-        pub uid: u64,
+        /// ---- The endpoint's unique identifier.
+        pub uid: u32,
 
         /// ---- The neuron modality. Modalities specify which datatype
         /// the neuron endpoint can process. This information is non
@@ -163,10 +164,10 @@ pub mod pallet {
 		pub dividends: u64,
 
 		/// ---- The associated bond ownership.
-		pub bonds: Vec<(u64,u64)>,
+		pub bonds: Vec<(u32,u64)>,
 
 		/// ---- The associated weights ownership.
-		pub weights: Vec<(u64,u32)>,
+		pub weights: Vec<(u32,u32)>,
     }
 
 	/// ************************************************************
@@ -177,7 +178,7 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type N<T> = StorageValue<
 		_, 
-		u64, 
+		u32, 
 		ValueQuery
 	>;
 
@@ -202,7 +203,7 @@ pub mod pallet {
 		_, 
 		Blake2_128Concat, 
 		T::AccountId, 
-		u64, 
+		u32, 
 		ValueQuery
 	>;
 
@@ -212,7 +213,7 @@ pub mod pallet {
     pub(super) type Neurons<T:Config> = StorageMap<
 		_, 
 		Identity, 
-		u64, 
+		u32, 
 		NeuronMetadataOf<T>, 
 		ValueQuery
 	>;
@@ -277,11 +278,11 @@ pub mod pallet {
 
 		/// --- Event created when a new neuron account has been subscribed to 
 		/// the neuron set.
-		NeuronAdded(u64),
+		NeuronAdded(u32),
 
 		/// --- Event created when the neuron information associated with a hotkey
 		/// is changed, for instance, when the ip/port changes.
-		NeuronUpdated(u64),
+		NeuronUpdated(u32),
 
 		/// --- Event created during when stake has been transfered from 
 		/// the coldkey onto the hotkey staking account.
@@ -406,11 +407,11 @@ pub mod pallet {
 		/// 	* `origin`: (<T as frame_system::Config>Origin):
 		/// 		- The caller, a hotkey who wishes to set their weights.
 		/// 
-		/// 	* `uids` (Vec<u64>):
+		/// 	* `uids` (Vec<u32>):
 		/// 		- The edge endpoint for the weight, i.e. j for w_ij.
 		///
-		/// 	* 'weights' (Vec<u64>):
-		/// 		- The u64 integer encoded weights. Interpreted as rational
+		/// 	* 'weights' (Vec<u32>):
+		/// 		- The u32 integer encoded weights. Interpreted as rational
 		/// 		values in the range [0,1]. They must sum to in32::MAX.
 		///
 		/// # Event:
@@ -429,7 +430,7 @@ pub mod pallet {
 		/// 		associated colkey account.
 		///
         #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn set_weights(origin:OriginFor<T>, dests: Vec<u64>, weights: Vec<u32>) -> DispatchResult {
+		pub fn set_weights(origin:OriginFor<T>, dests: Vec<u32>, weights: Vec<u32>) -> DispatchResult {
 			Self::do_set_weights(origin, dests, weights)
 		}
 		
@@ -533,8 +534,8 @@ pub mod pallet {
 		/// 	* 'NeuronUpdated':
 		/// 		- On subscription of new metadata attached to the calling hotkey.
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn subscribe(origin:OriginFor<T>, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId) -> DispatchResult {
-			Self::do_subscribe(origin, ip, port, ip_type, modality, coldkey)
+		pub fn subscribe(origin:OriginFor<T>, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId) -> DispatchResult {
+			Self::do_subscribe(origin, version, ip, port, ip_type, modality, coldkey)
 		}
 	}
 	
@@ -550,63 +551,63 @@ pub mod pallet {
 		}
 		pub fn get_lastupdate( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.last_update;
 			}
 			return result
 		}
 		pub fn get_stake( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize ] = neuron_i.stake;
 			}
 			return result
 		}
 		pub fn get_ranks( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.rank;
 			}
 			return result
 		}
 		pub fn get_trust( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.trust;
 			}
 			return result
 		}
 		pub fn get_consensus( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.consensus;
 			}
 			return result
 		}
 		pub fn get_incentive( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.incentive;
 			}
 			return result
 		}
 		pub fn get_inflation( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.inflation;
 			}
 			return result
 		}
 		pub fn get_dividends( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.dividends;
 			}
 			return result
 		}
 		pub fn get_active( ) -> Vec<u8> {
 			let mut result: Vec<u8> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.active;
 			}
 			return result
@@ -620,7 +621,7 @@ pub mod pallet {
 		}
 		pub fn get_bonds( ) -> Vec<Vec<u64>>  {
 			let mut bonds: Vec<Vec<u64>> = vec![ vec![]; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				bonds[ uid_i as usize ] = Self::get_bonds_for_neuron( &neuron_i );
 			}
 			return bonds
@@ -634,7 +635,7 @@ pub mod pallet {
 		}
 		pub fn get_weights( ) -> Vec<Vec<u32>>  {
 			let mut weights: Vec<Vec<u32>> = vec![ vec![]; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				weights[ uid_i as usize ] = Self::get_weights_for_neuron( &neuron_i );
 			}
 			return weights
@@ -650,7 +651,7 @@ pub mod pallet {
 		}
 		pub fn set_weights_from_matrix( weights: Vec<Vec<u32>> ) {
 			for uid_i in 0..Self::get_neuron_count() {
-				let mut sparse_weights: Vec<(u64, u32)> = vec![];
+				let mut sparse_weights: Vec<(u32, u32)> = vec![];
 				for uid_j in 0..Self::get_neuron_count() {
 					let weight_ij: u32 = weights[uid_i as usize][uid_j as usize];
 					if weight_ij != 0 {
@@ -672,7 +673,7 @@ pub mod pallet {
 
 		// --- Returns true if the account-id has an active
 		// account on chain.
-		pub fn add_hotkey_to_active_set(hotkey_id: &T::AccountId, uid: u64) {
+		pub fn add_hotkey_to_active_set(hotkey_id: &T::AccountId, uid: u32) {
 			Hotkeys::<T>::insert(&hotkey_id, uid);
 		}
 
@@ -691,18 +692,18 @@ pub mod pallet {
 		// --- Returns true if the uid is active, i.e. there
 		// is a staking, last_update, and neuron account associated
 		// with this uid.
-		pub fn is_uid_active(uid: u64) -> bool {
+		pub fn is_uid_active(uid: u32) -> bool {
 			return Neurons::<T>::contains_key(uid);
 		}
 
 		// --- Returns hotkey associated with the hotkey account.
 		// This should be called in conjunction with is_hotkey_active
 		// to ensure this function does not throw an error.
-		pub fn get_uid_for_hotkey(hotkey_id: &T::AccountId) -> u64{
+		pub fn get_uid_for_hotkey(hotkey_id: &T::AccountId) -> u32{
 			return Hotkeys::<T>::get(&hotkey_id);
 		}
 
-		pub fn get_neuron_for_uid ( uid: u64 ) -> NeuronMetadataOf<T> {
+		pub fn get_neuron_for_uid ( uid: u32 ) -> NeuronMetadataOf<T> {
 			return Neurons::<T>::get( uid );
 		}
 
@@ -716,17 +717,15 @@ pub mod pallet {
 		// --- Returns the next available network uid.
 		// uids increment up to u64:MAX, this allows the chain to
 		// have 18,446,744,073,709,551,615 peers before an overflow.
-		pub fn get_neuron_count() -> u64 {
+		pub fn get_neuron_count() -> u32 {
 			let uid = N::<T>::get();
 			uid
 		}
 
-		// --- Returns the next available network uid.
-		// uids increment up to u64:MAX, this allows the chain to
-		// have 18,446,744,073,709,551,615 peers before an overflow.
-		pub fn get_next_uid() -> u64 {
+		// --- Returns the next available network uid and increments uid.
+		pub fn get_next_uid() -> u32 {
 			let uid = N::<T>::get();
-			assert!(uid < u64::MAX);  // The system should fail if this is ever reached.
+			assert!(uid < u32::MAX);  // The system should fail if this is ever reached.
 			N::<T>::put(uid + 1);
 			uid
 		}
