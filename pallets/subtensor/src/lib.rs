@@ -65,7 +65,9 @@ pub mod pallet {
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, Printable, traits::{Currency}};
 	use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
+	use sp_std::vec;
 	use sp_std::convert::TryInto;
+	use frame_support::IterableStorageMap;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -86,7 +88,6 @@ pub mod pallet {
 		/// - The transaction fee in RAO per byte
 		type TransactionByteFee: Get<BalanceOf<Self>>;
 	}
-
 
 	/// ************************************************************
 	///	-Pallet-Types
@@ -133,10 +134,43 @@ pub mod pallet {
         /// The hotkey account (in the Neurons map) has permission to call
         /// subscribe and unsubscribe.
         pub coldkey: AccountId,
+
+		/// ---- Is this neuron active in the incentive mechanism.
+		pub active: u8,
+
+		/// ---- Block number of last chain update.
+		pub last_update: u64,
+
+		/// ---- The associated stake in this account.
+		pub stake: u64,
+
+		/// ---- The associated rank in this account.
+		pub rank: u64,
+
+		/// ---- The associated trust in this account.
+		pub trust: u64,
+
+		/// ---- The associated consensus in this account.
+		pub consensus: u64,
+
+		/// ---- The associated incentive in this account.
+		pub incentive: u64,
+
+		/// ---- The associated inflation in this account.
+		pub inflation: u64,
+
+		/// ---- The associated dividends in this account.
+		pub dividends: u64,
+
+		/// ---- The associated bond ownership.
+		pub bonds: Vec<(u64,u64)>,
+
+		/// ---- The associated weights ownership.
+		pub weights: Vec<(u64,u32)>,
     }
 
 	/// ************************************************************
-	///	-Storage Objects
+	///	*---- Storage Objects
 	/// ************************************************************
 	
 	// --- Number of peers.
@@ -147,9 +181,23 @@ pub mod pallet {
 		ValueQuery
 	>;
 
+	#[pallet::storage]
+	pub type TotalStake<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type TotalIssuance<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
 	/// ---- Maps from hotkey to uid.
 	#[pallet::storage]
-    #[pallet::getter(fn uid)]
+	#[pallet::getter(fn hotkey)]
     pub(super) type Hotkeys<T:Config> = StorageMap<
 		_, 
 		Blake2_128Concat, 
@@ -158,127 +206,17 @@ pub mod pallet {
 		ValueQuery
 	>;
 
-	/// ---- Maps uid to a vectors of bonds.
+	/// ---- Maps from uid to neuron.
 	#[pallet::storage]
-    pub(super) type Neurons<T> = StorageValue<
+    #[pallet::getter(fn uid)]
+    pub(super) type Neurons<T:Config> = StorageMap<
 		_, 
-		Vec<NeuronMetadataOf<T>>, 
-		ValueQuery
-	>;
-
-	/// ---- Maps uid to a vectors of bonds.
-	#[pallet::storage]
-    pub(super) type Weights<T> = StorageValue<
-		_, 
-		Vec<Vec<(u64,u32)>>, 
-		ValueQuery
-	>;
-
-	/// ---- Maps uid to a vectors of bonds.
-	#[pallet::storage]
-    pub(super) type Bonds<T> = StorageValue<
-		_, 
-		Vec<Vec<(u64,u64)>>, 
-		ValueQuery
-	>;
-
-	/// ---- Stores last block stakes.
-	#[pallet::storage]
-	pub type Stake<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Stores last block ranks.
-	#[pallet::storage]
-	pub type Ranks<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Stores last block trust scores.
-	#[pallet::storage]
-	pub type Trust<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Stores last block trust scores.
-	#[pallet::storage]
-	pub type Consensus<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Stores last block incentive scores.
-	#[pallet::storage]
-	pub type Incentive<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Stores last block inflation amounts.
-	#[pallet::storage]
-	pub type Inflation<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Stores last block dividends.
-	#[pallet::storage]
-	pub type Dividends<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Active last block active bool.
-	#[pallet::storage]
-	pub type Active<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Active last block active bool.
-	#[pallet::storage]
-	pub type LastEmit<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Maps uid_i, uid_j to bond count.
-	#[pallet::storage]
-	pub(super) type BondTotals<T> = StorageValue<
-		_, 
-		Vec<u64>, 
-		ValueQuery
-	>;
-
-	/// ---- Stores the amount of currently staked token.
-	#[pallet::storage]
-	pub type TotalStake<T> = StorageValue<
-		_, 
+		Identity, 
 		u64, 
+		NeuronMetadataOf<T>, 
 		ValueQuery
 	>;
 
-	/// ---- Stores the total issuance.
-	#[pallet::storage]
-	pub type TotalIssuance<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
-
-	
 	/// ************************************************************
 	///	-Genesis-Configuration
 	/// ************************************************************
@@ -603,148 +541,128 @@ pub mod pallet {
 	// ---- Subtensor helper functions.
 	impl<T: Config> Pallet<T> {
 
-		// Direct getters.
+		// Getters.
 		pub fn get_total_stake( ) -> u64 {
 			return TotalStake::<T>::get();
 		}
 		pub fn get_total_issuance( ) -> u64 {
 			return TotalIssuance::<T>::get();
 		}
-		pub fn get_bonds( ) -> Vec<Vec<(u64,u64)>>  {
-			return Bonds::<T>::get();
-		}
-		pub fn get_weights( ) -> Vec<Vec<(u64,u32)>> {
-			return Weights::<T>::get();
-		}
-		pub fn get_neurons( ) -> Vec<NeuronMetadataOf<T>> {
-			return Neurons::<T>::get();
-		}
-		pub fn get_lastemit( ) -> Vec<u64> {
-			return LastEmit::<T>::get();
+		pub fn get_lastupdate( ) -> Vec<u64> {
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = neuron_i.last_update;
+			}
+			return result
 		}
 		pub fn get_stake( ) -> Vec<u64> {
-			return Stake::<T>::get();
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = neuron_i.stake;
+			}
+			return result
 		}
 		pub fn get_ranks( ) -> Vec<u64> {
-			return Ranks::<T>::get();
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = neuron_i.rank;
+			}
+			return result
 		}
 		pub fn get_trust( ) -> Vec<u64> {
-			return Trust::<T>::get();
-		}
-		pub fn get_active( ) -> Vec<u64> {
-			return Active::<T>::get();
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = neuron_i.trust;
+			}
+			return result
 		}
 		pub fn get_consensus( ) -> Vec<u64> {
-			return Consensus::<T>::get();
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = neuron_i.consensus;
+			}
+			return result
 		}
 		pub fn get_incentive( ) -> Vec<u64> {
-			return Incentive::<T>::get();
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = neuron_i.incentive;
+			}
+			return result
 		}
 		pub fn get_inflation( ) -> Vec<u64> {
-			return Inflation::<T>::get();
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = neuron_i.inflation;
+			}
+			return result
 		}
 		pub fn get_dividends( ) -> Vec<u64> {
-			return Dividends::<T>::get();
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = neuron_i.dividends;
+			}
+			return result
 		}
-		
-		// Uid getters.
-		pub fn get_bonds_for_uid ( uid: u64 ) -> Vec<(u64,u64)>  {
-			return Self::get_bonds()[uid as usize];
+		pub fn get_active( ) -> Vec<u8> {
+			let mut result: Vec<u8> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize] = neuron_i.active;
+			}
+			return result
 		}
-		pub fn get_weights_for_uid ( uid: u64 ) -> Vec<(u64,u32)> {
-			return Self::get_weights()[uid as usize];
+		pub fn get_bonds_for_neuron( neuron: &NeuronMetadataOf<T> ) -> Vec<u64>  {
+			let mut bonds: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for (uid_j, bonds_ij) in neuron.bonds.iter(){
+				bonds[ *uid_j as usize ] = *bonds_ij;
+			}
+			return bonds
 		}
-		pub fn get_neuron_for_uid ( uid: u64 ) -> NeuronMetadataOf<T> {
-			return Self::get_neurons()[uid as usize];
+		pub fn get_bonds( ) -> Vec<Vec<u64>>  {
+			let mut bonds: Vec<Vec<u64>> = vec![ vec![]; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				bonds[ uid_i as usize ] = Self::get_bonds_for_neuron( &neuron_i );
+			}
+			return bonds
 		}
-		pub fn get_lastemit_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_lastemit()[uid as usize];
+		pub fn get_weights_for_neuron( neuron: &NeuronMetadataOf<T> ) -> Vec<u32>  {
+			let mut weights: Vec<u32> = vec![ 0; Self::get_neuron_count() as usize ];
+			for (uid_j, weights_ij) in neuron.weights.iter(){
+				weights[ *uid_j as usize ] = *weights_ij;
+			}
+			return weights
 		}
-		pub fn get_stake_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_stake()[uid as usize];
-		}
-		pub fn get_rank_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_ranks()[uid as usize];
-		}
-		pub fn get_trust_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_trust()[uid as usize];
-		}
-		pub fn get_active_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_active()[uid as usize];
-		}
-		pub fn get_consensus_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_consensus()[uid as usize];
-		}
-		pub fn get_incentive_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_incentive()[uid as usize];
-		}
-		pub fn get_inflation_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_inflation()[uid as usize];
-		}
-		pub fn get_dividends_for_uid ( uid: u64 ) -> u64 {
-			return Self::get_dividends()[uid as usize];
-		}
+		pub fn get_weights( ) -> Vec<Vec<u32>>  {
+			let mut weights: Vec<Vec<u32>> = vec![ vec![]; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+				weights[ uid_i as usize ] = Self::get_weights_for_neuron( &neuron_i );
+			}
+			return weights
+		}		
 
-		// Direct setters.
-		pub fn set_bonds( bonds: Vec<Vec<(u64, u64)>> ) {
-			Bonds::<T>::set( bonds );
+		// Setters
+		pub fn set_stake_from_vector( stake: Vec<u64> ) {
+			for uid_i in 0..Self::get_neuron_count() {
+				let mut neuron = Neurons::<T>::get(uid_i);
+				neuron.stake = stake[ uid_i as usize ];
+				Neurons::<T>::insert( uid_i, neuron );
+			}
 		}
-		pub fn set_weights( weights: Vec<Vec<(u64, u64)>> ) {
-			Weights::<T>::set( weights );
+		pub fn set_weights_from_matrix( weights: Vec<Vec<u32>> ) {
+			for uid_i in 0..Self::get_neuron_count() {
+				let mut sparse_weights: Vec<(u64, u32)> = vec![];
+				for uid_j in 0..Self::get_neuron_count() {
+					let weight_ij: u32 = weights[uid_i as usize][uid_j as usize];
+					if weight_ij != 0 {
+						sparse_weights.push( (uid_j, weight_ij) );
+					}
+				}
+				let mut neuron = Neurons::<T>::get(uid_i);
+				neuron.weights = sparse_weights;
+				Neurons::<T>::insert( uid_i, neuron );
+			}
 		}
-		pub fn set_stake( stake: Vec<u64> ) {
-			Stake::<T>::set( stake );
-		}
-		pub fn set_ranks( ranks: Vec<u64>) {
-			Ranks::<T>::set( ranks );
-		}
-		pub fn set_trust( trust: Vec<u64>) {
-			Trust::<T>::set(trust);
-		}
-		pub fn set_active( active: Vec<u64> ) {
-			Active::<T>::set(active);
-		}
-		pub fn set_consensus( consensus: Vec<u64> ) {
-			Consensus::<T>::set(consensus);
-		}
-		pub fn set_incentive( incentive: Vec<u64>) {
-			Incentive::<T>::set( incentive );
-		}
-		pub fn set_inflation( inflation: Vec<u64>) {
-			Inflation::<T>::set( inflation );
-		}
-		pub fn set_dividends( dividends: Vec<u64>) {
-			Dividends::<T>::set( dividends );
-		}
-
-		// UID setters.
-		pub fn set_stake_for_uid ( uid: u64, stake: u64 ) {
-			let stake_vec: Vec<u64> = Self::get_stake();
-			stake_vec[ uid ] = stake;
-			Self::set_stake( stake_vec )
-		}
-		pub fn set_endpoint_for_uid ( uid: u64 ) {
-			Ranks::<T>::set( ranks );
-		}
-		pub fn set_trust_for_uid ( uid: u64 ) {
-			Trust::<T>::set(trust);
-		}
-		pub fn set_active_for_uid ( uid: u64 ) {
-			Active::<T>::set(active);
-		}
-		pub fn set_consensus_for_uid ( uid: u64 ) {
-			Consensus::<T>::set(consensus);
-		}
-		pub fn set_incentive_for_uid ( uid: u64 ) {
-			Incentive::<T>::set( incentive );
-		}
-		pub fn set_inflation_for_uid ( uid: u64 ) {
-			Inflation::<T>::set( inflation );
-		}
-		pub fn set_dividends_for_uid ( uid: u64 ) {
-			Dividends::<T>::set( dividends );
-		}
-
+	
 		// --- Returns Option if the u64 converts to a balance
 		// use .unwarp if the result returns .some().
 		pub fn u64_to_balance(input: u64) -> Option<<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance>
@@ -784,10 +702,8 @@ pub mod pallet {
 			return Hotkeys::<T>::get(&hotkey_id);
 		}
 
-		// --- Returns the neuron associated with the passed uid.
-		// The function makes a single mapping from uid -> neuron.
-		pub fn get_neuron_for_uid(uid: u64) -> NeuronMetadataOf<T> {
-			return Neurons::<T>::get(uid);
+		pub fn get_neuron_for_uid ( uid: u64 ) -> NeuronMetadataOf<T> {
+			return Neurons::<T>::get( uid );
 		}
 
 		// --- Returns the neuron associated with the passed hotkey.
@@ -815,11 +731,6 @@ pub mod pallet {
 			uid
 		}
 
-		pub fn get_last_emit_for_uid(uid: u64) -> u64 {
-			let last_emit_block: T::BlockNumber = LastEmit::<T>::get( uid );
-			let last_emit_block_as_u64: u64 = TryInto::try_into( last_emit_block ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
-			last_emit_block_as_u64
-		}
 	}
 }
 

@@ -1,7 +1,8 @@
 use super::*;
+use sp_std::if_std; // Import into scope the if_std! macro.
 
 impl<T: Config> Pallet<T> {
-    pub fn do_subscribe(origin: T::Origin, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId) -> dispatch::DispatchResult {
+    pub fn do_subscribe( origin: T::Origin, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId ) -> dispatch::DispatchResult {
 
         // --- We check the callers (hotkey) signature.
         let hotkey_id = ensure_signed(origin)?;
@@ -16,31 +17,57 @@ impl<T: Config> Pallet<T> {
 
         // --- We switch here between an update and a subscribe.
         if !Self::is_hotkey_active(&hotkey_id) {
+            if_std! {
+                println!("new neuron.");
+            }
             // --- We get the next available subscription uid.
             let uid = Self::get_next_uid();
 
-            // -- We add this hotkey to the active set.
-            Self::add_hotkey_to_active_set(&hotkey_id, uid);
-
             // ---- If the neuron is not-already subscribed, we create a 
             // new entry in the table with the new metadata.
-            let neuron = Self::add_neuron_to_metagraph(ip, port, ip_type, modality, coldkey, hotkey_id.clone(), uid);
-
-            // -- We initialize table values for this peer.
-            Self::create_hotkey_account(neuron.uid);
-            Self::init_weight_matrix_for_neuron(&neuron);
-
+            let neuron = NeuronMetadataOf::<T> {
+                ip: ip,
+                port: port,
+                ip_type: ip_type,
+                uid: uid,
+                modality: modality,
+                hotkey: hotkey_id.clone(),
+                coldkey: coldkey,
+                active: 1,
+                last_update: Self::get_current_block_as_u64(),
+                stake: 0,
+                rank: 0,
+                trust: 0,
+                consensus: 0,
+                incentive: 0,
+                inflation: 0,
+                dividends: 0,
+                bonds: vec![],
+                weights: vec![(uid, u32::MAX)], // self weight set to 1.
+            };
+            
             // --- We deposit the neuron added event.
+            Neurons::<T>::insert(uid, neuron); // Insert neuron info under uid.
+            Hotkeys::<T>::insert(&hotkey_id, uid); // Add hotkey into hotkey set.
             Self::deposit_event(Event::NeuronAdded(uid));
+
         } else {
+            if_std! {
+                println!("update");
+            }
             // --- We get the uid associated with this hotkey account.
             let uid = Self::get_uid_for_hotkey(&hotkey_id);
 
-            // --- If the neuron is already subscribed, we allow an update to their
-            // modality and ip.
-            Self::update_neuron_in_metagraph(uid, ip, port, ip_type);
+            // --- We get the neuron assoicated with this hotkey.
+            let mut neuron = Self::get_neuron_for_uid(uid);
+            neuron.ip = ip;
+            neuron.port = port;
+            neuron.ip_type = ip_type;
+            neuron.active = 1;
+            neuron.last_update = Self::get_current_block_as_u64();
 
             // --- We deposit the neuron updated event
+            Neurons::<T>::insert(uid, neuron);
             Self::deposit_event(Event::NeuronUpdated(uid));
         }
         Ok(())
@@ -58,42 +85,6 @@ impl<T: Config> Pallet<T> {
         // Hotkey is active, so we are able to find the neuron associated with it
         let neuron = Self::get_neuron_for_hotkey(hotkey);
         Self::neuron_belongs_to_coldkey(&neuron, coldkey)
-    }
-
-    pub fn add_neuron_to_metagraph(ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId, hotkey: T::AccountId, uid: u64) -> NeuronMetadataOf<T> {
-        // Before calling this function, a check should be made to see if
-        // the account_id is already used. If this is omitted, this assert breaks.
-        assert_eq!(Self::is_uid_active(uid), false);
-        let metadata = NeuronMetadataOf::<T> {
-            ip: ip,
-            port: port,
-            ip_type: ip_type,
-            uid: uid,
-            modality: modality,
-            hotkey: hotkey,
-            coldkey: coldkey,
-        };
-        Neurons::<T>::insert(uid, &metadata);
-        return metadata;
-    }
-
-    pub fn update_neuron_in_metagraph(uid: u64, ip: u128, port: u16, ip_type: u8) -> NeuronMetadataOf<T> {
-        // Before calling this function, a check should be made to see if
-        // the account_id is already used. If this is omitted, this assert breaks.
-        assert_eq!(Self::is_uid_active(uid), true);
-        let old_metadata = Self::get_neuron_for_uid(uid);
-        let new_metadata = NeuronMetadataOf::<T> {
-            ip: ip,
-            port: port,
-            ip_type: ip_type,
-            modality: old_metadata.modality,
-            uid: old_metadata.uid,
-            hotkey: old_metadata.hotkey,
-            coldkey: old_metadata.coldkey,
-        };
-
-        Neurons::<T>::insert(uid, &new_metadata);
-        return new_metadata;
     }
 }
 

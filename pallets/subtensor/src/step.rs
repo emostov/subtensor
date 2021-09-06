@@ -1,7 +1,9 @@
 use super::*;
+use sp_std::if_std; // Import into scope the if_std! macro.
 use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
+use frame_support::IterableStorageMap;
 
 impl<T: Config> Pallet<T> {
 
@@ -74,285 +76,250 @@ impl<T: Config> Pallet<T> {
     ///
     /// 
     /// Note, operations 1 and 2 are computed together. 
-    /// 
-    pub fn pr ( value: I65F63 ) -> u64 {
-        // let str1: std::string::String = (value * 1000).to_num::<u64>().to_string();
-        // let str_vec: Vec<char> = str1.chars().collect();
-        // let str2: std::string::String = str_vec.into_iter().collect();
-        return value.to_num::<u64>()
-    }
-
+    ////
     pub fn block_step () {
 
         // Number of peers.
-        let n: usize = N::<T>::get() as usize;
+        let n: usize = Self::get_neuron_count() as usize;
         
         // Get current block.
         let current_block: u64 = Self::get_current_block_as_u64(); 
 
         // Constants.
-        let active_set_cliff: u64 = 10000;
+        let active_threshold: u64 = 10000;
+        let u64_max: I65F63 = I65F63::from_num( u64::MAX );
+        let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
         let rho: I65F63 = I65F63::from_num( 10.0 );
         let kappa: I65F63 = I65F63::from_num( 0.5 );
         let self_ownership: I65F63 = I65F63::from_num( 0.5 );
         let block_emission: I65F63 = I65F63::from_num( 1000000000 ); 
-        
-        // Allocate sums.
-        // DB Reads/Writes: O(0), Decoding: O(0), Operations: O(1)
-        let mut ranks_total: I65F63 = I65F63::from_num( 0.0 );
-        let mut trust_total: I65F63 = I65F63::from_num( 0.0 );
-        let mut bonds_total: I65F63 = I65F63::from_num( 0.0 );
-        let mut consensus_total: I65F63 = I65F63::from_num( 0.0 );
-        let mut incentive_total: I65F63 = I65F63::from_num( 0.0 );
-        let mut inflation_total: I65F63 = I65F63::from_num( 0.0 );
-        let mut dividends_total: I65F63 = I65F63::from_num( 0.0 );
 
-        // Allocate Vectors.
-        // DB Reads/Writes: O(0), Decoding: O(0), Operations: O(n)
-        let mut ranks: Vec<I65F63> = vec![]; 
-        let mut trust: Vec<I65F63> = vec![]; 
-        let mut consensus: Vec<I65F63> = vec![];
-        let mut incentive: Vec<I65F63> = vec![];
-        let mut inflation: Vec<I65F63> = vec![];
-        let mut dividends: Vec<I65F63> = vec![];
-        let mut ranks_u64: Vec<u64> = vec![0; n]; 
-        let mut trust_u64: Vec<u64> = vec![0; n]; 
-        let mut consensus_u64: Vec<u64> = vec![0; n]; 
-        let mut incentive_u64: Vec<u64> = vec![0; n];
-        let mut inflation_u64: Vec<u64> = vec![0; n];
-        let mut dividends_u64: Vec<u64> = vec![0; n];
-        let mut active_u64: Vec<u64> = vec![0; n];
-        for _ in 0..n {
-            let r_i = I65F63::from_num( 0.0 );
-            let t_i = I65F63::from_num( 0.0 );
-            let c_i = I65F63::from_num( 0.0 );
-            let inc_i = I65F63::from_num( 0.0 );
-            let inf_i = I65F63::from_num( 0.0 );
-            let div_i = I65F63::from_num( 0.0 );
-            ranks.push( r_i );
-            trust.push( t_i );
-            consensus.push( c_i );
-            incentive.push( inc_i );
-            inflation.push( inf_i );
-            dividends.push( div_i );
-        }
+        // To be filled.
+        let mut stake: Vec<u64> = vec![0;n];
+        let mut rank: Vec<u64> = vec![0;n];
+        let mut trust: Vec<u64> = vec![0;n];
+        let mut consensus: Vec<u64> = vec![0;n];
+        let mut incentive: Vec<u64> = vec![0;n];
+        let mut inflation: Vec<u64> = vec![0;n];
+        let mut dividends: Vec<u64> = vec![0;n];
+        let mut bond_totals: Vec<u64> = vec![0; n];
+        let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
+        let mut weights: Vec<Vec<(u64,u32)>> = vec![];
+        let mut active_uids: Vec<u64> = vec![];
+        let mut active: Vec<u64> = vec![0;n];
 
-        // Active set.
+        // Pull active data into local cache.
         let mut total_active_stake: u64 = 0;
-        let mut active_uids: Vec<u64>  = vec![];
-        let mut active_stake: Vec<u64> = vec![];
-        for uid_i in 0..n {
+        for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
 
-            // Check if uid is active.
-            let last_emit: u64 = Self::get_last_emit_for_uid( uid_i as u64 );
-            if current_block - last_emit < active_set_cliff {
+            // Filter on active.
+            if current_block - neuron_i.last_update < active_threshold {
 
-                // Get stake for active uid.
-                let stake_i: u64 = Stake::<T>::get( uid_i as u64 );
+                // Set as active.
+                active [ uid_i as usize ] = 1;
+                active_uids.push( uid_i );
 
-                // Append values.
-                active_uids.push( uid_i as u64 );
-                active_stake.push( stake_i );
-                active_u64 [ uid_i ] = 1;
+                // Record stake.
+                stake [ uid_i as usize ] = neuron_i.stake;
+                total_active_stake += neuron_i.stake;
 
-                // Increment totals.
-                total_active_stake += stake_i;
-                total_active_uids += 1;
+                // Save weights for later iteration.
+                weights.push( neuron_i.weights );
+
+                // Fill bonds matrix.
+                let mut bonds_row: Vec<u64> = vec![0; n];
+                for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
+                    bonds_row [ *uid_j as usize ] = *bonds_ij;
+                    bond_totals [ *uid_j as usize ] += *bonds_ij;
+                }
+                bonds[ uid_i as usize ] = bonds_row;
             }
         }
 
-        // Get state.
-        let stake: Vec<u64> = Self::get_stake();
-        let bonds: Vec<Vec<(u64,u64)>> = Self::get_bonds();
-        let weights: Vec<Vec<u64,u32>> = Self::get_weights();
+        // Compute trust and ranks.
+        let mut total_ranks: u64 = 0;
+        let mut total_trust: u64 = 0;
+        let mut total_bonds_purchased: u64 = 0;
+        for (index_i, uid_i) in active_uids.iter().enumerate() {
 
-        // Compute Rank + Trust scores and Bond updates.
-        // DB Reads/Writes: O( n^2 ), Decoding: O( n^2 ), Operations: O( n^2 )
-        // r_i = SUM(j) s_j * w_ji
-        // t_i = SUM(j) s_j if w_ji != 0
-        // b_ij = w_ij * s_i
-        let mut total_distributed_stake: I65F63 = I65F63::from_num( 0.0 );
-        if total_active_stake != 0 {
-            for (index_i, uid_i) in active_uids.iter().enumerate() {
-                let uid_i: u64 = *uid_i;
+            // Only accumulate rank, trust and bonds for active neurons.
+            //let mut neuron_i: NeuronMetadataOf<T> = neurons[ uid_to_index[ *uid_i as usize ] as usize ];
+            let stake_i: I65F63 = I65F63::from_num( stake[ *uid_i as usize ] );
+            let weights_i: &Vec<(u64, u32)> = &weights[ index_i as usize ];
+
+            // Iterate over weights.
+            for ( uid_j, weight_ij ) in weights_i.iter() {
+
+                // Self loop is ignored.
+                if *uid_j == *uid_i { continue };
+                // Only count weights from active to active.
+                if active[ *uid_j as usize ] == 0 { continue };
                 
-                // Get stake + get weights. 
-                let stake_i: I65F63 = I65F63::from_num( active_stake[ index_i ]);
+                // Normalized weight from i to j.
+                let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max;
                 let trust_increment_ij: I65F63 = stake_i;
-                let weight_uids_i: Vec<u64> = WeightUids::<T>::get( uid_i as u64 ); 
-                let weight_vals_i: Vec<u32> = WeightVals::<T>::get( uid_i as u64 ); 
-
-                for ( index_j, uid_j ) in weight_uids_i.iter().enumerate() {
-                    let uid_j: u64 = *uid_j;
-                    
-                    // Normalized weight from i to j.
-                    let weight_ij: I65F63 = I65F63::from_num( weight_vals_i[ index_j ] ) / I65F63::from_num( u32::MAX as f64 );
-
-                    // Compute increments.
-                    let rank_increment_ij: I65F63 = stake_i * weight_ij;
-                    let bond_increment_ij: I65F63 = rank_increment_ij / I65F63::from_num( total_active_stake );
-
-                    // Self loop does not add to rank or purchase bonds.
-                    if uid_i == uid_j {
-                        continue
-                    }
-                    
-                    // Increment rank.
-                    ranks[ uid_j as usize ] += rank_increment_ij;
-                    ranks_u64[ uid_j as usize ] += rank_increment_ij.to_num::<u64>();
-
-                    // Increment trust.
-                    trust[ uid_j as usize ] += stake_i;
-                    trust_u64[ uid_j as usize ] += trust_increment_ij.to_num::<u64>();
-                    
-                    // Increment bonds.
-                    Bonds::<T>::mutate( uid_i, uid_j, |el| *el += bond_increment_ij.to_num::<u64>() );
-                    BondTotals::<T>::mutate( uid_j, |el| *el += bond_increment_ij.to_num::<u64>() );
-
-                    // Increment totals.
-                    ranks_total += rank_increment_ij;
-                    bonds_total += bond_increment_ij;
-                    trust_total += trust_increment_ij;
-                    total_distributed_stake += rank_increment_ij;
-                }
-            }
-        }
-
-        // Compute Incentive
-        // DB Reads/Writes: O( 0 ), Decoding: O( 0 ), Operations: O( n )
-        // C = 1 / ( 1 + e^(-rho(t - kappa)))
-        if total_distributed_stake != 0 {
-            for uid_i in 0..n {
-
-                // 0 trusted peers attain no incentive or consensus.
-                if trust [ uid_i ] == 0 {
-                    continue;
+                let rank_increment_ij: I65F63 = stake_i * weight_ij;
+                let bond_increment_ij: I65F63 = (rank_increment_ij * block_emission)/ I65F63::from_num( total_active_stake );
+                if_std! {
+                    println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
                 }
 
-                // Trust threshold function.
-                let normalized_trust: I65F63 = trust [ uid_i ] / total_distributed_stake;
-                let shifted_trust: I65F63 = normalized_trust - kappa;
-                let temperatured_trust: I65F63 = shifted_trust * rho;
-                let exponentiated_trust: I65F63 = exp( -temperatured_trust ).expect( "temperatured_trust is on range(-rho, rho)");
-
-                // Compute consensus score.
-                let consensus_i: I65F63 = one / (one + exponentiated_trust);
-
-                // Incentive function.
-                let incentive_i: I65F63 = ranks[ uid_i ] * consensus_i;
-
-                // Increment totals.
-                incentive_u64[ uid_i ] += incentive_i.to_num::<u64>();
-                consensus_u64[ uid_i ] += consensus_i.to_num::<u64>();
-
-                incentive[ uid_i ] = incentive_i;
-                consensus[ uid_i ] = consensus_i;
-
-                incentive_total += incentive_i;
-                consensus_total += consensus_i;
-            }
-        }
-    
-        // Compute Inflation
-        // DB Reads/Writes: O( 0 ), Decoding: O( 0 ), Operations: O( n )
-        // Inf_i = Inc_i * tau
-        if incentive_total != 0 {
-            for uid_i in 0..n {
-
-                // Compute inflation.
-                let incentive_fraction: I65F63 = incentive[ uid_i ] / incentive_total;
-                let inflation_i: I65F63 = block_emission * incentive_fraction;
-
-                // Increments totals.
-                inflation_u64[ uid_i ] += inflation_i.to_num::<u64>();
-                inflation[ uid_i ] = inflation_i;
-                inflation_total += inflation_i;
-            }
-        }
-
-        // Compute dividends.
-        // DB Reads/Writes: O( n^2 ), Decoding: O( n^2 ), Operations: O( n^2 )
-        // d_i = SUM(j) b_ij * Inf_j
-        if inflation_total != 0 {
-            for uid_j in 0..n {
+                // Increment neuron scores.
+                rank[ *uid_j as usize ] += rank_increment_ij.to_num::<u64>();
+                trust[ *uid_j as usize ] += trust_increment_ij.to_num::<u64>();
+                total_ranks += rank_increment_ij.to_num::<u64>();
+                total_trust += trust_increment_ij.to_num::<u64>();
                 
-                // Get inflation into peer i.
-                let inflation_j: I65F63 = inflation[ uid_j ];
-                let total_bonds_j: u64 = BondTotals::<T>::get( uid_j as u64 );
-                
-                // Compute self ownership dividends. 
-                let dividends_j: I65F63 = inflation_j * self_ownership;
+                // Distribute bonds.
+                bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
+                bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
+                total_bonds_purchased += bond_increment_ij.to_num::<u64>();
+            }
+        }
+        if_std! {
+            println!("ranks: {:?}, {:?}", rank, total_ranks);
+            println!("trust: {:?}, {:?}", trust, total_trust);
+            println!("bonds: {:?}, {:?}", bonds, bond_totals);
+        }
 
-                // Increment self ownership.
-                dividends_u64[ uid_j ] += dividends_j.to_num::<u64>();
-                dividends[ uid_j ] += dividends_j;
-                dividends_total += dividends_j;
+        // Compute consensus, incentive, and inflation.
+        let mut total_incentive: I65F63 = I65F63::from_num(0.0);
+        if total_ranks != 0 && total_trust != 0 {
+            for uid_i in active_uids.iter() {
+                let rank_i: u64 = rank[ *uid_i as usize ];
+                let trust_i: u64 = trust[ *uid_i as usize ];
+                if trust_i != 0 {
 
-                if total_bonds_j == 0 {
-                    // Distribute dividends to owner if there are no bond holders.
-                    let remaining_dividends: I65F63 = inflation_j * (one - self_ownership);
-                    dividends_u64[ uid_j ] += remaining_dividends.to_num::<u64>();
-                    dividends[ uid_j ] += remaining_dividends;
-                    dividends_total += remaining_dividends;
-
-                    // There are no bonds owned in j.
-                    continue
-                }
-                // Iterate over all other peers and get dividends.
-                for uid_i in 0..n {
-
-                    // Get bonds owned in j by i.
-                    let bonds_ij: u64 = Bonds::<T>::get( uid_i as u64, uid_j as u64 );
-                    if bonds_ij == 0  {
-                        // There are no bonds owned by i in j.
-                        continue
+                    // Consensus function.
+                    let normalized_trust: I65F63 = I65F63::from_num( trust_i ) / I65F63::from_num( total_active_stake );
+                    let shifted_trust: I65F63 = normalized_trust - kappa;
+                    let temperatured_trust: I65F63 = shifted_trust * rho;
+                    let exponentiated_trust: I65F63 = exp( -temperatured_trust ).expect( "temperatured_trust is on range(-rho, rho)");
+                    let consensus_i: I65F63 = one / (one + exponentiated_trust);
+                    if_std! {
+                        println!("normalized_trust: {:?} | shifted_trust: {:?} | temperatured_trust: {:?} | exponentiated_trust: {:?} | consensus_i: {:?}", normalized_trust, shifted_trust, temperatured_trust, exponentiated_trust, consensus_i);
                     }
 
-                    // Compute bond ownership fraction.
-                    let ownership_fraction_ij: I65F63 = ( I65F63::from_num( bonds_ij ) ) / I65F63::from_num( total_bonds_j );
+                    // Incentive function.
+                    let normalized_rank: I65F63 = I65F63::from_num( rank_i ) / I65F63::from_num( total_ranks );
+                    let incentive_i: I65F63 = normalized_rank * consensus_i;
+                    total_incentive += incentive_i;
 
-                    // Compute dividends for i from j.
-                    // Take ownership from 50% of inflation.
-                    let dividends_ij: I65F63 = ownership_fraction_ij * inflation_j * (one - self_ownership);
-
-                    dividends_u64[ uid_i ] += dividends_ij.to_num::<u64>();
-                    dividends[ uid_i ] += dividends_ij;
-                    dividends_total += dividends_ij;
+                    // Increment neuron scores.
+                    let consensus_i: u64 = (consensus_i * u64_max).to_num::<u64>();
+                    let incentive_i: u64 = (incentive_i * u64_max).to_num::<u64>();
+                    consensus[ *uid_i as usize ] = consensus_i;
+                    incentive[ *uid_i as usize ] = incentive_i;
                 }
             }
-        } 
-
-        // Distribute Dividends
-        // DB Reads/Writes: O( n ), Decoding: O( n ), Operations: O( n )
-        // s_i = s_i + d_i
-        if dividends_total != 0 {
-            for uid_i in 0..n {
-                // Get uid_i dividends
-                let dividends_i: I65F63 = dividends[ uid_i as usize ];
-
-                // Get dividends as u64 increment.
-                let converted_dividends_i:u64 = dividends_i.to_num::<u64>();
-
-                // Increment stake vector.
-                Stake::<T>::mutate( uid_i as u64, |el| *el += converted_dividends_i );
-            }
+        }
+        if_std! {
+            println!("consensus: {:?}", consensus);
+            println!("incentive: {:?} {:?}", incentive, total_incentive);
         }
 
-        // Update new total stake ammount.
-        TotalStake::<T>::mutate( |el| *el += dividends_total.to_num::<u64>() );
+        // Compute consensus, incentive, and inflation.
+        let mut total_inflation: u64 = 0;
+        if total_incentive != 0 {
+            for uid_i in active_uids.iter() {
+                // Inflation function.
+                let incentive_i: I65F63 = I65F63::from_num( incentive[ *uid_i as usize ] ) / u64_max;
+                let inflation_i: I65F63 = (block_emission * incentive_i) / total_incentive;
+                inflation[ *uid_i as usize ] = inflation_i.to_num::<u64>();
+                total_inflation += inflation_i.to_num::<u64>();
+                if_std! {
+                    println!("incentive_i: {:?} | inflation_i: {:?}", incentive_i, inflation_i);
+                }
+            }
+        }
+        if_std! {
+            println!("inflation: {:?}, {:?}", inflation, total_inflation);
+        }
 
-        // Update new total issuance.
-        TotalIssuance::<T>::mutate( |el| *el += dividends_total.to_num::<u64>() );
+        // Compute trust and ranks.
+        let mut total_dividends: u64 = 0;
+        let mut sparse_bonds: Vec<Vec<(u64,u64)>> = vec![vec![]; n];
+        for uid_i in active_uids.iter() {
 
-        // Set vectors.
-        Ranks::<T>::set( ranks_u64 );
-        Trust::<T>::set( trust_u64 );
-        Active::<T>::set( active_u64 );
-        Consensus::<T>::set( consensus_u64 );
-        Incentive::<T>::set( incentive_u64 );
-        Inflation::<T>::set( inflation_u64 );
-        Dividends::<T>::set( dividends_u64 );
+            // To be filled: Sparsified bonds.
+            let mut sparse_bonds_row: Vec<(u64, u64)> = vec![];
+
+            // Only count bond dividends between active uids.
+            for uid_j in active_uids.iter() {
+                
+                // Get denomenator.
+                let bonds_ij: u64 = bonds[ *uid_i as usize ][ *uid_j as usize ];
+                let total_bonds_j: u64 = bond_totals[ *uid_j as usize ];
+                if total_bonds_j != 0 && bonds_ij != 0 {
+                    // Get bonds from i to j.
+                    sparse_bonds_row.push( (*uid_j as u64, bonds_ij) );
+
+                    // Ownership fraction.
+                    let ownership_fraction_ij: I65F63 = I65F63::from_num( bonds_ij ) / I65F63::from_num( total_bonds_j );
+
+                    // Dividend from ownership.
+                    let dividends_ji: I65F63 = (one - self_ownership) * ownership_fraction_ij * I65F63::from_num( inflation[ *uid_j as usize ] );
+
+                    // Increment dividends.
+                    dividends[ *uid_i as usize ] += dividends_ji.to_num::<u64>();
+                    total_dividends += dividends_ji.to_num::<u64>();
+
+                    if_std! {
+                        println!("bonds_ij: {:?} | ownership_fraction_ij: {:?} | dividends_ji: {:?}", bonds_ij, ownership_fraction_ij, dividends_ji);
+                    }
+                }
+            }
+            // Fill sparse bonds row.
+            if_std! {
+                println!("sparse_bonds: {:?}", sparse_bonds_row );
+            }
+            sparse_bonds[ *uid_i as usize ] = sparse_bonds_row;
+        }
+        for uid_i in active_uids.iter() {
+            let total_bonds_i: u64 = bond_totals[ *uid_i as usize ];
+            let dividends_ii: u64;
+            if total_bonds_i == 0 {
+                dividends_ii = I65F63::from_num( inflation[ *uid_i as usize ] ).to_num::<u64>();
+            } else {
+                dividends_ii = (I65F63::from_num( inflation[ *uid_i as usize ] ) * self_ownership).to_num::<u64>();
+            }
+            dividends[ *uid_i as usize ] += dividends_ii;
+            total_dividends += dividends_ii;
+            stake[ *uid_i as usize ] += dividends[ *uid_i as usize ];
+
+        }
+        if_std! {
+            println!("dividends: {:?}, {:?}", dividends, total_dividends);
+        }
+
+
+        for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u64, NeuronMetadataOf<T>>>::iter() {
+            // Update table entry.
+            if active[ uid_i as usize ] == 0 {
+                neuron_i.active = 0;
+                neuron_i.rank = 0;
+                neuron_i.trust = 0;
+                neuron_i.consensus = 0;
+                neuron_i.inflation = 0;
+                neuron_i.dividends = 0;
+            } else {
+                neuron_i.active = 1;
+                neuron_i.stake = stake[ uid_i as usize ];
+                neuron_i.rank = rank[ uid_i as usize ];
+                neuron_i.trust = trust[ uid_i as usize ];
+                neuron_i.consensus = consensus[ uid_i as usize ];
+                neuron_i.incentive = incentive[ uid_i as usize ];
+                neuron_i.inflation = inflation[ uid_i as usize ];
+                neuron_i.dividends = dividends[ uid_i as usize ];
+                neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
+            }
+            Neurons::<T>::insert( neuron_i.uid, neuron_i );
+        }
+
+        // Update totals.
+        TotalIssuance::<T>::mutate( |val| *val += total_dividends );
+        TotalStake::<T>::mutate( |val| *val += total_dividends );
     }
 
     pub fn get_current_block_as_u64( ) -> u64 {

@@ -6,6 +6,7 @@ use mock::*;
 use frame_support::sp_runtime::DispatchError;
 use frame_support::dispatch::{GetDispatchInfo, DispatchInfo};
 use frame_support::weights::{DispatchClass, Pays};
+use sp_std::if_std; // Import into scope the if_std! macro.
 
 /********************************************
 	subscribing::subscribe() tests
@@ -80,7 +81,7 @@ fn test_subscribe_ok() {
         assert_eq!(Subtensor::get_neuron_count(), 1);
 
 		// Check if weights are set correctly. Only self weight
-		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), (vec![neuron.uid], vec![u32::MAX]));
+		assert_eq!( Subtensor::get_weights_for_neuron(&neuron), vec![u32::MAX] );
 
 		// Check if the neuron has a hotkey account
 		assert_eq!(Subtensor::has_hotkey_account(&neuron.uid), true);
@@ -163,6 +164,9 @@ fn test_subscribe_update_ok() {
 
 		// Check uid setting functionality
 		assert_eq!(neuron.uid, 0);
+		if_std! {
+            println!("neuron: {:?},{:?},{:?},{:?}", neuron.ip, neuron.ip_type, neuron.port, neuron.modality);
+        }
 
 		// Check if metadata is set correctly
 		assert_eq!(neuron.ip, ip);
@@ -174,7 +178,7 @@ fn test_subscribe_update_ok() {
         assert_eq!(Subtensor::get_neuron_count(), 1);
 
 		// Check if weights are set correctly. Only self weight
-		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), (vec![neuron.uid], vec![u32::MAX]));
+		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), vec![u32::MAX]);
 
 		// Check if the neuron has a hotkey account
 		assert_eq!(Subtensor::has_hotkey_account(&neuron.uid), true);
@@ -196,6 +200,10 @@ fn test_subscribe_update_ok() {
 		assert_eq!(neuron.coldkey, coldkey_account_id);
 
 		// metadata has changed
+		if_std! {
+            println!("neuron: {:?},{:?},{:?},{:?}", neuron.ip, neuron.ip_type, neuron.port, neuron.modality);
+        }
+
 		assert_eq!(neuron.ip, new_ip);
 		assert_eq!(neuron.ip_type, new_ip_type);
 		assert_eq!(neuron.port, new_port);
@@ -205,7 +213,7 @@ fn test_subscribe_update_ok() {
 		assert_eq!(Subtensor::get_neuron_count(), 1);
 
 		// Check the weights are unchanged.
-		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), (vec![neuron.uid], vec![u32::MAX]));
+		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), vec![u32::MAX]);
 
 		// Check the neuron still exists.
 		assert_eq!(Subtensor::has_hotkey_account(&neuron.uid), true);
@@ -253,7 +261,7 @@ fn test_subscribe_update_coldkey_modality_not_changed_ok() {
 		assert_eq!(Subtensor::get_neuron_count(), 1);
 
 		// Check the weights are unchanged.
-		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), (vec![neuron.uid], vec![u32::MAX]));
+		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), vec![u32::MAX]);
 
 		// Check the neuron still exists.
 		assert_eq!(Subtensor::has_hotkey_account(&neuron.uid), true);
@@ -263,7 +271,6 @@ fn test_subscribe_update_coldkey_modality_not_changed_ok() {
 
 	});
 }
-
 
 
 #[test]
@@ -349,8 +356,7 @@ fn test_init_weight_matrix_for_neuron() {
 		let coldkey = 66;
 
         let neuron = subscribe_neuron(account_id, ip, port, ip_type, modality, coldkey);
-		Subtensor::init_weight_matrix_for_neuron(&neuron);
-		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), (vec![neuron.uid], vec![u32::MAX]));
+		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), vec![u32::MAX]);
 	});
 }
 

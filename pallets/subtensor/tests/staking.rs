@@ -17,9 +17,7 @@ fn test_add_stake_dispatch_info_ok() {
 	new_test_ext().execute_with(|| {
 		let account_id = 0;
 		let stake = 5000;
-
         let call = Call::Subtensor(SubtensorCall::add_stake(account_id, stake));
-
 		assert_eq!(call.get_dispatch_info(), DispatchInfo {
 			weight: 0,
 			class: DispatchClass::Normal,
@@ -28,9 +26,9 @@ fn test_add_stake_dispatch_info_ok() {
 	});
 }
 
-/************************************************************
-	This test also covers any signed extensions
-************************************************************/
+// /************************************************************
+// 	This test also covers any signed extensions
+// ************************************************************/
 
 #[test]
 fn test_add_stake_transaction_fee_ends_up_in_transaction_fee_pool() {
@@ -205,30 +203,6 @@ fn test_remove_stake_dispatch_info_ok() {
 		});
 	});
 }
-
-// #[test]
-// fn test_remove_stake_ok_transaction_fee_ends_up_in_transaction_fee_pool() {
-// 	let coldkey_id = 667;
-// 	let initial_stake : u64 = 1_000_000_000;
-// 	let hotkey_id = 1;
-
-// 	test_ext_with_balances(vec![(coldkey_id, initial_stake as u128)]).execute_with(|| {
-//         let _adam = subscribe_ok_neuron(0,667);
-// 		let _neuron = subscribe_ok_neuron(hotkey_id, coldkey_id);
-// 		assert_ok!(Subtensor::add_stake(Origin::signed(coldkey_id), hotkey_id, initial_stake));
-
-
-// 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(hotkey_id), 1_000_000_000);
-
-// 		let call = Call::Subtensor(SubtensorCall::remove_stake(hotkey_id, 500_000_000));
-// 		let xt = TestXt::new(call, mock::sign_extra(coldkey_id, 0));
-// 		let result = mock::Executive::apply_extrinsic(xt);
-// 		assert_ok!(result);
-
-// 		assert!(Subtensor::get_transaction_fee_pool() > 0);
-// 	});
-// }
-
 
 #[test]
 fn test_remove_stake_ok_no_emission() {
@@ -620,6 +594,7 @@ fn test_has_enough_stake_yes() {
 		let neuron = subscribe_ok_neuron(hotkey_id, coldkey_id);
 
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, intial_amount);
+		let neuron = Subtensor::get_neuron_for_uid(neuron.uid);
 		assert_eq!(Subtensor::has_enough_stake(&neuron, 5000), true);
 	});
 }
@@ -642,23 +617,23 @@ fn test_has_enough_stake_no() {
 
 /****************************************************************************
 	staking::create_hotkey_account() and staking::has_hotkey_account() tests
-*****************************************************************************/
-#[test]
-fn test_has_hotkey_account_no() {
-	new_test_ext().execute_with(|| {
-        assert_eq!(Subtensor::has_hotkey_account(&8888), false);
-	});
-}
+// *****************************************************************************/
+// #[test]
+// fn test_has_hotkey_account_no() {
+// 	new_test_ext().execute_with(|| {
+//         assert_eq!(Subtensor::has_hotkey_account(&8888), false);
+// 	});
+// }
 
-#[test]
-fn test_has_hotkey_account_yes() {
-	new_test_ext().execute_with(|| {
-        let uid = 666;
+// #[test]
+// fn test_has_hotkey_account_yes() {
+// 	new_test_ext().execute_with(|| {
+//         let uid = 666;
 
-		Subtensor::create_hotkey_account(uid);
-		assert_eq!(Subtensor::has_hotkey_account(&uid), true);
-	});
-}
+// 		Subtensor::create_hotkey_account(uid);
+// 		assert_eq!(Subtensor::has_hotkey_account(&uid), true);
+// 	});
+// }
 
 
 /************************************************************
@@ -683,8 +658,12 @@ fn test_calculate_stake_fraction_for_neuron_ok() {
 		// Total stake should now be 200000
 		assert_eq!(Subtensor::get_total_stake(), 20000);
 
-		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[0]), 0.5);
-		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[1]), 0.5);
+		// Checks stake values.
+		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neurons[0].uid), 10000);
+		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neurons[1].uid), 10000);
+
+		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Subtensor::get_neuron_for_uid(neurons[0].uid)), 0.5);
+		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Subtensor::get_neuron_for_uid(neurons[1].uid)), 0.5);
 	});
 }
 
@@ -704,8 +683,8 @@ fn test_calculate_stake_fraction_for_neuron_no_total_stake() {
 		// Total stake should now be 0
 		assert_eq!(Subtensor::get_total_stake(), 0);
 
-		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[0]), 0);
-		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[1]), 0);
+		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Subtensor::get_neuron_for_uid(neurons[0].uid)), 0);
+		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Subtensor::get_neuron_for_uid(neurons[1].uid)), 0);
 
 	});
 }
@@ -730,9 +709,9 @@ fn test_calculate_stake_fraction_for_neuron_no_neuron_stake() {
 		assert_eq!(Subtensor::get_total_stake(), 10000);
 
 		// This guy should get the full proportion of the stake
-		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[0]), 1);
+		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Subtensor::get_neuron_for_uid(neurons[0].uid)), 1);
 
 		// This guy gets 0, because no stake
-		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[1]), 0);
+		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Subtensor::get_neuron_for_uid(neurons[1].uid)), 0);
 	});
 }

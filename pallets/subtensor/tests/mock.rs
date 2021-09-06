@@ -267,6 +267,16 @@ pub fn subscribe_ok_neuron(hotkey_account_id : u64,  coldkey_account_id : u64) -
 }
 
 #[allow(dead_code)]
+pub fn n_subscribe_ok_neuron(n: usize) -> Vec<NeuronMetadata<u64>> {
+	let mut neurons: Vec<NeuronMetadata<u64>> = vec![];
+	for i in 0..n {
+		let neuron: NeuronMetadata<u64> = subscribe_ok_neuron(i as u64,i as u64);
+		neurons.push(neuron);
+	}
+	return neurons;
+}
+
+#[allow(dead_code)]
 pub(crate) fn run_to_block(n: u64) {
     while System::block_number() < n {
 		Subtensor::on_finalize(System::block_number());
@@ -275,6 +285,17 @@ pub(crate) fn run_to_block(n: u64) {
         System::on_initialize(System::block_number());
 		Subtensor::on_initialize(System::block_number());
     }
+}
+
+#[allow(dead_code)]
+pub(crate) fn step_block(n: u64) {
+	for _ in 0..n {
+		Subtensor::on_finalize(System::block_number());
+		System::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+		Subtensor::on_initialize(System::block_number());
+	}
 }
 
 // Generates an ipv6 address based on 8 ipv6 words and returns it as u128

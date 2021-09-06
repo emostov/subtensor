@@ -46,12 +46,8 @@ fn set_weights_ok_no_weights() {
 		let weight_values : Vec<u32> = vec![];
 
 		// == Expectations ==
-
-		let expect_keys = vec![]; // keys should not change
-		let expect_values = vec![]; // Value should be normalized for u32:max
-		let expect_stake = 10000; // The stake for the neuron should remain the same
-		let expect_total_stake = 10000; // The total stake should remain the same
-
+		let expect_stake:u64 = 10000; // The stake for the neuron should remain the same
+		let expect_total_stake:u64 = 10000; // The total stake should remain the same
 
 		// Let's subscribe a new neuron to the chain
 		let neuron = subscribe_neuron(hotkey_account_id, 10, 666, 4, 0, 66);
@@ -61,7 +57,7 @@ fn set_weights_ok_no_weights() {
 
 		// Dispatch a signed extrinsic, setting weights.
 		assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), weights_keys, weight_values));
-		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), (expect_keys, expect_values));
+		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), vec![u32::max_value()]);
 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), expect_stake);
 		assert_eq!(Subtensor::get_total_stake(), expect_total_stake);
 	});
@@ -70,7 +66,7 @@ fn set_weights_ok_no_weights() {
 #[test]
 fn test_weights_err_weights_vec_not_equal_size() {
 	new_test_ext().execute_with(|| {
-        let _neuron = subscribe_neuron(666, 5, 66, 4, 0, 77);
+    let _neuron = subscribe_neuron(666, 5, 66, 4, 0, 77);
 
 		let weights_keys: Vec<AccountId> = vec![1, 2, 3, 4, 5, 6];
 		let weight_values: Vec<u32> = vec![1, 2, 3, 4, 5]; // Uneven sizes
@@ -84,7 +80,7 @@ fn test_weights_err_weights_vec_not_equal_size() {
 #[test]
 fn test_weights_err_has_duplicate_ids() {
 	new_test_ext().execute_with(|| {
-        let _neuron = subscribe_neuron(666, 5, 66, 4, 0, 77);
+    let _neuron = subscribe_neuron(666, 5, 66, 4, 0, 77);
 		let weights_keys: Vec<AccountId> = vec![1, 2, 3, 4, 5, 6, 6, 6]; // Contains duplicates
 		let weight_values: Vec<u32> = vec![1, 2, 3, 4, 5, 6, 7, 8];
 

@@ -8,7 +8,7 @@ impl<T: Config> Pallet<T> {
 
         // ---- We check to see that the calling neuron is in the active set.
         ensure!(Self::is_hotkey_active(&hotkey_id), Error::<T>::NotActive);
-        let neuron = Self::get_neuron_for_hotkey(&hotkey_id);
+        let mut neuron = Self::get_neuron_for_hotkey(&hotkey_id);
 
         // --- We check that the length of these two lists are equal.
         ensure!(uids_match_values(&uids, &values), Error::<T>::WeightVecNotEqualSize);
@@ -19,10 +19,18 @@ impl<T: Config> Pallet<T> {
         // --- We check if the weight uids are valid
         ensure!(!Self::contains_invalid_uids(&uids), Error::<T>::InvalidUid);
 
+        // Normalize weights.
         let normalized_values = normalize(values);
 
-        // --- We update the weights under the uid map.
-        Self::set_new_weights(&neuron, &uids, &normalized_values);
+        // Zip weights.
+        let mut zipped_weights: Vec<(u64,u32)> = vec![];
+        for (uid, val) in uids.iter().zip(normalized_values.iter()) {
+            zipped_weights.push((*uid, *val))
+        }
+        neuron.weights = zipped_weights;
+
+        // Sink update.
+        Neurons::<T>::insert(neuron.uid, neuron);
 
         // ---- Emit the staking event.
         Self::deposit_event(Event::WeightsSet(hotkey_id));
@@ -39,12 +47,12 @@ impl<T: Config> Pallet<T> {
     * Inits new weights for the neuron.
     * We fill the initialized weights with a self loop. 
     */
-    pub fn init_weight_matrix_for_neuron(neuron: &NeuronMetadataOf<T>) {
-        // ---- We fill subscribing nodes initially with the self-weight = [1]
-        let weights = vec![u32::max_value()]; // w_ii = 1
-        let uids = vec![neuron.uid]; // Self edge
-        Self::set_new_weights(neuron, &uids, &weights);
-    }
+    // pub fn init_weight_matrix_for_neuron(neuron: &NeuronMetadataOf<T>) {
+    //     // ---- We fill subscribing nodes initially with the self-weight = [1]
+    //     let weights = vec![u32::max_value()]; // w_ii = 1
+    //     let uids = vec![neuron.uid]; // Self edge
+    //     Self::set_new_weights(neuron, &uids, &weights);
+    // }
 
     /**
     * Sets the actual weights. This function takes two parameters: uids, values
@@ -52,28 +60,23 @@ impl<T: Config> Pallet<T> {
     * This function assumes both vectors are of the same size, and is agnostic if the specifed
     * uid's exist or not.
     */
-    pub fn set_new_weights(neuron: &NeuronMetadataOf<T>, uids: &Vec<u64>, values: &Vec<u32>) {
-        WeightVals::<T>::insert(neuron.uid, &values);
-        WeightUids::<T>::insert(neuron.uid, &uids);
-    }
-
-
-    pub fn remove_weight_matrix_for_neuron(neuron: &NeuronMetadataOf<T>) {
-        WeightVals::<T>::remove(neuron.uid);
-        WeightUids::<T>::remove(neuron.uid);
-    }
-
-    pub fn get_weights_for_neuron(neuron: &NeuronMetadataOf<T>) -> (Vec<u64>, Vec<u32>) {
-        (WeightUids::<T>::get(neuron.uid), WeightVals::<T>::get(neuron.uid))
-    }
-
+    // pub fn set_new_weights(neuron: &NeuronMetadataOf<T>, uids: &Vec<u64>, values: &Vec<u32>) {
+    //     //let uids: Vec<u64> = *uids;
+    //     //let values: Vec<u32> = *values;
+    //     let weights: Vec<(u64,u32)> = vec![];
+    //     //for (uid, val) in uids.iter().zip( values.iter() ) {
+    //      //   weights.push( (*uid, *val) );
+    //     //}
+    //     let neuron: NeuronMetadataOf<T> = *neuron;
+    //     neuron.weights = weights;
+    // }
+    
     pub fn contains_invalid_uids(uids: &Vec<u64>) -> bool {
         for uid in uids {
             if !Self::is_uid_active(*uid) {
                 return true;
             }
         }
-
         return false;
     }
 }
