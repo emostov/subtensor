@@ -293,7 +293,6 @@ impl<T: Config> Pallet<T> {
             println!("dividends: {:?}, {:?}", dividends, total_dividends);
         }
 
-
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
             if active[ uid_i as usize ] == 0 {

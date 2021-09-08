@@ -137,7 +137,7 @@ pub mod pallet {
         pub coldkey: AccountId,
 
 		/// ---- Is this neuron active in the incentive mechanism.
-		pub active: u8,
+		pub active: u32,
 
 		/// ---- Block number of last chain update.
 		pub last_update: u64,
@@ -605,8 +605,8 @@ pub mod pallet {
 			}
 			return result
 		}
-		pub fn get_active( ) -> Vec<u8> {
-			let mut result: Vec<u8> = vec![ 0; Self::get_neuron_count() as usize ];
+		pub fn get_active( ) -> Vec<u32> {
+			let mut result: Vec<u32> = vec![ 0; Self::get_neuron_count() as usize ];
 			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.active;
 			}
