@@ -48,7 +48,7 @@ impl<T: Config> Pallet<T> {
             };
             
             // --- We deposit the neuron added event.
-            Neurons::<T>::insert(uid, neuron); // Insert neuron info under uid.
+            Metagraph::<T>::insert(uid, neuron); // Insert neuron info under uid.
             Hotkeys::<T>::insert(&hotkey_id, uid); // Add hotkey into hotkey set.
             Self::deposit_event(Event::NeuronAdded(uid));
 
@@ -69,7 +69,7 @@ impl<T: Config> Pallet<T> {
             neuron.last_update = Self::get_current_block_as_u64();
 
             // --- We deposit the neuron updated event
-            Neurons::<T>::insert(uid, neuron);
+            Metagraph::<T>::insert(uid, neuron);
             Self::deposit_event(Event::NeuronUpdated(uid));
         }
         Ok(())

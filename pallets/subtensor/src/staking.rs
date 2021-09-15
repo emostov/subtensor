@@ -152,7 +152,7 @@ impl<T: Config> Pallet<T> {
         if_std! {
             println!("new higher neuron_stake: {:?}", neuron.stake);
         }
-        Neurons::<T>::insert(uid, neuron);
+        Metagraph::<T>::insert(uid, neuron);
 
         Self::increase_total_stake(amount);
     }
@@ -180,7 +180,7 @@ impl<T: Config> Pallet<T> {
             println!("new lower neuron_stake: {:?}", neuron.stake);
         }
 
-        Neurons::<T>::insert(uid, neuron);
+        Metagraph::<T>::insert(uid, neuron);
         Self::decrease_total_stake(amount);
     }
 
@@ -247,11 +247,11 @@ impl<T: Config> Pallet<T> {
     /// false otherwise
     ///
     pub fn has_hotkey_account(uid: &u32) -> bool {
-        return Neurons::<T>::contains_key(*uid);
+        return Metagraph::<T>::contains_key(*uid);
     }
 
     /// This calculates the fraction of the total amount of stake the specfied neuron owns.
-    /// This function is part of the algorithm that calculates the emission of this neurons
+    /// This function is part of the algorithm that calculates the emission of this Metagraph
     /// to its peers. See fn calculate_emission_for_neuron()
     ///
     /// This function returns 0 if the total amount of stake is 0, or the amount of stake the

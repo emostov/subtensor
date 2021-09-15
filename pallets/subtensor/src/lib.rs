@@ -66,6 +66,10 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
 	use sp_std::vec;
+	use sp_std::if_std; // Import into scope the if_std! macro.
+	use sp_core::{H256, U256};
+	use sp_io::hashing::sha2_256;
+	// use sha3::{Digest, Sha3_256};
 	use sp_std::convert::TryInto;
 	use frame_support::IterableStorageMap;
 
@@ -82,7 +86,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		/// --- Currency type that will be used to place deposits on neurons
+		/// --- Currency type that will be used to place deposits on Metagraph
 		type Currency: Currency<Self::AccountId> + Send + Sync;
 		
 		/// - The transaction fee in RAO per byte
@@ -96,6 +100,14 @@ pub mod pallet {
 	pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 	pub type NeuronMetadataOf<T> = NeuronMetadata<AccountIdOf<T>>;
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	/// A Seal struct that will be encoded to a Vec<u8> as used as the
+	/// `RawSeal` type.
+	#[derive(Clone, PartialEq, Eq, Encode, Decode, Debug)]
+	pub struct Seal {
+		pub block_hash: H256,
+		pub nonce: U256,
+	}
+
     #[derive(Encode, Decode, Default)]
     pub struct NeuronMetadata<AccountId> {
 
@@ -116,7 +128,7 @@ pub mod pallet {
 
         /// ---- The neuron modality. Modalities specify which datatype
         /// the neuron endpoint can process. This information is non
-        /// verifiable. However, neurons should set this correctly
+        /// verifiable. However, Metagraph should set this correctly
         /// in order to be detected by others with this datatype.
         /// The initial modality codes are:
         /// TEXT: 0
@@ -132,7 +144,7 @@ pub mod pallet {
 
         /// ---- The associated coldkey account.
         /// Staking and unstaking transactions must be made by this account.
-        /// The hotkey account (in the Neurons map) has permission to call
+        /// The hotkey account (in the Metagraph map) has permission to call
         /// subscribe and unsubscribe.
         pub coldkey: AccountId,
 
@@ -210,7 +222,7 @@ pub mod pallet {
 	/// ---- Maps from uid to neuron.
 	#[pallet::storage]
     #[pallet::getter(fn uid)]
-    pub(super) type Neurons<T:Config> = StorageMap<
+    pub(super) type Metagraph<T:Config> = StorageMap<
 		_, 
 		Identity, 
 		u32, 
@@ -435,7 +447,7 @@ pub mod pallet {
 		}
 		
 		/// --- Adds stake to a neuron account. The call is made from the
-		/// coldkey account linked in the neurons's NeuronMetadata.
+		/// coldkey account linked in the Metagraph's NeuronMetadata.
 		/// Only the associated coldkey is allowed to make staking and
 		/// unstaking requests. This protects the neuron against
 		/// attacks on its hotkey running in production code.
@@ -469,6 +481,14 @@ pub mod pallet {
 		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
 		pub fn add_stake(origin:OriginFor<T>, hotkey: T::AccountId, ammount_staked: u64) -> DispatchResult {
 			Self::do_add_stake(origin, hotkey, ammount_staked)
+		}
+
+		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
+		pub fn hash(origin:OriginFor<T>, hash: Vec<u8>) -> DispatchResult {
+			let de_ref_hash = &hash; // b: &Vec<u8>
+			let de_de_ref_hash: &[u8] = &de_ref_hash; // c: &[u8]
+			let hash: H256 = H256::from_slice( de_de_ref_hash );
+			Ok(())
 		}
 
 		/// ---- Remove stake from the staking account. The call must be made
@@ -551,63 +571,63 @@ pub mod pallet {
 		}
 		pub fn get_lastupdate( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.last_update;
 			}
 			return result
 		}
 		pub fn get_stake( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize ] = neuron_i.stake;
 			}
 			return result
 		}
 		pub fn get_ranks( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.rank;
 			}
 			return result
 		}
 		pub fn get_trust( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.trust;
 			}
 			return result
 		}
 		pub fn get_consensus( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.consensus;
 			}
 			return result
 		}
 		pub fn get_incentive( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.incentive;
 			}
 			return result
 		}
 		pub fn get_inflation( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.inflation;
 			}
 			return result
 		}
 		pub fn get_dividends( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.dividends;
 			}
 			return result
 		}
 		pub fn get_active( ) -> Vec<u32> {
 			let mut result: Vec<u32> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.active;
 			}
 			return result
@@ -621,7 +641,7 @@ pub mod pallet {
 		}
 		pub fn get_bonds( ) -> Vec<Vec<u64>>  {
 			let mut bonds: Vec<Vec<u64>> = vec![ vec![]; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				bonds[ uid_i as usize ] = Self::get_bonds_for_neuron( &neuron_i );
 			}
 			return bonds
@@ -635,7 +655,7 @@ pub mod pallet {
 		}
 		pub fn get_weights( ) -> Vec<Vec<u32>>  {
 			let mut weights: Vec<Vec<u32>> = vec![ vec![]; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+			for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				weights[ uid_i as usize ] = Self::get_weights_for_neuron( &neuron_i );
 			}
 			return weights
@@ -644,9 +664,9 @@ pub mod pallet {
 		// Setters
 		pub fn set_stake_from_vector( stake: Vec<u64> ) {
 			for uid_i in 0..Self::get_neuron_count() {
-				let mut neuron = Neurons::<T>::get(uid_i);
+				let mut neuron = Metagraph::<T>::get(uid_i);
 				neuron.stake = stake[ uid_i as usize ];
-				Neurons::<T>::insert( uid_i, neuron );
+				Metagraph::<T>::insert( uid_i, neuron );
 			}
 		}
 		pub fn set_weights_from_matrix( weights: Vec<Vec<u32>> ) {
@@ -658,9 +678,9 @@ pub mod pallet {
 						sparse_weights.push( (uid_j, weight_ij) );
 					}
 				}
-				let mut neuron = Neurons::<T>::get(uid_i);
+				let mut neuron = Metagraph::<T>::get(uid_i);
 				neuron.weights = sparse_weights;
-				Neurons::<T>::insert( uid_i, neuron );
+				Metagraph::<T>::insert( uid_i, neuron );
 			}
 		}
 	
@@ -693,7 +713,7 @@ pub mod pallet {
 		// is a staking, last_update, and neuron account associated
 		// with this uid.
 		pub fn is_uid_active(uid: u32) -> bool {
-			return Neurons::<T>::contains_key(uid);
+			return Metagraph::<T>::contains_key(uid);
 		}
 
 		// --- Returns hotkey associated with the hotkey account.
@@ -704,7 +724,7 @@ pub mod pallet {
 		}
 
 		pub fn get_neuron_for_uid ( uid: u32 ) -> NeuronMetadataOf<T> {
-			return Neurons::<T>::get( uid );
+			return Metagraph::<T>::get( uid );
 		}
 
 		// --- Returns the neuron associated with the passed hotkey.
@@ -730,6 +750,9 @@ pub mod pallet {
 			uid
 		}
 
+
 	}
 }
+
+
 

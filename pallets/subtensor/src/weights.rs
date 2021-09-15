@@ -30,7 +30,7 @@ impl<T: Config> Pallet<T> {
         neuron.weights = zipped_weights;
 
         // Sink update.
-        Neurons::<T>::insert(neuron.uid, neuron);
+        Metagraph::<T>::insert(neuron.uid, neuron);
 
         // ---- Emit the staking event.
         Self::deposit_event(Event::WeightsSet(hotkey_id));

@@ -4,6 +4,8 @@ use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
 use frame_support::IterableStorageMap;
+use sp_core::{H256, U256};
+// use sha3::{Digest, Sha3_256};
 
 impl<T: Config> Pallet<T> {
 
@@ -111,7 +113,7 @@ impl<T: Config> Pallet<T> {
 
         // Pull active data into local cache.
         let mut total_active_stake: u64 = 0;
-        for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 
             // Filter on active.
             if current_block - neuron_i.last_update < active_threshold {
@@ -143,8 +145,8 @@ impl<T: Config> Pallet<T> {
         let mut total_bonds_purchased: u64 = 0;
         for (index_i, uid_i) in active_uids.iter().enumerate() {
 
-            // Only accumulate rank, trust and bonds for active neurons.
-            //let mut neuron_i: NeuronMetadataOf<T> = neurons[ uid_to_index[ *uid_i as usize ] as usize ];
+            // Only accumulate rank, trust and bonds for active Metagraph.
+            //let mut neuron_i: NeuronMetadataOf<T> = Metagraph[ uid_to_index[ *uid_i as usize ] as usize ];
             let stake_i: I65F63 = I65F63::from_num( stake[ *uid_i as usize ] );
             let weights_i: &Vec<(u32, u32)> = &weights[ index_i as usize ];
 
@@ -293,7 +295,7 @@ impl<T: Config> Pallet<T> {
         //     println!("dividends: {:?}, {:?}", dividends, total_dividends);
         // }
 
-        for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, mut neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
             if active[ uid_i as usize ] == 0 {
                 neuron_i.active = 0;
@@ -313,7 +315,7 @@ impl<T: Config> Pallet<T> {
                 neuron_i.dividends = dividends[ uid_i as usize ];
                 neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
             }
-            Neurons::<T>::insert( neuron_i.uid, neuron_i );
+            Metagraph::<T>::insert( neuron_i.uid, neuron_i );
         }
 
         // Update totals.

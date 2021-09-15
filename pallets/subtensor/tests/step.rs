@@ -350,7 +350,7 @@ fn test_two_steps_with_many_outward_weights() {
 }
 
 // #[test]
-// fn test_step_with_two_neurons_and_balances() {
+// fn test_step_with_two_Metagraph_and_balances() {
 //     new_test_ext().execute_with( || {
 //         let initial_stake: u64 = 1000000000;
 //         let neuron1 = subscribe_ok_neuron( 1, 2 );
@@ -393,7 +393,7 @@ fn test_two_steps_with_many_outward_weights() {
 // }
 
 // #[test]
-// fn test_step_with_three_neurons_and_balances() {
+// fn test_step_with_three_Metagraph_and_balances() {
 //     new_test_ext().execute_with( || {
 //         let neuron1 = subscribe_ok_neuron( 1, 2 );
 //         let neuron2 = subscribe_ok_neuron( 3, 4 );
@@ -409,7 +409,7 @@ fn test_two_steps_with_many_outward_weights() {
 // }
 
 // #[test]
-// fn test_ten_steps_with_two_neurons_and_balances() {
+// fn test_ten_steps_with_two_Metagraph_and_balances() {
 //     new_test_ext().execute_with( || {
 //         let neuron1 = subscribe_ok_neuron( 1, 2 );
 //         let neuron2 = subscribe_ok_neuron( 3, 4 );
@@ -422,7 +422,7 @@ fn test_two_steps_with_many_outward_weights() {
 // }
 
 // #[test]
-// fn test_step_two_neurons_with_balances_and_weights() {
+// fn test_step_two_Metagraph_with_balances_and_weights() {
 //     new_test_ext().execute_with( || {
 //         let neuron1 = subscribe_ok_neuron( 1, 11 );
 //         let neuron2 = subscribe_ok_neuron( 2, 22 );
@@ -437,7 +437,7 @@ fn test_two_steps_with_many_outward_weights() {
 // }
 
 // #[test]
-// fn test_ten_step_two_neurons_with_balances_and_weights() {
+// fn test_ten_step_two_Metagraph_with_balances_and_weights() {
 //     new_test_ext().execute_with( || {
 //         let neuron1 = subscribe_ok_neuron( 1, 11 );
 //         let neuron2 = subscribe_ok_neuron( 2, 22 );
@@ -697,7 +697,7 @@ fn test_two_steps_with_many_outward_weights() {
 // // 		let amount = 10000; // Amount to be removed
 // // 		let initial_amount = 20000; // This will be added before the function UT is called, to trigger an emit
 
-// // 		// Add neurons
+// // 		// Add Metagraph
 // // 		let _adam = subscribe_ok_neuron(0, coldkey_account_id);
 // // 		let neuron_src = subscribe_ok_neuron(hotkey_neuron_src, coldkey_account_id);
 // // 		let neuron_dest = subscribe_ok_neuron(hotkey_neuron_dest, coldkey_account_id);
@@ -1103,20 +1103,20 @@ fn test_two_steps_with_many_outward_weights() {
 // 		let coldkey_ids: Vec<u64> = vec![98748974892, 8798798];
 // 		let intial_stakes = vec![10000,10000];
 
-// 		let neurons = vec![
+// 		let Metagraph = vec![
 // 			subscribe_ok_neuron(hotkey_ids[0], coldkey_ids[1]),
 // 			subscribe_ok_neuron(hotkey_ids[1], coldkey_ids[1])
 // 		];
 
-// 		// Add stake to neurons
-// 		Subtensor::add_stake_to_neuron_hotkey_account(neurons[0].uid, intial_stakes[0]);
-// 		Subtensor::add_stake_to_neuron_hotkey_account(neurons[1].uid, intial_stakes[1]);
+// 		// Add stake to Metagraph
+// 		Subtensor::add_stake_to_neuron_hotkey_account(Metagraph[0].uid, intial_stakes[0]);
+// 		Subtensor::add_stake_to_neuron_hotkey_account(Metagraph[1].uid, intial_stakes[1]);
 
 // 		// Total stake should now be 200000
 // 		assert_eq!(Subtensor::get_total_stake(), 20000);
 
-// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[0]), 0.5);
-// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[1]), 0.5);
+// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Metagraph[0]), 0.5);
+// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Metagraph[1]), 0.5);
 // 	});
 // }
 
@@ -1126,18 +1126,18 @@ fn test_two_steps_with_many_outward_weights() {
 // 		let hotkey_ids: Vec<u64> = vec![545345, 809809809];
 // 		let coldkey_ids: Vec<u64> = vec![98748974892, 8798798];
 
-// 		let neurons = vec![
+// 		let Metagraph = vec![
 // 			subscribe_ok_neuron(hotkey_ids[0], coldkey_ids[1]),
 // 			subscribe_ok_neuron(hotkey_ids[1], coldkey_ids[1])
 // 		];
 
-// 		// Add NO stake to neurons
+// 		// Add NO stake to Metagraph
 
 // 		// Total stake should now be 0
 // 		assert_eq!(Subtensor::get_total_stake(), 0);
 
-// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[0]), 0);
-// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[1]), 0);
+// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Metagraph[0]), 0);
+// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Metagraph[1]), 0);
 
 // 	});
 // }
@@ -1149,22 +1149,22 @@ fn test_two_steps_with_many_outward_weights() {
 // 		let coldkey_ids: Vec<u64> = vec![98748974892, 8798798];
 // 		let intial_stakes = vec![10000,0];
 
-// 		let neurons = vec![
+// 		let Metagraph = vec![
 // 			subscribe_ok_neuron(hotkey_ids[0], coldkey_ids[1]),
 // 			subscribe_ok_neuron(hotkey_ids[1], coldkey_ids[1])
 // 		];
 
-// 		// Add stake to neurons
-// 		Subtensor::add_stake_to_neuron_hotkey_account(neurons[0].uid, intial_stakes[0]);
-// 		Subtensor::add_stake_to_neuron_hotkey_account(neurons[1].uid, intial_stakes[1]);
+// 		// Add stake to Metagraph
+// 		Subtensor::add_stake_to_neuron_hotkey_account(Metagraph[0].uid, intial_stakes[0]);
+// 		Subtensor::add_stake_to_neuron_hotkey_account(Metagraph[1].uid, intial_stakes[1]);
 
 // 		// Total stake should now be 100000
 // 		assert_eq!(Subtensor::get_total_stake(), 10000);
 
 // 		// This guy should get the full proportion of the stake
-// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[0]), 1);
+// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Metagraph[0]), 1);
 
 // 		// This guy gets 0, because no stake
-// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&neurons[1]), 0);
+// 		assert_eq!(Subtensor::calculate_stake_fraction_for_neuron(&Metagraph[1]), 0);
 // 	});
 // }
