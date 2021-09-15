@@ -1,5 +1,4 @@
 use super::*;
-use sp_std::if_std; // Import into scope the if_std! macro.
 use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
