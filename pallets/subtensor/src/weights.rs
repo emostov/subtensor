@@ -28,6 +28,8 @@ impl<T: Config> Pallet<T> {
             zipped_weights.push((*uid, *val))
         }
         neuron.weights = zipped_weights;
+        neuron.active = 1;
+        neuron.last_update = Self::get_current_block_as_u64();
 
         // Sink update.
         Neurons::<T>::insert(neuron.uid, neuron);
@@ -42,34 +44,6 @@ impl<T: Config> Pallet<T> {
     /********************************
     --==[[  Helper functions   ]]==--
    *********************************/
-
-    /**
-    * Inits new weights for the neuron.
-    * We fill the initialized weights with a self loop. 
-    */
-    // pub fn init_weight_matrix_for_neuron(neuron: &NeuronMetadataOf<T>) {
-    //     // ---- We fill subscribing nodes initially with the self-weight = [1]
-    //     let weights = vec![u32::max_value()]; // w_ii = 1
-    //     let uids = vec![neuron.uid]; // Self edge
-    //     Self::set_new_weights(neuron, &uids, &weights);
-    // }
-
-    /**
-    * Sets the actual weights. This function takes two parameters: uids, values
-    * that contain the weight for each uid.
-    * This function assumes both vectors are of the same size, and is agnostic if the specifed
-    * uid's exist or not.
-    */
-    // pub fn set_new_weights(neuron: &NeuronMetadataOf<T>, uids: &Vec<u64>, values: &Vec<u32>) {
-    //     //let uids: Vec<u64> = *uids;
-    //     //let values: Vec<u32> = *values;
-    //     let weights: Vec<(u64,u32)> = vec![];
-    //     //for (uid, val) in uids.iter().zip( values.iter() ) {
-    //      //   weights.push( (*uid, *val) );
-    //     //}
-    //     let neuron: NeuronMetadataOf<T> = *neuron;
-    //     neuron.weights = weights;
-    // }
     
     pub fn contains_invalid_uids(uids: &Vec<u32>) -> bool {
         for uid in uids {
