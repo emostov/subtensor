@@ -34,11 +34,8 @@ use sp_core::{
 	crypto::{CryptoType, Dummy, key_types, Public}
 };
 
-
 use frame_system::{limits};
 use frame_system::ChainContext;
-
-
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -268,12 +265,12 @@ pub fn subscribe_ok_neuron(hotkey_account_id : u64,  coldkey_account_id : u64) -
 
 #[allow(dead_code)]
 pub fn n_subscribe_ok_neuron(n: usize) -> Vec<NeuronMetadata<u64>> {
-	let mut Metagraph: Vec<NeuronMetadata<u64>> = vec![];
+	let mut metagraph: Vec<NeuronMetadata<u64>> = vec![];
 	for i in 0..n {
 		let neuron: NeuronMetadata<u64> = subscribe_ok_neuron(i as u64,i as u64);
-		Metagraph.push(neuron);
+		metagraph.push(neuron);
 	}
-	return Metagraph;
+	return metagraph;
 }
 
 #[allow(dead_code)]

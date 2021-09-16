@@ -59,6 +59,7 @@ mod weights;
 mod staking;
 mod subscribing;
 mod step;
+mod hashing;
 
 #[frame_support::pallet]
 pub mod pallet {

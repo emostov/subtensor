@@ -143,40 +143,42 @@ impl<T: Config> Pallet<T> {
         let mut total_ranks: u64 = 0;
         let mut total_trust: u64 = 0;
         let mut total_bonds_purchased: u64 = 0;
-        for (index_i, uid_i) in active_uids.iter().enumerate() {
+        if total_active_stake != 0 {
+            for (index_i, uid_i) in active_uids.iter().enumerate() {
 
-            // Only accumulate rank, trust and bonds for active Metagraph.
-            //let mut neuron_i: NeuronMetadataOf<T> = Metagraph[ uid_to_index[ *uid_i as usize ] as usize ];
-            let stake_i: I65F63 = I65F63::from_num( stake[ *uid_i as usize ] );
-            let weights_i: &Vec<(u32, u32)> = &weights[ index_i as usize ];
+                // Only accumulate rank, trust and bonds for active Metagraph.
+                //let mut neuron_i: NeuronMetadataOf<T> = Metagraph[ uid_to_index[ *uid_i as usize ] as usize ];
+                let stake_i: I65F63 = I65F63::from_num( stake[ *uid_i as usize ] );
+                let weights_i: &Vec<(u32, u32)> = &weights[ index_i as usize ];
 
-            // Iterate over weights.
-            for ( uid_j, weight_ij ) in weights_i.iter() {
+                // Iterate over weights.
+                for ( uid_j, weight_ij ) in weights_i.iter() {
 
-                // Self loop is ignored.
-                if *uid_j == *uid_i { continue };
-                // Only count weights from active to active.
-                if active[ *uid_j as usize ] == 0 { continue };
-                
-                // Normalized weight from i to j.
-                let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max;
-                let trust_increment_ij: I65F63 = stake_i;
-                let rank_increment_ij: I65F63 = stake_i * weight_ij;
-                let bond_increment_ij: I65F63 = (rank_increment_ij * block_emission)/ I65F63::from_num( total_active_stake );
-                // if_std! {
-                //     println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
-                // }
+                    // Self loop is ignored.
+                    if *uid_j == *uid_i { continue };
+                    // Only count weights from active to active.
+                    if active[ *uid_j as usize ] == 0 { continue };
+                    
+                    // Normalized weight from i to j.
+                    let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max;
+                    let trust_increment_ij: I65F63 = stake_i;
+                    let rank_increment_ij: I65F63 = stake_i * weight_ij;
+                    let bond_increment_ij: I65F63 = (rank_increment_ij * block_emission) / I65F63::from_num( total_active_stake );
+                    // if_std! {
+                    //     println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
+                    // }
 
-                // Increment neuron scores.
-                rank[ *uid_j as usize ] += rank_increment_ij.to_num::<u64>();
-                trust[ *uid_j as usize ] += trust_increment_ij.to_num::<u64>();
-                total_ranks += rank_increment_ij.to_num::<u64>();
-                total_trust += trust_increment_ij.to_num::<u64>();
-                
-                // Distribute bonds.
-                bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
-                bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
-                total_bonds_purchased += bond_increment_ij.to_num::<u64>();
+                    // Increment neuron scores.
+                    rank[ *uid_j as usize ] += rank_increment_ij.to_num::<u64>();
+                    trust[ *uid_j as usize ] += trust_increment_ij.to_num::<u64>();
+                    total_ranks += rank_increment_ij.to_num::<u64>();
+                    total_trust += trust_increment_ij.to_num::<u64>();
+                    
+                    // Distribute bonds.
+                    bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
+                    bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
+                    total_bonds_purchased += bond_increment_ij.to_num::<u64>();
+                }
             }
         }
         // if_std! {
@@ -187,7 +189,7 @@ impl<T: Config> Pallet<T> {
 
         // Compute consensus, incentive, and inflation.
         let mut total_incentive: I65F63 = I65F63::from_num(0.0);
-        if total_ranks != 0 && total_trust != 0 {
+        if total_ranks != 0 && total_active_stake != 00 && total_trust != 0 {
             for uid_i in active_uids.iter() {
                 let rank_i: u64 = rank[ *uid_i as usize ];
                 let trust_i: u64 = trust[ *uid_i as usize ];
@@ -322,12 +324,6 @@ impl<T: Config> Pallet<T> {
         TotalIssuance::<T>::mutate( |val| *val += total_dividends );
         TotalStake::<T>::mutate( |val| *val += total_dividends );
     }
-
-    pub fn get_current_block_as_u64( ) -> u64 {
-        let block_as_u64: u64 = TryInto::try_into( system::Pallet::<T>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
-        block_as_u64
-    }
-
 }
 
 

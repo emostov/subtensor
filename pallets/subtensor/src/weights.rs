@@ -28,6 +28,8 @@ impl<T: Config> Pallet<T> {
             zipped_weights.push((*uid, *val))
         }
         neuron.weights = zipped_weights;
+        neuron.active = 1;
+        neuron.last_update = Self::get_current_block_as_u64();
 
         // Sink update.
         Metagraph::<T>::insert(neuron.uid, neuron);
