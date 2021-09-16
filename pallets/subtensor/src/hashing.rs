@@ -41,34 +41,59 @@ impl<T: Config> Pallet<T> {
         let vec_hash: Vec<u8> = block_hash_at_number.as_ref().into_iter().cloned().collect();
         let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
         let real_hash: H256 = H256::from_slice( deref_vec_hash );
+        if_std! {
+            println!("block_number: {:?}, vec_hash: {:?}, real_hash: {:?}", block_number, vec_hash, real_hash);
+        }
         return real_hash;
     }
 
-
-    pub fn check_seal ( seal_block_number: u64, seal_block_hash: H256, seal_nonce: U256, seal_work: H256 ) -> bool {
-
-        // Check block number range.
-        let current_block_number: u64 = Self::get_current_block_as_u64();
-        if current_block_number < seal_block_number {
-            return false
-        }
-
-        // Hash for block number
-        let block_hash_at_number: H256 = Self::get_block_hash_from_u64( seal_block_number );
-        if block_hash_at_number != seal_block_hash {
-            return false;
-        }
-            
+    pub fn create_seal_hash( block_hash: H256, nonce: U256 ) -> H256 {
         // Do a concat of the block_hash + nonce.
-        let hash_as_bytes: &[u8] = seal_block_hash.as_bytes();
-        let nonce_as_bytes: &[u8] = seal_nonce.as_byte_slice();
-        let mut seal: Vec<u8> = [hash_as_bytes, nonce_as_bytes].concat();
+        let hash_as_bytes: &[u8] = block_hash.as_bytes();
+        let nonce_bytes: &[u8; 32] = &[
+            nonce.byte(0), nonce.byte(1), nonce.byte(2), nonce.byte(3), 
+            nonce.byte(4), nonce.byte(5), nonce.byte(6), nonce.byte(7), 
+            nonce.byte(8), nonce.byte(9), nonce.byte(10), nonce.byte(11), 
+            nonce.byte(12), nonce.byte(13), nonce.byte(14), nonce.byte(15), 
+            nonce.byte(16), nonce.byte(17), nonce.byte(18), nonce.byte(19), 
+            nonce.byte(20), nonce.byte(21), nonce.byte(22), nonce.byte(23), 
+            nonce.byte(24),nonce.byte(25), nonce.byte(26), nonce.byte(27), 
+            nonce.byte(28), nonce.byte(29) ,nonce.byte(30), nonce.byte(31), 
+        ];
+        let seal: Vec<u8> = [hash_as_bytes, nonce_bytes].concat();
 
         // Use sha256 to create the hash.
         let seal_hash: [u8; 32] = sha2_256( &seal );
         let seal_hash: H256 = H256::from_slice( &seal_hash );
+        if_std! {
+            println!("block_hash: {:?}, nonce: {:?}, seal: {:?}, seal_hash: {:?}", block_hash, nonce, seal, seal_hash);
+        }
+        return seal_hash;
+    }
 
-        if seal_hash != seal_work {
+
+    pub fn check_work ( block_number: u64, block_hash: H256, nonce: U256, difficulty: U256, work: H256 ) -> bool {
+
+        // Check block number range.
+        let current_block_number: u64 = Self::get_current_block_as_u64();
+        if current_block_number < block_number {
+            return false
+        }
+
+        // Check that the submitted block hash is the same as the block hash at this height.
+        let block_hash_at_number: H256 = Self::get_block_hash_from_u64( block_number );
+        if block_hash_at_number != block_hash {
+            return false;
+        }
+
+        // Check that the difficulty has been met by the submitted work.
+        if !Self::hash_meets_difficulty( &work,  difficulty ) {
+            return false;
+        }
+
+        // Check that the seal matches the work.
+        let seal: H256 = Self::create_seal_hash( block_hash, nonce );
+        if seal != work {
             return false;
         }
         return true;
