@@ -101,8 +101,8 @@ pub fn akatsuki_testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
 
     Ok(ChainSpec::from_genesis(
-        "Akatsuki bittensor main net",
-        "akatsuki_mainnet",
+        "Akatsuki bittensor test net",
+        "akatsuki_testnet",
         ChainType::Live,
         move || testnet_genesis(
             wasm_binary,
