@@ -1,5 +1,4 @@
 use super::*;
-use sp_std::if_std; // Import into scope the if_std! macro.
 use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
@@ -220,8 +219,8 @@ impl<T: Config> Pallet<T> {
         // }
 
         // Compute consensus, incentive, and inflation.
-        let mut total_inflation: u64 = 0;
         if total_incentive != 0 {
+            let mut total_inflation: u64 = 0;
             for uid_i in active_uids.iter() {
                 // Inflation function.
                 let incentive_i: I65F63 = I65F63::from_num( incentive[ *uid_i as usize ] ) / u64_max;
@@ -233,9 +232,6 @@ impl<T: Config> Pallet<T> {
                 // }
             }
         }
-        // if_std! {
-        //     println!("inflation: {:?}, {:?}", inflation, total_inflation);
-        // }
 
         // Compute trust and ranks.
         let mut total_dividends: u64 = 0;
