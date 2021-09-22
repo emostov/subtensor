@@ -87,6 +87,12 @@ impl<T: Config> Pallet<T> {
         // Get current block.
         let current_block: u64 = Self::get_current_block_as_u64(); 
 
+        // Get total stake
+        let total_stake: u64 = TotalStake::<T>::get();
+        if total_stake == 0 {
+            return;
+        }
+
         // Constants.
         let active_threshold: u64 = 10000;
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
@@ -112,38 +118,32 @@ impl<T: Config> Pallet<T> {
         let mut active: Vec<u64> = vec![0;n];
 
         // Pull active data into local cache.
-        let mut total_active_stake: u64 = 0;
         for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 
-            // Filter on active.
-            if current_block - neuron_i.last_update < active_threshold {
+            // Set as active.
+            active [ uid_i as usize ] = 1;
+            active_uids.push( uid_i );
 
-                // Set as active.
-                active [ uid_i as usize ] = 1;
-                active_uids.push( uid_i );
+            // Record stake.
+            stake [ uid_i as usize ] = neuron_i.stake;
 
-                // Record stake.
-                stake [ uid_i as usize ] = neuron_i.stake;
-                total_active_stake += neuron_i.stake;
+            // Save weights for later iteration.
+            weights.push( neuron_i.weights );
 
-                // Save weights for later iteration.
-                weights.push( neuron_i.weights );
-
-                // Fill bonds matrix.
-                let mut bonds_row: Vec<u64> = vec![0; n];
-                for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
-                    bonds_row [ *uid_j as usize ] = *bonds_ij;
-                    bond_totals [ *uid_j as usize ] += *bonds_ij;
-                }
-                bonds[ uid_i as usize ] = bonds_row;
+            // Fill bonds matrix.
+            let mut bonds_row: Vec<u64> = vec![0; n];
+            for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
+                bonds_row [ *uid_j as usize ] = *bonds_ij;
+                bond_totals [ *uid_j as usize ] += *bonds_ij;
             }
+            bonds[ uid_i as usize ] = bonds_row;
         }
 
         // Compute trust and ranks.
         let mut total_ranks: u64 = 0;
         let mut total_trust: u64 = 0;
         let mut total_bonds_purchased: u64 = 0;
-        if total_active_stake != 0 {
+        if total_stake != 0 {
             for (index_i, uid_i) in active_uids.iter().enumerate() {
 
                 // Only accumulate rank, trust and bonds for active Metagraph.
@@ -163,7 +163,7 @@ impl<T: Config> Pallet<T> {
                     let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max;
                     let trust_increment_ij: I65F63 = stake_i;
                     let rank_increment_ij: I65F63 = stake_i * weight_ij;
-                    let bond_increment_ij: I65F63 = (rank_increment_ij * block_emission) / I65F63::from_num( total_active_stake );
+                    let bond_increment_ij: I65F63 = (rank_increment_ij / I65F63::from_num( total_stake )) * block_emission;
                     // if_std! {
                     //     println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
                     // }
@@ -189,14 +189,14 @@ impl<T: Config> Pallet<T> {
 
         // Compute consensus, incentive, and inflation.
         let mut total_incentive: I65F63 = I65F63::from_num(0.0);
-        if total_ranks != 0 && total_active_stake != 00 && total_trust != 0 {
+        if total_ranks != 0 && total_stake != 0 && total_trust != 0 {
             for uid_i in active_uids.iter() {
                 let rank_i: u64 = rank[ *uid_i as usize ];
                 let trust_i: u64 = trust[ *uid_i as usize ];
                 if trust_i != 0 {
 
                     // Consensus function.
-                    let normalized_trust: I65F63 = I65F63::from_num( trust_i ) / I65F63::from_num( total_active_stake );
+                    let normalized_trust: I65F63 = I65F63::from_num( trust_i ) / I65F63::from_num( total_stake );
                     let shifted_trust: I65F63 = normalized_trust - kappa;
                     let temperatured_trust: I65F63 = shifted_trust * rho;
                     let exponentiated_trust: I65F63 = exp( -temperatured_trust ).expect( "temperatured_trust is on range(-rho, rho)");
