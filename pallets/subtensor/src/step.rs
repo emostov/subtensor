@@ -4,8 +4,6 @@ use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
 use frame_support::IterableStorageMap;
-use sp_core::{H256, U256};
-// use sha3::{Digest, Sha3_256};
 
 impl<T: Config> Pallet<T> {
 
@@ -84,17 +82,10 @@ impl<T: Config> Pallet<T> {
         // Number of peers.
         let n: usize = Self::get_neuron_count() as usize;
         
-        // Get current block.
-        let current_block: u64 = Self::get_current_block_as_u64(); 
-
         // Get total stake
         let total_stake: u64 = TotalStake::<T>::get();
-        if total_stake == 0 {
-            return;
-        }
 
         // Constants.
-        let active_threshold: u64 = 10000;
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
@@ -118,7 +109,7 @@ impl<T: Config> Pallet<T> {
         let mut active: Vec<u64> = vec![0;n];
 
         // Pull active data into local cache.
-        for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 
             // Set as active.
             active [ uid_i as usize ] = 1;
@@ -297,7 +288,7 @@ impl<T: Config> Pallet<T> {
         //     println!("dividends: {:?}, {:?}", dividends, total_dividends);
         // }
 
-        for ( uid_i, mut neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
             if active[ uid_i as usize ] == 0 {
                 neuron_i.active = 0;
@@ -317,14 +308,23 @@ impl<T: Config> Pallet<T> {
                 neuron_i.dividends = dividends[ uid_i as usize ];
                 neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
             }
-            Metagraph::<T>::insert( neuron_i.uid, neuron_i );
+            Neurons::<T>::insert( neuron_i.uid, neuron_i );
         }
 
         // Update totals.
         TotalIssuance::<T>::mutate( |val| *val += total_dividends );
         TotalStake::<T>::mutate( |val| *val += total_dividends );
     }
+
+    pub fn get_current_block_as_u64( ) -> u64 {
+        let block_as_u64: u64 = TryInto::try_into( system::Pallet::<T>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
+        block_as_u64
+    }
 }
+
+
+
+
 
 
 

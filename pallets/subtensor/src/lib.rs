@@ -643,11 +643,14 @@ pub mod pallet {
 
 		// Setters
 		pub fn set_stake_from_vector( stake: Vec<u64> ) {
+			let mut total_stake: u64 = 0;
 			for uid_i in 0..Self::get_neuron_count() {
 				let mut neuron = Neurons::<T>::get(uid_i);
 				neuron.stake = stake[ uid_i as usize ];
 				Neurons::<T>::insert( uid_i, neuron );
+				total_stake += stake[ uid_i as usize ];
 			}
+			TotalStake::<T>::set( total_stake );
 		}
 		pub fn set_weights_from_matrix( weights: Vec<Vec<u32>> ) {
 			for uid_i in 0..Self::get_neuron_count() {
