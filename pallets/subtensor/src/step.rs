@@ -85,6 +85,7 @@ impl<T: Config> Pallet<T> {
         let total_stake: u64 = TotalStake::<T>::get();
 
         // Constants.
+
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
@@ -109,6 +110,7 @@ impl<T: Config> Pallet<T> {
 
         // Pull active data into local cache.
         for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 
             // Set as active.
             active [ uid_i as usize ] = 1;
@@ -288,6 +290,7 @@ impl<T: Config> Pallet<T> {
         // }
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, mut neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
             if active[ uid_i as usize ] == 0 {
                 neuron_i.active = 0;
@@ -326,10 +329,3 @@ impl<T: Config> Pallet<T> {
         block_as_u64
     }
 }
-
-
-
-
-
-
-
