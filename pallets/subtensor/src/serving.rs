@@ -1,77 +1,33 @@
 use super::*;
-use sp_std::if_std; // Import into scope the if_std! macro.
 
 impl<T: Config> Pallet<T> {
-    pub fn do_subscribe( origin: T::Origin, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId ) -> dispatch::DispatchResult {
+    pub fn do_serve_axon( origin: T::Origin, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8 ) -> dispatch::DispatchResult {
 
         // --- We check the callers (hotkey) signature.
         let hotkey_id = ensure_signed(origin)?;
-        
-        // --- We check if the hotkey is active, and if the passed coldkey is linked to the hotkey
-        ensure!(Self::specified_coldkey_is_linked_to_hotkey_if_active(&hotkey_id, &coldkey), Error::<T>::NonAssociatedColdKey);
 
         // --- We make validy checks on the passed data.
-        ensure!(is_valid_modality(modality), Error::<T>::InvalidModality);
-        ensure!(is_valid_ip_type(ip_type), Error::<T>::InvalidIpType);
-        ensure!(is_valid_ip_address(ip_type, ip), Error::<T>::InvalidIpAddress);
+        ensure!( Hotkeys::<T>::contains_key(&hotkey_id), Error::<T>::NotRegistered );        
+        ensure!( is_valid_modality(modality), Error::<T>::InvalidModality );
+        ensure!( is_valid_ip_type(ip_type), Error::<T>::InvalidIpType );
+        ensure!( is_valid_ip_address(ip_type, ip), Error::<T>::InvalidIpAddress );
+  
+        // --- We get the uid associated with this hotkey account.
+        let uid = Self::get_uid_for_hotkey(&hotkey_id);
 
-        // --- We switch here between an update and a subscribe.
-        if !Self::is_hotkey_active(&hotkey_id) {
-            if_std! {
-                println!("new neuron.");
-            }
-            // --- We get the next available subscription uid.
-            let uid = Self::get_next_uid();
+        // --- We get the neuron assoicated with this hotkey.
+        let mut neuron = Self::get_neuron_for_uid(uid);
+        neuron.version = version;
+        neuron.ip = ip;
+        neuron.port = port;
+        neuron.ip_type = ip_type;
+        neuron.active = 1;
+        neuron.last_update = Self::get_current_block_as_u64();
 
-            // ---- If the neuron is not-already subscribed, we create a 
-            // new entry in the table with the new metadata.
-            let neuron = NeuronMetadataOf::<T> {
-                version: version,
-                ip: ip,
-                port: port,
-                ip_type: ip_type,
-                uid: uid,
-                modality: modality,
-                hotkey: hotkey_id.clone(),
-                coldkey: coldkey,
-                active: 1,
-                last_update: Self::get_current_block_as_u64(),
-                stake: 0,
-                rank: 0,
-                trust: 0,
-                consensus: 0,
-                incentive: 0,
-                inflation: 0,
-                dividends: 0,
-                bonds: vec![],
-                weights: vec![(uid, u32::MAX)], // self weight set to 1.
-            };
-            
-            // --- We deposit the neuron added event.
-            Neurons::<T>::insert(uid, neuron); // Insert neuron info under uid.
-            Hotkeys::<T>::insert(&hotkey_id, uid); // Add hotkey into hotkey set.
-            Self::deposit_event(Event::NeuronAdded(uid));
-
-        } else {
-            if_std! {
-                println!("update");
-            }
-            // --- We get the uid associated with this hotkey account.
-            let uid = Self::get_uid_for_hotkey(&hotkey_id);
-
-            // --- We get the neuron assoicated with this hotkey.
-            let mut neuron = Self::get_neuron_for_uid(uid);
-            neuron.version = version;
-            neuron.ip = ip;
-            neuron.port = port;
-            neuron.ip_type = ip_type;
-            neuron.active = 1;
-            neuron.last_update = Self::get_current_block_as_u64();
-
-            // --- We deposit the neuron updated event
-            Neurons::<T>::insert(uid, neuron);
-            Self::deposit_event(Event::NeuronUpdated(uid));
-        }
+        // --- We deposit the neuron updated event
+        Neurons::<T>::insert(uid, neuron);
+        Self::deposit_event(Event::AxonServed(uid));
+        
         Ok(())
     }
 
@@ -128,7 +84,7 @@ fn is_valid_ip_address(ip_type: u8, addr: u128) -> bool {
 
 #[cfg(test)]
 mod test {
-    use crate::subscribing::{is_valid_ip_type, is_valid_ip_address};
+    use crate::serving::{is_valid_ip_type, is_valid_ip_address};
     use std::net::{Ipv6Addr, Ipv4Addr};
 
     // Generates an ipv6 address based on 8 ipv6 words and returns it as u128

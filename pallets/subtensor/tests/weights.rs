@@ -1,11 +1,10 @@
 mod mock;
 use mock::*;
-use mock::{TestXt};
+use frame_system::{Config};
 use pallet_subtensor::{Error};
 use frame_support::weights::{GetDispatchInfo, DispatchInfo, DispatchClass, Pays};
 use frame_support::{assert_ok};
 use sp_runtime::DispatchError;
-use fixed::types::U64F64;
 
 
 /***************************
@@ -50,7 +49,8 @@ fn set_weights_ok_no_weights() {
 		let expect_total_stake:u64 = 10000; // The total stake should remain the same
 
 		// Let's subscribe a new neuron to the chain
-		let neuron = subscribe_neuron(hotkey_account_id, 0, 10, 666, 4, 0, 66);
+		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
+		let neuron = register_ok_neuron(0, 0, hotkey_account_id, 66);
 
 		// Let's give it some stake.
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, initial_stake);
@@ -66,7 +66,8 @@ fn set_weights_ok_no_weights() {
 #[test]
 fn test_weights_err_weights_vec_not_equal_size() {
 	new_test_ext().execute_with(|| {
-    let _neuron = subscribe_neuron(666, 0, 5, 66, 4, 0, 77);
+		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
+    	let _neuron = register_ok_neuron(0, 0, 666, 77);
 
 		let weights_keys: Vec<u32> = vec![1, 2, 3, 4, 5, 6];
 		let weight_values: Vec<u32> = vec![1, 2, 3, 4, 5]; // Uneven sizes
@@ -80,7 +81,8 @@ fn test_weights_err_weights_vec_not_equal_size() {
 #[test]
 fn test_weights_err_has_duplicate_ids() {
 	new_test_ext().execute_with(|| {
-    let _neuron = subscribe_neuron(666, 0, 5, 66, 4, 0, 77);
+		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
+    	let _neuron = register_ok_neuron(0, 0, 666, 77);
 		let weights_keys: Vec<u32> = vec![1, 2, 3, 4, 5, 6, 6, 6]; // Contains duplicates
 		let weight_values: Vec<u32> = vec![1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -109,7 +111,7 @@ fn test_set_weights_err_not_active() {
 
 		let result = Subtensor::set_weights(Origin::signed(1), weights_keys, weight_values);
 
-		assert_eq!(result, Err(Error::<Test>::NotActive.into()));
+		assert_eq!(result, Err(Error::<Test>::NotRegistered.into()));
 	});
 }
 
@@ -117,7 +119,9 @@ fn test_set_weights_err_not_active() {
 #[test]
 fn test_set_weights_err_invalid_uid() {
 	new_test_ext().execute_with(|| {
-        let _neuron = subscribe_neuron(55, 0, 33, 55, 4, 0, 66);
+		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
+
+        let _neuron = register_ok_neuron(0, 0, 55, 66);
 		let weight_keys : Vec<u32> = vec![99999]; // Does not exist
 		let weight_values : Vec<u32> = vec![88]; // random value
 

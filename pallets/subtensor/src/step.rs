@@ -1,5 +1,4 @@
 use super::*;
-use sp_std::if_std; // Import into scope the if_std! macro.
 use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
@@ -312,6 +311,12 @@ impl<T: Config> Pallet<T> {
         }
 
         // Update totals.
+        TotalRanks::<T>::set( total_ranks );
+        TotalTrust::<T>::set( total_trust );
+        TotalIncentives::<T>::set( total_incentive.to_num::<u64>() );
+        TotalInflation::<T>::set( total_inflation );
+        TotalDividends::<T>::set( total_dividends );
+        TotalBondsPurchased::<T>::set( total_bonds_purchased );
         TotalIssuance::<T>::mutate( |val| *val += total_dividends );
         TotalStake::<T>::mutate( |val| *val += total_dividends );
     }

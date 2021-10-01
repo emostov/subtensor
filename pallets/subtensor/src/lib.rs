@@ -57,8 +57,9 @@ use sp_std::vec;
 /// ************************************************************
 mod weights;
 mod staking;
-mod subscribing;
+mod serving;
 mod step;
+mod registration;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -125,8 +126,7 @@ pub mod pallet {
         pub modality: u8,
 
         /// ---- The associated hotkey account.
-        /// Subscribing and changing weights can be made by this
-        /// account. Subscription can never change the associated coldkey
+        /// Registration and changing weights can be made by this
         /// account.
         pub hotkey: AccountId,
 
@@ -190,9 +190,72 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
+	pub type TotalRanks<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type TotalTrust<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type TotalIncentives<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type TotalInflation<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type TotalBondsPurchased<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type TotalDividends<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
 	pub type TotalIssuance<T> = StorageValue<
 		_, 
 		u64, 
+		ValueQuery
+	>;
+
+	/// ---- Maps from 0 to the registration key.
+	#[pallet::storage]
+    pub(super) type RegistrationKey<T:Config> = StorageMap<
+		_, 
+		Identity,
+		u32,
+		T::AccountId, 
+		ValueQuery
+	>;
+
+	/// ---- Maps from coldkey to set of hotkeys.
+	#[pallet::storage]
+    #[pallet::getter(fn uids)]
+    pub(super) type EmailHashes<T:Config> = StorageMap<
+		_, 
+		Blake2_128Concat, 
+		Vec<u8>, 
+		Vec<T::AccountId>, 
 		ValueQuery
 	>;
 
@@ -239,6 +302,7 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T:Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {
+			
         }
 	}
 
@@ -276,13 +340,12 @@ pub mod pallet {
 		/// on the chain.
 		WeightsSet(T::AccountId),
 
-		/// --- Event created when a new neuron account has been subscribed to 
-		/// the neuron set.
-		NeuronAdded(u32),
+		/// --- Event created when a new neuron account has been registered to 
+		/// the chain.
+		NeuronRegistered(u32),
 
-		/// --- Event created when the neuron information associated with a hotkey
-		/// is changed, for instance, when the ip/port changes.
-		NeuronUpdated(u32),
+		/// --- Event created when the axon server information is added to the network.
+		AxonServed(u32),
 
 		/// --- Event created during when stake has been transfered from 
 		/// the coldkey onto the hotkey staking account.
@@ -291,6 +354,9 @@ pub mod pallet {
 		/// --- Event created when stake has been removed from 
 		/// the staking account into the coldkey account.
 		StakeRemoved(T::AccountId, u64),
+
+		/// --- Event created when the registration auth key is set on the chain.
+		RegistrationKeySet(T::AccountId),
 	}
 
 	/// ************************************************************
@@ -299,14 +365,14 @@ pub mod pallet {
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-        /// ---- Thrown when the user tries to subscribe a neuron which is not of type
+        /// ---- Thrown when the user tries to serve an axon which is not of type
 	    /// 4 (IPv4) or 6 (IPv6).
 		InvalidIpType,
 
-		/// --- Thrown when an invalid IP address is passed to the subscribe function.
+		/// --- Thrown when an invalid IP address is passed to the serve function.
 		InvalidIpAddress,
 
-		/// --- Thrown when an invalid modality attempted on subscribe.
+		/// --- Thrown when an invalid modality attempted on serve.
 		/// Currently the chain only accepts modality TEXT = 0.
 		InvalidModality,
 
@@ -322,13 +388,26 @@ pub mod pallet {
 		/// does not exist in the metagraph.
 		InvalidUid,
 
+		/// ---- Thrown if the supplied email hash is not of correct size.
+		InvalidEmailHash,
+
 		/// ---- Thrown when the caller requests setting or removing data from
 		/// a neuron which does not exist in the active set.
-		NotActive,
+		NotRegistered,
 
-		/// ---- Thrown when the caller requests subscribing a neuron which 
+		/// ---- Thrown when the caller requests registering a neuron which 
 		/// already exists in the active set.
-		AlreadyActive,
+		AlreadyRegistered,
+
+		/// ---- Thrown when the caller requests registering a neuron which 
+		/// exceeds MAX_REGISTRATIONS_PER_EMAIL
+		MaxRegistrationsReached,
+
+		/// ---- Thrown when registration is called from a non-authorized key.
+		NonAuthorizedRegistrationKey,
+
+		/// ---- Thrown when the registration key is not set and registraion is disabled.
+		RegistrationDisabled,
 
 		/// ---- Thrown when a stake, unstake or subscribe request is made by a coldkey
 		/// which is not associated with the hotkey account. 
@@ -354,8 +433,8 @@ pub mod pallet {
     impl<T: Config> Printable for Error<T> {
         fn print(&self) {
             match self {
-                Error::AlreadyActive => "The node with the supplied public key is already active".print(),
-                Error::NotActive => "The node with the supplied public key is not active".print(),
+                Error::AlreadyRegistered => "The node with the supplied public key is already registered".print(),
+                Error::NotRegistered  => "The node with the supplied public key is not registered".print(),
                 Error::WeightVecNotEqualSize => "The vec of keys and the vec of values are not of the same size".print(),
                 Error::NonAssociatedColdKey => "The used cold key is not associated with the hot key acccount".print(),
                 _ => "Invalid Error Case".print(),
@@ -456,7 +535,7 @@ pub mod pallet {
 		/// 		- On the successful staking of funds.
 		///
 		/// # Raises:
-		/// 	* 'NotActive':
+		/// 	* 'NotRegistered':
 		/// 		- If the hotkey account is not active (has not subscribed)
 		///
 		/// 	* 'NonAssociatedColdKey':
@@ -503,14 +582,12 @@ pub mod pallet {
 			Self::do_remove_stake(origin, hotkey, ammount_unstaked)
 		}
 
-		/// ---- Subscribes or updates info for caller with the given metadata. If the caller
-		/// already exists in the active set, the metadata is updated but the cold key remains unchanged.
-		/// If the caller does not exist they make a link between this hotkey account
-		/// and the passed coldkey account. Only the cold key has permission to make add_stake/remove_stake calls.
+		/// ---- Serves or updates axon information for the neuron associated with the caller. If the caller
+		/// already registered the metadata is updated. If the caller is not registered this call throws NotRegsitered.
 		///
 		/// # Args:
 		/// 	* 'origin': (<T as frame_system::Config>Origin):
-		/// 		- The caller, a hotkey associated with the subscribing neuron.
+		/// 		- The caller, a hotkey associated of the registered neuron.
 		///
 		/// 	* 'ip' (u128):
 		/// 		- The u64 encoded IP address of type 6 or 4.
@@ -524,18 +601,46 @@ pub mod pallet {
 		/// 	* 'modality' (u8):
 		/// 		- The neuron modality type.
 		///
-		/// 	* 'coldkey' (T::AccountId):
-		/// 		- The associated coldkey to be attached to the account.
-		///
 		/// # Event:
-		/// 	* 'NeuronAdded':
+		/// 	* 'AxonServed':
 		/// 		- On subscription of a new neuron to the active set.
 		///
-		/// 	* 'NeuronUpdated':
-		/// 		- On subscription of new metadata attached to the calling hotkey.
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn subscribe(origin:OriginFor<T>, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8, coldkey: T::AccountId) -> DispatchResult {
-			Self::do_subscribe(origin, version, ip, port, ip_type, modality, coldkey)
+		pub fn serve_axon(origin:OriginFor<T>, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8 ) -> DispatchResult {
+			Self::do_serve_axon( origin, version, ip, port, ip_type, modality )
+		}
+
+
+		/// ---- Registers a new neuron to the graph. Function must be called by the registration key.
+		///
+		/// # Args:
+		/// 	* 'origin': (<T as frame_system::Config>Origin):
+		/// 		- The caller, registration key as found in RegistrationKey::get(0);
+		///
+		/// 	* 'ip' (u128):
+		/// 		- The u64 encoded IP address of type 6 or 4.
+		///
+		/// 	* 'port' (u16):
+		/// 		- The port number where this neuron receives RPC requests.
+		///
+		/// 	* 'ip_type' (u8):
+		/// 		- The ip type one of (4,6).
+		/// 
+		/// 	* 'modality' (u8):
+		/// 		- The neuron modality type.
+		///
+		/// # Event:
+		/// 	* 'AxonServed':
+		/// 		- On subscription of a new neuron to the active set.
+		///
+		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
+		pub fn register( origin:OriginFor<T>, email_hash: Vec<u8>, hotkey: T::AccountId, coldkey: T::AccountId ) -> DispatchResult {
+			Self::do_registration(origin, email_hash, hotkey, coldkey)
+		}
+
+		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
+		pub fn set_registeration_key( origin:OriginFor<T>, registration_key: T::AccountId ) -> DispatchResult {
+			Self::set_registration_auth( origin, registration_key )
 		}
 	}
 	
@@ -543,6 +648,14 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 
 		// Getters.
+		pub fn get_max_registrations_per_email( ) -> u32 {
+			let max_registratations_per_email: u32 = 100;
+			max_registratations_per_email
+		}
+		pub fn get_max_registrations_per_block( ) -> u32 {
+			let max_registratations_per_block: u32 = 10;
+			max_registratations_per_block
+		}
 		pub fn get_total_stake( ) -> u64 {
 			return TotalStake::<T>::get();
 		}

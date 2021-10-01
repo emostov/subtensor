@@ -7,7 +7,7 @@ impl<T: Config> Pallet<T> {
         let hotkey_id = ensure_signed(origin)?;
 
         // ---- We check to see that the calling neuron is in the active set.
-        ensure!(Self::is_hotkey_active(&hotkey_id), Error::<T>::NotActive);
+        ensure!(Self::is_hotkey_active(&hotkey_id), Error::<T>::NotRegistered);
         let mut neuron = Self::get_neuron_for_hotkey(&hotkey_id);
 
         // --- We check that the length of these two lists are equal.
