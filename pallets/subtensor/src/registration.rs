@@ -3,7 +3,6 @@ use frame_system::{ensure_signed, ensure_root};
 
 impl<T: Config> Pallet<T> {
 
-
     pub fn set_registration_auth( origin: T::Origin, registration_key: T::AccountId ) -> dispatch::DispatchResult {
         ensure_root(origin)?;
         RegistrationKey::<T>::insert(1, registration_key.clone() );
