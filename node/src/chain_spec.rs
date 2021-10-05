@@ -190,22 +190,21 @@ pub fn nobunaga_staging_config() -> Result<ChainSpec, String> {
         move || network_genesis(
             wasm_binary,
             vec![
-                authority_keys_from_ss58("5CCfqZuwygPhjQN2SYobCjyKDJtN2HhNsUESFkqfF1FPFK2q", "5HaTasFAThLhHQjYbxaSLbCcFpMr5U48j57cdrKBnPKDzo7y"), // Paul
-                authority_keys_from_ss58("5ELRcx6SiGr3c3T6qAAUQz2EeUDJUq2QdgCBG1k8A2mYDm39", "5DkDqEhXGmPwYktt5E3PKfXujAZw1T4xF6T9t1YRaBonJ9e4"), // Philip
-                authority_keys_from_ss58("5GzwfhtLyKQ1KoiAdmFw5kFytxESU2K3uo27ZAkBswxHPWuC", "5GLzcfVersKv1TotgXvd5AiNfU6XdEXhPdhjL7dMcsovnQmk"), // Andrew
-                authority_keys_from_ss58("5DPuSeJQpEbmS4uz27upUAmUTuwVfJob6pJVn6ahcjf8suqe", "5CcCpjr33kq5NUDeYxWr4df8v4X6MkSAqUSUonzzLAYm4VxE"), // James
-                authority_keys_from_ss58("5HmPj6eAFR9VXYst9X9KE9FZYJVhULTgcbJXaWNp611sVKDS", "5CrG4gHMxDyFVW2Sn1W2VSAJBUvsB1wuLGdupexYTTD6N4SW"), // John
-                authority_keys_from_ss58("5HMXmC3tTJVsqz1LftwZAfRTch1sdsimHbmsw4kGUfzVvJXA", "5EZM4K9pLRCFXCfj1Mr9SiQ4xiM15hnECEofQUqSRwjLiseb"), // Judas
+                authority_keys_from_ss58( "5HpYFp6rxbwyP6XTo1P9JW66MG4GLGSDJXzyqBBkp9izwixs", "5GCPtsbg2B6MfzittNrYEavQRcNkrsuhEPLLQknqNSEa94QZ" ), // Berthier
+                authority_keys_from_ss58( "5G4AFSEocmTEJifjTftjMeJwKxtGSsf7u8jvzKei7Zu5yPf3", "5DfELfHmiBBj8pJ2oAn7t5FYb7sJ3aourqGRJ8w4b7Nm713C" ), // Davout
+                authority_keys_from_ss58( "5HWMSqJGuaWuLAftrkc3NJTYGFAWSZqxxJLHuP1Zfs4usWMV", "5DyGjGqKdsdwMB3wA8PhP1xhQPEJubxZ7ytLg7w7HVVjdjBZ" ), // Junot
+                authority_keys_from_ss58( "5DPuSeJQpEbmS4uz27upUAmUTuwVfJob6pJVn6ahcjf8suqe", "5CcCpjr33kq5NUDeYxWr4df8v4X6MkSAqUSUonzzLAYm4VxE" ), // Moncey
+                authority_keys_from_ss58( "5G7LZAXo1AfF3xt8XgkvhpcfZXiRNrfzPMgWqkJsrfwwnoVG", "5CUm3sJVZB1Wbd5oyfqddPvp313bxT363eq64BjN4A2XRagC" ), // Marmont
+                authority_keys_from_ss58( "5F7DdihUa1TDC6aH1M2ReJdrUU8Tp11Az2fUYeUYw8Bu29sv", "5Du5u4b43dxj396gQfB3bSDs3CXvgBUQACUVyaNAFaKdF8XU" ), // Massena
             ],
-            AccountId::from_ss58check("5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt").unwrap(), // Sudo
+            AccountId::from_ss58check( "5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt" ).unwrap(), // Sudo
             vec![
-                AccountId::from_ss58check("5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt").unwrap(), // Sudo
+                AccountId::from_ss58check( "5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt" ).unwrap(), // Sudo
             ],
             true,
         ),
         vec![
-            MultiaddrWithPeerId::from_str("/dns4/Peter.akatsuki.bittensor.com/tcp/30333/ws/p2p/12D3KooWRxmVnU2EMar4Bsg3sYfVJVEhpLqy9Us82AgzRHpnjBES").unwrap(),
-            MultiaddrWithPeerId::from_str("/dns4/Thaddeus.akatsuki.bittensor.com/tcp/30333/ws/p2p/12D3KooWG5XbAU9gdGCHJyAy2BwK95gqjYz48AUzwY5ruDK6FCB6").unwrap()
+            MultiaddrWithPeerId::from_str( "/dns4/Lannes.nobunaga.opentensor.ai/tcp/30333/ws/p2p/12D3KooWN8rCyeyg4je4bfPuaGm8L2qJmkyNiFPCgpz4rPZHwbFa" ).unwrap(),
         ],
         None,
         None,
