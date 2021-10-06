@@ -105,7 +105,7 @@ pub fn nobunaga_stagenet_config() -> Result<ChainSpec, String> {
         "Nobunaga bittensor stage net",
         "nobunaga_stagenet",
         ChainType::Live,
-        move || testnet_genesis(
+        move || network_genesis(
             wasm_binary,
             vec![
                 authority_keys_from_ss58("5HpYFp6rxbwyP6XTo1P9JW66MG4GLGSDJXzyqBBkp9izwixs", "5GCPtsbg2B6MfzittNrYEavQRcNkrsuhEPLLQknqNSEa94QZ"), // Berthier
@@ -214,39 +214,6 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 	))
 }
 
-pub fn nobunaga_staging_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
-
-    Ok(ChainSpec::from_genesis(
-        "Nobunaga bittensor test net",
-        "nobunaga_staging",
-        ChainType::Live,
-        move || network_genesis(
-            wasm_binary,
-            vec![
-                authority_keys_from_ss58( "5HpYFp6rxbwyP6XTo1P9JW66MG4GLGSDJXzyqBBkp9izwixs", "5GCPtsbg2B6MfzittNrYEavQRcNkrsuhEPLLQknqNSEa94QZ" ), // Berthier
-                authority_keys_from_ss58( "5G4AFSEocmTEJifjTftjMeJwKxtGSsf7u8jvzKei7Zu5yPf3", "5DfELfHmiBBj8pJ2oAn7t5FYb7sJ3aourqGRJ8w4b7Nm713C" ), // Davout
-                authority_keys_from_ss58( "5HWMSqJGuaWuLAftrkc3NJTYGFAWSZqxxJLHuP1Zfs4usWMV", "5DyGjGqKdsdwMB3wA8PhP1xhQPEJubxZ7ytLg7w7HVVjdjBZ" ), // Junot
-                authority_keys_from_ss58( "5DPuSeJQpEbmS4uz27upUAmUTuwVfJob6pJVn6ahcjf8suqe", "5CcCpjr33kq5NUDeYxWr4df8v4X6MkSAqUSUonzzLAYm4VxE" ), // Moncey
-                authority_keys_from_ss58( "5G7LZAXo1AfF3xt8XgkvhpcfZXiRNrfzPMgWqkJsrfwwnoVG", "5CUm3sJVZB1Wbd5oyfqddPvp313bxT363eq64BjN4A2XRagC" ), // Marmont
-                authority_keys_from_ss58( "5F7DdihUa1TDC6aH1M2ReJdrUU8Tp11Az2fUYeUYw8Bu29sv", "5Du5u4b43dxj396gQfB3bSDs3CXvgBUQACUVyaNAFaKdF8XU" ), // Massena
-            ],
-            AccountId::from_ss58check( "5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt" ).unwrap(), // Sudo
-            vec![
-                AccountId::from_ss58check( "5FsVmCKVDvkUvXR42ckdi9GxmgU8C2zQvKm7Mi62199qfCDt" ).unwrap(), // Sudo
-            ],
-            true,
-        ),
-        vec![
-            MultiaddrWithPeerId::from_str( "/dns4/Lannes.nobunaga.opentensor.ai/tcp/30333/ws/p2p/12D3KooWN8rCyeyg4je4bfPuaGm8L2qJmkyNiFPCgpz4rPZHwbFa" ).unwrap(),
-        ],
-        None,
-        None,
-        None,
-        None,
-    ))
-}
-
 pub fn akatsuki_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
 
@@ -297,7 +264,7 @@ fn testnet_genesis(
 		},
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
-			balances: endowed_accounts.iter().cloned().map(|k|(k, 1 << 60)).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k|( k, 1000000000 )).collect(),
 		},
 		aura: AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),

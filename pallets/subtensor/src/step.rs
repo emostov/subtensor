@@ -110,7 +110,6 @@ impl<T: Config> Pallet<T> {
 
         // Pull active data into local cache.
         for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-        for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 
             // Set as active.
             active [ uid_i as usize ] = 1;
@@ -290,7 +289,6 @@ impl<T: Config> Pallet<T> {
         // }
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-        for ( uid_i, mut neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
             if active[ uid_i as usize ] == 0 {
                 neuron_i.active = 0;
@@ -323,9 +321,10 @@ impl<T: Config> Pallet<T> {
         TotalIssuance::<T>::mutate( |val| *val += total_dividends );
         TotalStake::<T>::mutate( |val| *val += total_dividends );
     }
-
+    
     pub fn get_current_block_as_u64( ) -> u64 {
         let block_as_u64: u64 = TryInto::try_into( system::Pallet::<T>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
         block_as_u64
     }
+
 }
