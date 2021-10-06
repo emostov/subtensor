@@ -86,6 +86,7 @@ impl<T: Config> Pallet<T> {
         let total_stake: u64 = TotalStake::<T>::get();
 
         // Constants.
+
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
@@ -320,16 +321,10 @@ impl<T: Config> Pallet<T> {
         TotalIssuance::<T>::mutate( |val| *val += total_dividends );
         TotalStake::<T>::mutate( |val| *val += total_dividends );
     }
-
+    
     pub fn get_current_block_as_u64( ) -> u64 {
         let block_as_u64: u64 = TryInto::try_into( system::Pallet::<T>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
         block_as_u64
     }
+
 }
-
-
-
-
-
-
-
