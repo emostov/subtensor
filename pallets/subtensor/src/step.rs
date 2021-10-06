@@ -4,6 +4,9 @@ use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
 use frame_support::IterableStorageMap;
+
+impl<T: Config> Pallet<T> {
+
     /// Block setup: Computation performed each block which updates the incentive mechanism and distributes new stake as dividends.
     /// 
     /// The following operations are performed in order.
@@ -83,6 +86,20 @@ use frame_support::IterableStorageMap;
         let total_stake: u64 = TotalStake::<T>::get();
 
         // Constants.
+        let u64_max: I65F63 = I65F63::from_num( u64::MAX );
+        let u32_max: I65F63 = I65F63::from_num( u32::MAX );
+        let one: I65F63 = I65F63::from_num( 1.0 );
+        let rho: I65F63 = I65F63::from_num( 10.0 );
+        let kappa: I65F63 = I65F63::from_num( 0.5 );
+        let self_ownership: I65F63 = I65F63::from_num( 0.5 );
+        let block_emission: I65F63 = I65F63::from_num( 1000000000 ); 
+
+        // To be filled.
+        let mut stake: Vec<u64> = vec![0;n];
+        let mut rank: Vec<u64> = vec![0;n];
+        let mut trust: Vec<u64> = vec![0;n];
+        let mut consensus: Vec<u64> = vec![0;n];
+        let mut incentive: Vec<u64> = vec![0;n];
         let mut inflation: Vec<u64> = vec![0;n];
         let mut dividends: Vec<u64> = vec![0;n];
         let mut bond_totals: Vec<u64> = vec![0; n];
@@ -304,7 +321,6 @@ use frame_support::IterableStorageMap;
         block_as_u64
     }
 }
-
 
 
 
