@@ -97,6 +97,40 @@ pub fn development_config() -> Result<ChainSpec, String> {
 	))
 }
 
+
+pub fn nobunaga_stagenet_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
+
+    Ok(ChainSpec::from_genesis(
+        "Nobunaga bittensor stage net",
+        "nobunaga_stagenet",
+        ChainType::Live,
+        move || testnet_genesis(
+            wasm_binary,
+            vec![
+                authority_keys_from_ss58("5HpYFp6rxbwyP6XTo1P9JW66MG4GLGSDJXzyqBBkp9izwixs", "5GCPtsbg2B6MfzittNrYEavQRcNkrsuhEPLLQknqNSEa94QZ"), // Berthier
+                authority_keys_from_ss58("5G4AFSEocmTEJifjTftjMeJwKxtGSsf7u8jvzKei7Zu5yPf3", "5DfELfHmiBBj8pJ2oAn7t5FYb7sJ3aourqGRJ8w4b7Nm713C"), // Davout
+                authority_keys_from_ss58("5HWMSqJGuaWuLAftrkc3NJTYGFAWSZqxxJLHuP1Zfs4usWMV", "5DyGjGqKdsdwMB3wA8PhP1xhQPEJubxZ7ytLg7w7HVVjdjBZ"), // Junot
+                authority_keys_from_ss58("5E7WNsyUVP3KDVaCGWA35qrqij17wauQrbejGatN7bSvHQJA", "5EdvJs8mVYoargVafkKtbWxTzMmKcu1RF8JX7KpKsTEkzQKb"), // Moncey
+                authority_keys_from_ss58("5G7LZAXo1AfF3xt8XgkvhpcfZXiRNrfzPMgWqkJsrfwwnoVG", "5CUm3sJVZB1Wbd5oyfqddPvp313bxT363eq64BjN4A2XRagC"), // Marmont
+                authority_keys_from_ss58("5F7DdihUa1TDC6aH1M2ReJdrUU8Tp11Az2fUYeUYw8Bu29sv", "5Du5u4b43dxj396gQfB3bSDs3CXvgBUQACUVyaNAFaKdF8XU"), // Massena
+            ],
+            AccountId::from_ss58check("5HoqMpw98Ys7MiF7vxN28a8KGyU1jbReTQJrddwXY9QpRpm1").unwrap(), // Sudo
+            vec![
+                AccountId::from_ss58check("5HoqMpw98Ys7MiF7vxN28a8KGyU1jbReTQJrddwXY9QpRpm1").unwrap(), // Sudo
+            ],
+            true,
+        ),
+        vec![
+            MultiaddrWithPeerId::from_str("/dns4/soult.akatsuki.opentensor.ai/tcp/30333/ws/p2p/9ad32c077037a1413cd40acfe5944674c4579f2546f7c335a43c9657fb853432").unwrap(),
+        ],
+        None,
+        None,
+        None,
+        None,
+    ))
+}
+
 pub fn akatsuki_testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
 
