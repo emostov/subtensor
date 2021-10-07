@@ -3,6 +3,7 @@ use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
 use frame_support::IterableStorageMap;
+use sp_std::if_std; // Import into scope the if_std! macro.
 
 impl<T: Config> Pallet<T> {
 
@@ -107,6 +108,7 @@ impl<T: Config> Pallet<T> {
         let mut weights: Vec<Vec<(u32,u32)>> = vec![];
         let mut active_uids: Vec<u32> = vec![];
         let mut active: Vec<u64> = vec![0;n];
+        let mut fees: Vec<u64> = vec![0;n];
 
         // Pull active data into local cache.
         for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
@@ -145,19 +147,17 @@ impl<T: Config> Pallet<T> {
                 // Iterate over weights.
                 for ( uid_j, weight_ij ) in weights_i.iter() {
 
-                    // Self loop is ignored.
-                    if *uid_j == *uid_i { continue };
                     // Only count weights from active to active.
-                    if active[ *uid_j as usize ] == 0 { continue };
+                    // if active[ *uid_j as usize ] == 0 { continue };
                     
                     // Normalized weight from i to j.
                     let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max;
                     let trust_increment_ij: I65F63 = stake_i;
                     let rank_increment_ij: I65F63 = stake_i * weight_ij;
                     let bond_increment_ij: I65F63 = (rank_increment_ij / I65F63::from_num( total_stake )) * block_emission;
-                    // if_std! {
-                    //     println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
-                    // }
+                    if_std! {
+                        println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
+                    }
 
                     // Increment neuron scores.
                     rank[ *uid_j as usize ] += rank_increment_ij.to_num::<u64>();
@@ -172,11 +172,11 @@ impl<T: Config> Pallet<T> {
                 }
             }
         }
-        // if_std! {
-        //     println!("ranks: {:?}, {:?}", rank, total_ranks);
-        //     println!("trust: {:?}, {:?}", trust, total_trust);
-        //     println!("bonds: {:?}, {:?}", bonds, bond_totals);
-        // }
+        if_std! {
+            println!("ranks: {:?}, {:?}", rank, total_ranks);
+            println!("trust: {:?}, {:?}", trust, total_trust);
+            println!("bonds: {:?}, {:?}", bonds, bond_totals);
+        }
 
         // Compute consensus, incentive, and inflation.
         let mut total_incentive: I65F63 = I65F63::from_num(0.0);
@@ -192,9 +192,9 @@ impl<T: Config> Pallet<T> {
                     let temperatured_trust: I65F63 = shifted_trust * rho;
                     let exponentiated_trust: I65F63 = exp( -temperatured_trust ).expect( "temperatured_trust is on range(-rho, rho)");
                     let consensus_i: I65F63 = one / (one + exponentiated_trust);
-                    // if_std! {
-                    //     println!("normalized_trust: {:?} | shifted_trust: {:?} | temperatured_trust: {:?} | exponentiated_trust: {:?} | consensus_i: {:?}", normalized_trust, shifted_trust, temperatured_trust, exponentiated_trust, consensus_i);
-                    // }
+                    if_std! {
+                        println!("normalized_trust: {:?} | shifted_trust: {:?} | temperatured_trust: {:?} | exponentiated_trust: {:?} | consensus_i: {:?}", normalized_trust, shifted_trust, temperatured_trust, exponentiated_trust, consensus_i);
+                    }
 
                     // Incentive function.
                     let normalized_rank: I65F63 = I65F63::from_num( rank_i ) / I65F63::from_num( total_ranks );
@@ -209,10 +209,10 @@ impl<T: Config> Pallet<T> {
                 }
             }
         }
-        // if_std! {
-        //     println!("consensus: {:?}", consensus);
-        //     println!("incentive: {:?} {:?}", incentive, total_incentive);
-        // }
+        if_std! {
+            println!("consensus: {:?}", consensus);
+            println!("incentive: {:?} {:?}", incentive, total_incentive);
+        }
 
         // Compute consensus, incentive, and inflation.
         let mut total_inflation: u64 = 0;
@@ -223,14 +223,14 @@ impl<T: Config> Pallet<T> {
                 let inflation_i: I65F63 = (block_emission * incentive_i) / total_incentive;
                 inflation[ *uid_i as usize ] = inflation_i.to_num::<u64>();
                 total_inflation += inflation_i.to_num::<u64>();
-                // if_std! {
-                //     println!("incentive_i: {:?} | inflation_i: {:?}", incentive_i, inflation_i);
-                // }
+                if_std! {
+                    println!("incentive_i: {:?} | inflation_i: {:?}", incentive_i, inflation_i);
+                }
             }
         }
-        // if_std! {
-        //     println!("inflation: {:?}, {:?}", inflation, total_inflation);
-        // }
+        if_std! {
+            println!("inflation: {:?}, {:?}", inflation, total_inflation);
+        }
 
         // Compute trust and ranks.
         let mut total_dividends: u64 = 0;
@@ -260,15 +260,15 @@ impl<T: Config> Pallet<T> {
                     dividends[ *uid_i as usize ] += dividends_ji.to_num::<u64>();
                     total_dividends += dividends_ji.to_num::<u64>();
 
-                    // if_std! {
-                    //     println!("bonds_ij: {:?} | ownership_fraction_ij: {:?} | dividends_ji: {:?}", bonds_ij, ownership_fraction_ij, dividends_ji);
-                    // }
+                    if_std! {
+                        println!("bonds_ij: {:?} | ownership_fraction_ij: {:?} | dividends_ji: {:?}", bonds_ij, ownership_fraction_ij, dividends_ji);
+                    }
                 }
             }
             // Fill sparse bonds row.
-            // if_std! {
-            //     println!("sparse_bonds: {:?}", sparse_bonds_row );
-            // }
+            if_std! {
+                println!("sparse_bonds: {:?}", sparse_bonds_row );
+            }
             sparse_bonds[ *uid_i as usize ] = sparse_bonds_row;
         }
         for uid_i in active_uids.iter() {
@@ -284,9 +284,9 @@ impl<T: Config> Pallet<T> {
             stake[ *uid_i as usize ] += dividends[ *uid_i as usize ];
 
         }
-        // if_std! {
-        //     println!("dividends: {:?}, {:?}", dividends, total_dividends);
-        // }
+        if_std! {
+            println!("dividends: {:?}, {:?}", dividends, total_dividends);
+        }
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
