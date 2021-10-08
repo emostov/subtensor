@@ -16,7 +16,7 @@ impl<T: Config> Pallet<T> {
         let register_key = ensure_signed(origin)?;
         ensure!( RegistrationKey::<T>::contains_key(1), Error::<T>::RegistrationDisabled );
 
-        let authorized_registration_key: T::AccountId = RegistrationKey::<T>::get(0);
+        let authorized_registration_key: T::AccountId = RegistrationKey::<T>::get(1);
         ensure!( register_key == authorized_registration_key, Error::<T>::NonAuthorizedRegistrationKey);
         
         // Check that the hotkey has not already been registered.
