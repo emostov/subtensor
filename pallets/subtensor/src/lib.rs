@@ -143,6 +143,9 @@ pub mod pallet {
 		/// ---- Block number of last chain update.
 		pub last_update: u64,
 
+		/// ---- Transaction priority.
+		pub priority: u64,
+
 		/// ---- The associated stake in this account.
 		pub stake: u64,
 
@@ -863,28 +866,14 @@ pub mod pallet {
 			return len * 100;
 		}
 
-		// --- Returns a vanilla transaction fee for transactions as rao.
-		pub fn vanilla_priority( ) -> u64 {
-			return 100000;
-		}
-
-		// --- Returns a vanilla transaction fee for transactions as rao.
-		pub fn get_priority_set_weights( hotkey: T::AccountId, len: u64) -> u64 {
-			if Hotkeys::<T>::contains_key(&hotkey) {
-				let uid = Hotkeys::<T>::get( &hotkey );
+		// --- Returns the transaction priority for setting weights.
+		pub fn get_priority_set_weights( hotkey: &T::AccountId, len: u64 ) -> u64 {
+			if Hotkeys::<T>::contains_key( hotkey ) {
+				let uid = Hotkeys::<T>::get( hotkey );
 				let neuron = Neurons::<T>::get( uid );
-
-				// Get fraction of vanilla.
-				let total_stake:u64 = TotalStake::<T>::get();
-				let stake_fraction:I65F63 = I65F63::from_num( neuron.stake ) / I65F63::from_num( neuron.stake );
-				let fraction_of_vanilla: I65F63 = I65F63::from_num( Self::vanilla_priority() ) * stake_fraction;
-				let fraction_of_vanilla_u64 = fraction_of_vanilla.to_num::<u64>();
-
-				let block = Self::get_current_block_as_u64();
-				let since_last_update = block - neuron.last_update;
-				return neuron.stake * since_last_update;
+				return neuron.priority;
 			} else{
-				return Self::vanilla_priority()
+				return 0;
 			}
 		}
 
@@ -958,12 +947,7 @@ impl<T: Config + Send + Sync> ChargeTransactionPayment<T> where
 {
     pub fn new() -> Self {
         Self(Default::default())
-    }
-
-    pub fn can_pay_set_weights(who: &T::AccountId) -> Result<TransactionFee, TransactionValidityError> {
-        let transaction_fee = Pallet::<T>::get_transaction_fee_for_emission(who);
-        Ok(transaction_fee)
-    }
+	}
 
     pub fn can_pay_add_stake(who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
         let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
@@ -989,10 +973,6 @@ impl<T: Config + Send + Sync> ChargeTransactionPayment<T> where
         }
     }
 
-    pub fn can_pay_subscribe() -> Result<TransactionFee, TransactionValidityError> {
-        Ok(0)
-    }
-
     pub fn can_pay_other(info: &DispatchInfoOf<T::Call>, who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
         let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
 
@@ -1013,6 +993,10 @@ impl<T: Config + Send + Sync> ChargeTransactionPayment<T> where
         // the set_weights function will have a priority over the set_weights calls.
         // This should probably be refined in the future.
         return u64::max_value();
+    }
+
+	pub fn get_priority_set_weights( who: &T::AccountId, len: u64 ) -> u64 {
+        return Pallet::<T>::get_priority_set_weights( who, len );
     }
 }
 
@@ -1095,13 +1079,6 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
         //debug::info!(&("PRE DISPATCH: Transaction length: {:?}", len));
 
         match call.is_sub_type() {
-            Some(Call::set_weights(..)) => {
-                // To pay for the set_weights operation, the self_weight of a neuron is used for payment
-                // This can be >= 0, however the lower the self weight, the lower the priority in the block
-                // and may result the transaction is not put into a block
-                let transaction_fee = Self::can_pay_set_weights(who)?;
-                Ok((CallType::SetWeights, transaction_fee, who.clone())) // 0 indicates that post_dispatch should use the self-weight to pay for the transaction
-            }
             Some(Call::add_stake(..)) => {
                 // The transaction fee for the add_stake function is paid from the coldkey balance
                 // let transaction_fee = Module::<T>::calculate_transaction_fee(len as u64);
@@ -1114,12 +1091,22 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
                 // after the transaction completes. For this, a check is done on both the stake
                 // as well as the coldkey balance to see if one of both is sufficient to pay
                 // for the transaction
-
                 let transaction_fee = Self::can_pay_remove_stake(who, hotkey_id, len as u64)?;
                 Ok((CallType::RemoveStake, transaction_fee, who.clone()))
             }
-            Some(Call::Serve(..)) => {
-                let transaction_fee = Self::can_pay_subscribe()?;
+			Some(Call::set_weights(..)) => {
+                // To pay for the set_weights operation, the self_weight of a neuron is used for payment
+                // This can be >= 0, however the lower the self weight, the lower the priority in the block
+                // and may result the transaction is not put into a block
+				let transaction_fee = 0;
+                Ok((CallType::SetWeights, transaction_fee, who.clone())) // 0 indicates that post_dispatch should use the self-weight to pay for the transaction
+            }
+			Some(Call::register(..)) => {
+                let transaction_fee = 0;
+                Ok((CallType::Serve, transaction_fee, who.clone()))
+            }
+            Some(Call::serve_axon(..)) => {
+                let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
             }
             _ => {
@@ -1172,7 +1159,7 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
                             Pays::No => Ok(Default::default()),
                             Pays::Yes => {
                                 Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
-                                Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
+                                // Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
                                 Ok(Default::default())
                             }
                         }

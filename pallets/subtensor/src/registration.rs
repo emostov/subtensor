@@ -47,6 +47,7 @@ impl<T: Config> Pallet<T> {
             coldkey: coldkey.clone(),
             active: 1,
             last_update: Self::get_current_block_as_u64(),
+            priority: 0,
             stake: 0,
             rank: 0,
             trust: 0,

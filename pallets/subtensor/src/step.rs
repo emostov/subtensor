@@ -106,23 +106,20 @@ impl<T: Config> Pallet<T> {
         let mut bond_totals: Vec<u64> = vec![0; n];
         let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
         let mut weights: Vec<Vec<(u32,u32)>> = vec![];
-        let mut active_uids: Vec<u32> = vec![];
-        let mut active: Vec<u64> = vec![0;n];
-        let mut fees: Vec<u64> = vec![0;n];
+        let mut uids: Vec<u32> = vec![];
+        let mut active: Vec<u32> = vec![0;n];
+        let mut priority: Vec<u64> = vec![0;n];
 
         // Pull active data into local cache.
         for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 
-            // Set as active.
+            // Fill carry over items.
+            uids.push( uid_i );
             active [ uid_i as usize ] = 1;
-            active_uids.push( uid_i );
-
-            // Record stake.
             stake [ uid_i as usize ] = neuron_i.stake;
-
-            // Save weights for later iteration.
+            priority [ uid_i as usize ] = neuron_i.priority;
             weights.push( neuron_i.weights );
-
+            
             // Fill bonds matrix.
             let mut bonds_row: Vec<u64> = vec![0; n];
             for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
@@ -137,7 +134,7 @@ impl<T: Config> Pallet<T> {
         let mut total_trust: u64 = 0;
         let mut total_bonds_purchased: u64 = 0;
         if total_stake != 0 {
-            for (index_i, uid_i) in active_uids.iter().enumerate() {
+            for (index_i, uid_i) in uids.iter().enumerate() {
 
                 // Only accumulate rank, trust and bonds for active Metagraph.
                 //let mut neuron_i: NeuronMetadataOf<T> = Metagraph[ uid_to_index[ *uid_i as usize ] as usize ];
@@ -159,16 +156,22 @@ impl<T: Config> Pallet<T> {
                         println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
                     }
 
-                    // Increment neuron scores.
-                    rank[ *uid_j as usize ] += rank_increment_ij.to_num::<u64>();
-                    trust[ *uid_j as usize ] += trust_increment_ij.to_num::<u64>();
-                    total_ranks += rank_increment_ij.to_num::<u64>();
-                    total_trust += trust_increment_ij.to_num::<u64>();
-                    
-                    // Distribute bonds.
-                    bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
-                    bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
-                    total_bonds_purchased += bond_increment_ij.to_num::<u64>();
+                    if *uid_i == *uid_j {
+                        // Add priority for self weight.
+                        priority[ *uid_i as usize ] += rank_increment_ij.to_num::<u64>();
+                    } else {
+
+                        // Increment neuron scores.
+                        rank[ *uid_j as usize ] += rank_increment_ij.to_num::<u64>();
+                        trust[ *uid_j as usize ] += trust_increment_ij.to_num::<u64>();
+                        total_ranks += rank_increment_ij.to_num::<u64>();
+                        total_trust += trust_increment_ij.to_num::<u64>();
+                        
+                        // Distribute bonds.
+                        bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
+                        bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
+                        total_bonds_purchased += bond_increment_ij.to_num::<u64>();
+                    }
                 }
             }
         }
@@ -181,7 +184,7 @@ impl<T: Config> Pallet<T> {
         // Compute consensus, incentive, and inflation.
         let mut total_incentive: I65F63 = I65F63::from_num(0.0);
         if total_ranks != 0 && total_stake != 0 && total_trust != 0 {
-            for uid_i in active_uids.iter() {
+            for uid_i in uids.iter() {
                 let rank_i: u64 = rank[ *uid_i as usize ];
                 let trust_i: u64 = trust[ *uid_i as usize ];
                 if trust_i != 0 {
@@ -217,7 +220,7 @@ impl<T: Config> Pallet<T> {
         // Compute consensus, incentive, and inflation.
         let mut total_inflation: u64 = 0;
         if total_incentive != 0 {
-            for uid_i in active_uids.iter() {
+            for uid_i in uids.iter() {
                 // Inflation function.
                 let incentive_i: I65F63 = I65F63::from_num( incentive[ *uid_i as usize ] ) / u64_max;
                 let inflation_i: I65F63 = (block_emission * incentive_i) / total_incentive;
@@ -235,13 +238,13 @@ impl<T: Config> Pallet<T> {
         // Compute trust and ranks.
         let mut total_dividends: u64 = 0;
         let mut sparse_bonds: Vec<Vec<(u32,u64)>> = vec![vec![]; n];
-        for uid_i in active_uids.iter() {
+        for uid_i in uids.iter() {
 
             // To be filled: Sparsified bonds.
             let mut sparse_bonds_row: Vec<(u32, u64)> = vec![];
 
             // Only count bond dividends between active uids.
-            for uid_j in active_uids.iter() {
+            for uid_j in uids.iter() {
                 
                 // Get denomenator.
                 let bonds_ij: u64 = bonds[ *uid_i as usize ][ *uid_j as usize ];
@@ -271,7 +274,7 @@ impl<T: Config> Pallet<T> {
             }
             sparse_bonds[ *uid_i as usize ] = sparse_bonds_row;
         }
-        for uid_i in active_uids.iter() {
+        for uid_i in uids.iter() {
             let total_bonds_i: u64 = bond_totals[ *uid_i as usize ];
             let dividends_ii: u64;
             if total_bonds_i == 0 {
@@ -290,24 +293,16 @@ impl<T: Config> Pallet<T> {
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
-            if active[ uid_i as usize ] == 0 {
-                neuron_i.active = 0;
-                neuron_i.rank = 0;
-                neuron_i.trust = 0;
-                neuron_i.consensus = 0;
-                neuron_i.inflation = 0;
-                neuron_i.dividends = 0;
-            } else {
-                neuron_i.active = 1;
-                neuron_i.stake = stake[ uid_i as usize ];
-                neuron_i.rank = rank[ uid_i as usize ];
-                neuron_i.trust = trust[ uid_i as usize ];
-                neuron_i.consensus = consensus[ uid_i as usize ];
-                neuron_i.incentive = incentive[ uid_i as usize ];
-                neuron_i.inflation = inflation[ uid_i as usize ];
-                neuron_i.dividends = dividends[ uid_i as usize ];
-                neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
-            }
+            neuron_i.active = active[ uid_i as usize ];
+            neuron_i.priority = priority[ uid_i as usize ];
+            neuron_i.stake = stake[ uid_i as usize ];
+            neuron_i.rank = rank[ uid_i as usize ];
+            neuron_i.trust = trust[ uid_i as usize ];
+            neuron_i.consensus = consensus[ uid_i as usize ];
+            neuron_i.incentive = incentive[ uid_i as usize ];
+            neuron_i.inflation = inflation[ uid_i as usize ];
+            neuron_i.dividends = dividends[ uid_i as usize ];
+            neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
             Neurons::<T>::insert( neuron_i.uid, neuron_i );
         }
 
