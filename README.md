@@ -196,3 +196,7 @@ by appending your own. A few useful ones are as follow.
 # Check whether the code is compilable
 ./scripts/docker_run.sh cargo check
 ```
+
+# run debug with logs.
+
+SKIP_WASM_BUILD=1 RUST_LOG=runtime=debug -- --nocapture

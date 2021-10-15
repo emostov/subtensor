@@ -29,6 +29,7 @@ impl<T: Config> Pallet<T> {
         }
         neuron.weights = zipped_weights;
         neuron.active = 1;
+        neuron.priority = 0;
         neuron.last_update = Self::get_current_block_as_u64();
 
         // Sink update.

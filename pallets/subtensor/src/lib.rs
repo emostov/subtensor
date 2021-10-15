@@ -161,11 +161,11 @@ pub mod pallet {
 		/// ---- The associated incentive in this account.
 		pub incentive: u64,
 
-		/// ---- The associated inflation in this account.
-		pub inflation: u64,
-
 		/// ---- The associated dividends in this account.
 		pub dividends: u64,
+
+		/// ---- The associated emission last block for this account.
+		pub emission: u64,
 
 		/// ---- The associated bond ownership.
 		pub bonds: Vec<(u32,u64)>,
@@ -194,28 +194,7 @@ pub mod pallet {
 	>;
 
 	#[pallet::storage]
-	pub type TotalRanks<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
-
-	#[pallet::storage]
-	pub type TotalTrust<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
-
-	#[pallet::storage]
-	pub type TotalIncentives<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
-
-	#[pallet::storage]
-	pub type TotalInflation<T> = StorageValue<
+	pub type TotalEmission<T> = StorageValue<
 		_, 
 		u64, 
 		ValueQuery
@@ -223,13 +202,6 @@ pub mod pallet {
 
 	#[pallet::storage]
 	pub type TotalBondsPurchased<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
-
-	#[pallet::storage]
-	pub type TotalDividends<T> = StorageValue<
 		_, 
 		u64, 
 		ValueQuery
@@ -681,7 +653,7 @@ pub mod pallet {
 		pub fn get_lastupdate( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
 			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize] = neuron_i.last_update;
+				result[ uid_i as usize ] = neuron_i.last_update;
 			}
 			return result
 		}
@@ -695,35 +667,28 @@ pub mod pallet {
 		pub fn get_ranks( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
 			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize] = neuron_i.rank;
+				result[ uid_i as usize ] = neuron_i.rank;
 			}
 			return result
 		}
 		pub fn get_trust( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
 			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize] = neuron_i.trust;
+				result[ uid_i as usize ] = neuron_i.trust;
 			}
 			return result
 		}
 		pub fn get_consensus( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
 			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize] = neuron_i.consensus;
+				result[ uid_i as usize ] = neuron_i.consensus;
 			}
 			return result
 		}
 		pub fn get_incentive( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
 			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize] = neuron_i.incentive;
-			}
-			return result
-		}
-		pub fn get_inflation( ) -> Vec<u64> {
-			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
-			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-				result[ uid_i as usize] = neuron_i.inflation;
+				result[ uid_i as usize ] = neuron_i.incentive;
 			}
 			return result
 		}
@@ -731,6 +696,13 @@ pub mod pallet {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
 			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 				result[ uid_i as usize] = neuron_i.dividends;
+			}
+			return result
+		}
+		pub fn get_emission( ) -> Vec<u64> {
+			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
+			for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+				result[ uid_i as usize ] = neuron_i.emission;
 			}
 			return result
 		}
@@ -871,7 +843,7 @@ pub mod pallet {
 			if Hotkeys::<T>::contains_key( hotkey ) {
 				let uid = Hotkeys::<T>::get( hotkey );
 				let neuron = Neurons::<T>::get( uid );
-				return neuron.priority;
+				return neuron.priority / len;
 			} else{
 				return 0;
 			}
@@ -1043,8 +1015,7 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
                     ..Default::default()
                 })
             }
-            Some(Call::remove_stake(hotkey_id, ..)) => {
-                // let _transaction_fee = Self::can_pay_remove_stake(who, hotkey_id, len as u64)?;
+            Some(Call::remove_stake(..)) => {
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()
@@ -1076,28 +1047,16 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
         len: usize,
     ) -> Result<Self::Pre, TransactionValidityError> {
 
-        //debug::info!(&("PRE DISPATCH: Transaction length: {:?}", len));
-
         match call.is_sub_type() {
             Some(Call::add_stake(..)) => {
-                // The transaction fee for the add_stake function is paid from the coldkey balance
-                // let transaction_fee = Module::<T>::calculate_transaction_fee(len as u64);
-                // let transaction_fee_as_balance = Module::<T>::u64_to_balance( transaction_fee );
-                let transaction_fee = Self::can_pay_add_stake(who, len as u64)?;
+				let transaction_fee = 0;
                 Ok((CallType::AddStake, transaction_fee, who.clone()))
             }
-            Some(Call::remove_stake(hotkey_id, ..)) => {
-                // The tranaction fee for the remove_stake call is paid from the coldkey balance
-                // after the transaction completes. For this, a check is done on both the stake
-                // as well as the coldkey balance to see if one of both is sufficient to pay
-                // for the transaction
-                let transaction_fee = Self::can_pay_remove_stake(who, hotkey_id, len as u64)?;
+            Some(Call::remove_stake(..)) => {
+				let transaction_fee = 0;
                 Ok((CallType::RemoveStake, transaction_fee, who.clone()))
             }
 			Some(Call::set_weights(..)) => {
-                // To pay for the set_weights operation, the self_weight of a neuron is used for payment
-                // This can be >= 0, however the lower the self weight, the lower the priority in the block
-                // and may result the transaction is not put into a block
 				let transaction_fee = 0;
                 Ok((CallType::SetWeights, transaction_fee, who.clone())) // 0 indicates that post_dispatch should use the self-weight to pay for the transaction
             }
@@ -1132,22 +1091,12 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
             Ok(_) => {
                 match call_type {
                     CallType::SetWeights => {
-                        // account_id = hotkey_id, since this method is called with the hotkey
-                        let uid = Pallet::<T>::get_uid_for_hotkey(&account_id);
-                        // Pallet::<T>::remove_stake_from_neuron_hotkey_account(uid, transaction_fee);
-                        // Pallet::<T>::update_transaction_fee_pool(transaction_fee);
                         Ok(Default::default())
                     }
                     CallType::AddStake => {
-                        // account_id = coldkey_id, since this method is called with the coldkey
-                        Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
-                        // Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
                         Ok(Default::default())
                     }
                     CallType::RemoveStake => {
-                        // account_id = coldkey_id, since this method is called with the coldkey
-                        Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
-                        // Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
                         Ok(Default::default())
                     }
                     CallType::Register => {
