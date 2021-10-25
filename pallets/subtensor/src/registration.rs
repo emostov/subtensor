@@ -53,7 +53,7 @@ impl<T: Config> Pallet<T> {
             trust: 0,
             consensus: 0,
             incentive: 0,
-            inflation: 0,
+            emission: 0,
             dividends: 0,
             bonds: vec![],
             weights: vec![(uid, u32::MAX)], // self weight set to 1.
