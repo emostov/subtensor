@@ -102,6 +102,7 @@ impl<T: Config> Pallet<T> {
         let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
         let mut weights: Vec<Vec<(u32,u32)>> = vec![];
         let mut total_stake: I65F63 = I65F63::from_num( 0.0 );
+        let mut total_normalized_stake: I65F63 = I65F63::from_num( 0.0 );
         let mut stake: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
         for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
              uids.push( uid_i );
@@ -120,7 +121,9 @@ impl<T: Config> Pallet<T> {
         // Normalize stake.
         if total_stake != 0 {
             for uid_i in uids.iter() {
-                stake[ *uid_i as usize ] = stake[ *uid_i as usize ] / total_stake;
+                let normalized_stake:I65F63 = stake[ *uid_i as usize ] / total_stake;
+                stake[ *uid_i as usize ] = normalized_stake;
+                total_normalized_stake += normalized_stake;
             }
         }   
         if_std! {
@@ -174,7 +177,7 @@ impl<T: Config> Pallet<T> {
         if total_trust > 0 && total_ranks > 0 {
             for uid_i in uids.iter() {
                 ranks[ *uid_i as usize ] = ranks[ *uid_i as usize ] / total_ranks; // Vector will sum to u64_max
-                trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_trust; // Vector will sum to u64_max
+                trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_stake; // Vector will sum to u64_max
             }
         }
         if_std! {
