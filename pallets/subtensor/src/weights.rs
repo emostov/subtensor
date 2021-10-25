@@ -1,14 +1,14 @@
 use super::*;
 
 impl<T: Config> Pallet<T> {
-    pub fn do_set_weights(origin: T::Origin, uids: Vec<u64>, values: Vec<u32>) -> dispatch::DispatchResult
+    pub fn do_set_weights(origin: T::Origin, uids: Vec<u32>, values: Vec<u32>) -> dispatch::DispatchResult
     {
         // ---- We check the caller signature
         let hotkey_id = ensure_signed(origin)?;
 
         // ---- We check to see that the calling neuron is in the active set.
-        ensure!(Self::is_hotkey_active(&hotkey_id), Error::<T>::NotActive);
-        let neuron = Self::get_neuron_for_hotkey(&hotkey_id);
+        ensure!(Self::is_hotkey_active(&hotkey_id), Error::<T>::NotRegistered);
+        let mut neuron = Self::get_neuron_for_hotkey(&hotkey_id);
 
         // --- We check that the length of these two lists are equal.
         ensure!(uids_match_values(&uids, &values), Error::<T>::WeightVecNotEqualSize);
@@ -19,16 +19,20 @@ impl<T: Config> Pallet<T> {
         // --- We check if the weight uids are valid
         ensure!(!Self::contains_invalid_uids(&uids), Error::<T>::InvalidUid);
 
-
-        // ---- We call an inflation emit before setting the weights
-        // to ensure that the caller is pays for his previously set weights.
-        // TODO(const): can we pay for this transaction through inflation.
-        Self::emit_for_neuron(&neuron);
-
+        // Normalize weights.
         let normalized_values = normalize(values);
 
-        // --- We update the weights under the uid map.
-        Self::set_new_weights(&neuron, &uids, &normalized_values);
+        // Zip weights.
+        let mut zipped_weights: Vec<(u32,u32)> = vec![];
+        for (uid, val) in uids.iter().zip(normalized_values.iter()) {
+            zipped_weights.push((*uid, *val))
+        }
+        neuron.weights = zipped_weights;
+        neuron.active = 1;
+        neuron.last_update = Self::get_current_block_as_u64();
+
+        // Sink update.
+        Neurons::<T>::insert(neuron.uid, neuron);
 
         // ---- Emit the staking event.
         Self::deposit_event(Event::WeightsSet(hotkey_id));
@@ -40,51 +44,18 @@ impl<T: Config> Pallet<T> {
     /********************************
     --==[[  Helper functions   ]]==--
    *********************************/
-
-    /**
-    * Inits new weights for the neuron.
-    * We fill the initialized weights with a self loop. 
-    */
-    pub fn init_weight_matrix_for_neuron(neuron: &NeuronMetadataOf<T>) {
-        // ---- We fill subscribing nodes initially with the self-weight = [1]
-        let weights = vec![u32::max_value()]; // w_ii = 1
-        let uids = vec![neuron.uid]; // Self edge
-        Self::set_new_weights(neuron, &uids, &weights);
-    }
-
-    /**
-    * Sets the actual weights. This function takes two parameters: uids, values
-    * that contain the weight for each uid.
-    * This function assumes both vectors are of the same size, and is agnostic if the specifed
-    * uid's exist or not.
-    */
-    pub fn set_new_weights(neuron: &NeuronMetadataOf<T>, uids: &Vec<u64>, values: &Vec<u32>) {
-        WeightVals::<T>::insert(neuron.uid, &values);
-        WeightUids::<T>::insert(neuron.uid, &uids);
-    }
-
-
-    pub fn remove_weight_matrix_for_neuron(neuron: &NeuronMetadataOf<T>) {
-        WeightVals::<T>::remove(neuron.uid);
-        WeightUids::<T>::remove(neuron.uid);
-    }
-
-    pub fn get_weights_for_neuron(neuron: &NeuronMetadataOf<T>) -> (Vec<u64>, Vec<u32>) {
-        (WeightUids::<T>::get(neuron.uid), WeightVals::<T>::get(neuron.uid))
-    }
-
-    pub fn contains_invalid_uids(uids: &Vec<u64>) -> bool {
+    
+    pub fn contains_invalid_uids(uids: &Vec<u32>) -> bool {
         for uid in uids {
             if !Self::is_uid_active(*uid) {
                 return true;
             }
         }
-
         return false;
     }
 }
 
-fn uids_match_values(uids: &Vec<u64>, values: &Vec<u32>) -> bool {
+fn uids_match_values(uids: &Vec<u32>, values: &Vec<u32>) -> bool {
     return uids.len() == values.len();
 }
 
@@ -92,8 +63,8 @@ fn uids_match_values(uids: &Vec<u64>, values: &Vec<u32>) -> bool {
 * This function tests if the uids half of the weight matrix contains duplicate uid's.
 * If it does, an attacker could
 */
-fn has_duplicate_uids(items: &Vec<u64>) -> bool {
-    let mut parsed: Vec<u64> = Vec::new();
+fn has_duplicate_uids(items: &Vec<u32>) -> bool {
+    let mut parsed: Vec<u32> = Vec::new();
     for item in items {
         if parsed.contains(&item) { return true; }
         parsed.push(item.clone());

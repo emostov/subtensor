@@ -141,7 +141,6 @@ impl pallet_balances::Config for Test {
 	type ReserveIdentifier = ();
 }
 
-
 impl pallet_subtensor::Config for Test {
 	type Event = ();
 	type Currency = Balances;
@@ -172,8 +171,8 @@ impl frame_support::traits::Get<sp_version::RuntimeVersion> for RuntimeVersion {
 type SignedExtra = (
 	frame_system::CheckEra<Test>,
 	frame_system::CheckNonce<Test>,
-	frame_system::CheckWeight<Test>,
-	pallet_subtensor::ChargeTransactionPayment<Test>,
+	frame_system::CheckWeight<Test>
+	// pallet_subtensor::ChargeTransactionPayment<Test>,
 	//pallet_transaction_payment::ChargeTransactionPaymentOld<Test>
 );
 
@@ -209,8 +208,8 @@ fn extra(nonce: u64) -> SignedExtra {
 	(
 		frame_system::CheckEra::from(Era::Immortal),
 		frame_system::CheckNonce::from(nonce),
-		frame_system::CheckWeight::new(),
-		pallet_subtensor::ChargeTransactionPayment::new(),
+		frame_system::CheckWeight::new()
+		// pallet_subtensor::ChargeTransactionPayment::new(),
 		// pallet_transaction_payment::ChargeTransactionPayment::from(0)
 	)
 }
@@ -240,70 +239,44 @@ pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExterna
 	t.into()
 }
 
-#[allow(dead_code)]
-pub fn test_ext_with_pending_emissions(emissions : Vec<(u64, u64)>) -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default()
-	.build_storage::<Test>()
-	.unwrap();
 
-	pallet_subtensor::GenesisConfig {
-		pending_emissions: emissions,
-		stake: vec![],
-		transaction_fee_pool : 0,
-	}.assimilate_storage::<Test>(&mut t)
-		.unwrap();
-
-	t.into()
-
-}
+// #[allow(dead_code)]
+// pub fn test_ext_with_stake(stake : Vec<(u64, u64)>) -> sp_io::TestExternalities {
+// 	let mut t = frame_system::GenesisConfig::default()
+// 	.build_storage::<Test>()
+// 	.unwrap();
+// 	pallet_subtensor::GenesisConfig {
+// 		stake: vec![]
+// 	}.assimilate_storage::<Test>(&mut t)
+// 		.unwrap();
+// 	t.into()
+// }
 
 #[allow(dead_code)]
-pub fn test_ext_with_stake(_ : Vec<(u64, u64)>) -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default()
-	.build_storage::<Test>()
-	.unwrap();
-
-	pallet_subtensor::GenesisConfig {
-		pending_emissions: vec![],
-		stake: vec![],
-		transaction_fee_pool: 0,
-	}.assimilate_storage::<Test>(&mut t)
-		.unwrap();
-
-	t.into()
-
-}
-
-
-#[allow(dead_code)]
-pub fn test_ext_with_transaction_fee_pool(transaction_fee_pool : u64) -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default()
-		.build_storage::<Test>()
-		.unwrap();
-
-	
-	pallet_subtensor::GenesisConfig {
-		pending_emissions: vec![],
-		stake: vec![],
-		transaction_fee_pool
-	}.assimilate_storage::<Test>(&mut t)
-		.unwrap();
-
-	t.into()
-
-}
-
-#[allow(dead_code)]
-pub fn subscribe_neuron(hotkey_account_id : u64, ip: u128, port: u16, ip_type : u8, modality: u8, coldkey_acount_id : u64) -> NeuronMetadata<u64> {
-	let result = Subtensor::subscribe(<<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), ip, port, ip_type, modality, coldkey_acount_id);
+pub fn register_ok_neuron( registration_key: u64, email_uid: u8, hotkey_account_id: u64, coldkey_account_id: u64) -> NeuronMetadata<u64> {
+	let email_hash: Vec<u8> = vec![ email_uid; 32 ];
+	let result = Subtensor::register( <<Test as frame_system::Config>::Origin>::signed(registration_key), email_hash, hotkey_account_id, coldkey_account_id );
 	assert_ok!(result);
 	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
 	neuron
 }
 
 #[allow(dead_code)]
-pub fn subscribe_ok_neuron(hotkey_account_id : u64,  coldkey_account_id : u64) -> NeuronMetadata<u64> {
-	return subscribe_neuron(hotkey_account_id, ipv4(8,8,8,8), 66, 4, 0, coldkey_account_id );
+pub fn serve_axon( hotkey_account_id : u64, version: u32, ip: u128, port: u16, ip_type : u8, modality: u8 ) -> NeuronMetadata<u64> {
+	let result = Subtensor::serve_axon(<<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), version, ip, port, ip_type, modality );
+	assert_ok!(result);
+	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
+	neuron
+}
+
+#[allow(dead_code)]
+pub fn n_subscribe_ok_neuron(n: usize) -> Vec<NeuronMetadata<u64>> {
+	let mut neurons: Vec<NeuronMetadata<u64>> = vec![];
+	for i in 0..n {
+		let neuron: NeuronMetadata<u64> = register_ok_neuron(0, i as u8, i as u64, i as u64);
+		neurons.push(neuron);
+	}
+	return neurons;
 }
 
 #[allow(dead_code)]
@@ -315,6 +288,17 @@ pub(crate) fn run_to_block(n: u64) {
         System::on_initialize(System::block_number());
 		Subtensor::on_initialize(System::block_number());
     }
+}
+
+#[allow(dead_code)]
+pub(crate) fn step_block(n: u64) {
+	for _ in 0..n {
+		Subtensor::on_finalize(System::block_number());
+		System::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+		Subtensor::on_initialize(System::block_number());
+	}
 }
 
 // Generates an ipv6 address based on 8 ipv6 words and returns it as u128

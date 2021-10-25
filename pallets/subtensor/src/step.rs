@@ -1,11 +1,9 @@
 use super::*;
-use sp_std::if_std; // Import into scope the if_std! macro.
 use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
 use frame_support::IterableStorageMap;
-use sp_core::{H256, U256};
-// use sha3::{Digest, Sha3_256};
+use sp_std::if_std; // Import into scope the if_std! macro.
 
 impl<T: Config> Pallet<T> {
 
@@ -84,17 +82,11 @@ impl<T: Config> Pallet<T> {
         // Number of peers.
         let n: usize = Self::get_neuron_count() as usize;
         
-        // Get current block.
-        let current_block: u64 = Self::get_current_block_as_u64(); 
-
         // Get total stake
         let total_stake: u64 = TotalStake::<T>::get();
-        if total_stake == 0 {
-            return;
-        }
 
         // Constants.
-        let active_threshold: u64 = 10000;
+
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
@@ -114,22 +106,20 @@ impl<T: Config> Pallet<T> {
         let mut bond_totals: Vec<u64> = vec![0; n];
         let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
         let mut weights: Vec<Vec<(u32,u32)>> = vec![];
-        let mut active_uids: Vec<u32> = vec![];
-        let mut active: Vec<u64> = vec![0;n];
+        let mut uids: Vec<u32> = vec![];
+        let mut active: Vec<u32> = vec![0;n];
+        let mut priority: Vec<u64> = vec![0;n];
 
         // Pull active data into local cache.
-        for ( uid_i, neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
 
-            // Set as active.
+            // Fill carry over items.
+            uids.push( uid_i );
             active [ uid_i as usize ] = 1;
-            active_uids.push( uid_i );
-
-            // Record stake.
             stake [ uid_i as usize ] = neuron_i.stake;
-
-            // Save weights for later iteration.
+            priority [ uid_i as usize ] = neuron_i.priority;
             weights.push( neuron_i.weights );
-
+            
             // Fill bonds matrix.
             let mut bonds_row: Vec<u64> = vec![0; n];
             for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
@@ -144,7 +134,7 @@ impl<T: Config> Pallet<T> {
         let mut total_trust: u64 = 0;
         let mut total_bonds_purchased: u64 = 0;
         if total_stake != 0 {
-            for (index_i, uid_i) in active_uids.iter().enumerate() {
+            for (index_i, uid_i) in uids.iter().enumerate() {
 
                 // Only accumulate rank, trust and bonds for active Metagraph.
                 //let mut neuron_i: NeuronMetadataOf<T> = Metagraph[ uid_to_index[ *uid_i as usize ] as usize ];
@@ -154,43 +144,47 @@ impl<T: Config> Pallet<T> {
                 // Iterate over weights.
                 for ( uid_j, weight_ij ) in weights_i.iter() {
 
-                    // Self loop is ignored.
-                    if *uid_j == *uid_i { continue };
                     // Only count weights from active to active.
-                    if active[ *uid_j as usize ] == 0 { continue };
+                    // if active[ *uid_j as usize ] == 0 { continue };
                     
                     // Normalized weight from i to j.
                     let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max;
                     let trust_increment_ij: I65F63 = stake_i;
                     let rank_increment_ij: I65F63 = stake_i * weight_ij;
                     let bond_increment_ij: I65F63 = (rank_increment_ij / I65F63::from_num( total_stake )) * block_emission;
-                    // if_std! {
-                    //     println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
-                    // }
+                    if_std! {
+                        println!("weight_ij: {:?} | trust_increment_ij: {:?} | rank_increment_ij: {:?} | bond_increment_ij: {:?}", weight_ij, trust_increment_ij, rank_increment_ij, bond_increment_ij);
+                    }
 
-                    // Increment neuron scores.
-                    rank[ *uid_j as usize ] += rank_increment_ij.to_num::<u64>();
-                    trust[ *uid_j as usize ] += trust_increment_ij.to_num::<u64>();
-                    total_ranks += rank_increment_ij.to_num::<u64>();
-                    total_trust += trust_increment_ij.to_num::<u64>();
-                    
-                    // Distribute bonds.
-                    bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
-                    bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
-                    total_bonds_purchased += bond_increment_ij.to_num::<u64>();
+                    if *uid_i == *uid_j {
+                        // Add priority for self weight.
+                        priority[ *uid_i as usize ] += rank_increment_ij.to_num::<u64>();
+                    } else {
+
+                        // Increment neuron scores.
+                        rank[ *uid_j as usize ] += rank_increment_ij.to_num::<u64>();
+                        trust[ *uid_j as usize ] += trust_increment_ij.to_num::<u64>();
+                        total_ranks += rank_increment_ij.to_num::<u64>();
+                        total_trust += trust_increment_ij.to_num::<u64>();
+                        
+                        // Distribute bonds.
+                        bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
+                        bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>();
+                        total_bonds_purchased += bond_increment_ij.to_num::<u64>();
+                    }
                 }
             }
         }
-        // if_std! {
-        //     println!("ranks: {:?}, {:?}", rank, total_ranks);
-        //     println!("trust: {:?}, {:?}", trust, total_trust);
-        //     println!("bonds: {:?}, {:?}", bonds, bond_totals);
-        // }
+        if_std! {
+            println!("ranks: {:?}, {:?}", rank, total_ranks);
+            println!("trust: {:?}, {:?}", trust, total_trust);
+            println!("bonds: {:?}, {:?}", bonds, bond_totals);
+        }
 
         // Compute consensus, incentive, and inflation.
         let mut total_incentive: I65F63 = I65F63::from_num(0.0);
         if total_ranks != 0 && total_stake != 0 && total_trust != 0 {
-            for uid_i in active_uids.iter() {
+            for uid_i in uids.iter() {
                 let rank_i: u64 = rank[ *uid_i as usize ];
                 let trust_i: u64 = trust[ *uid_i as usize ];
                 if trust_i != 0 {
@@ -201,9 +195,9 @@ impl<T: Config> Pallet<T> {
                     let temperatured_trust: I65F63 = shifted_trust * rho;
                     let exponentiated_trust: I65F63 = exp( -temperatured_trust ).expect( "temperatured_trust is on range(-rho, rho)");
                     let consensus_i: I65F63 = one / (one + exponentiated_trust);
-                    // if_std! {
-                    //     println!("normalized_trust: {:?} | shifted_trust: {:?} | temperatured_trust: {:?} | exponentiated_trust: {:?} | consensus_i: {:?}", normalized_trust, shifted_trust, temperatured_trust, exponentiated_trust, consensus_i);
-                    // }
+                    if_std! {
+                        println!("normalized_trust: {:?} | shifted_trust: {:?} | temperatured_trust: {:?} | exponentiated_trust: {:?} | consensus_i: {:?}", normalized_trust, shifted_trust, temperatured_trust, exponentiated_trust, consensus_i);
+                    }
 
                     // Incentive function.
                     let normalized_rank: I65F63 = I65F63::from_num( rank_i ) / I65F63::from_num( total_ranks );
@@ -218,39 +212,39 @@ impl<T: Config> Pallet<T> {
                 }
             }
         }
-        // if_std! {
-        //     println!("consensus: {:?}", consensus);
-        //     println!("incentive: {:?} {:?}", incentive, total_incentive);
-        // }
+        if_std! {
+            println!("consensus: {:?}", consensus);
+            println!("incentive: {:?} {:?}", incentive, total_incentive);
+        }
 
         // Compute consensus, incentive, and inflation.
         let mut total_inflation: u64 = 0;
         if total_incentive != 0 {
-            for uid_i in active_uids.iter() {
+            for uid_i in uids.iter() {
                 // Inflation function.
                 let incentive_i: I65F63 = I65F63::from_num( incentive[ *uid_i as usize ] ) / u64_max;
                 let inflation_i: I65F63 = (block_emission * incentive_i) / total_incentive;
                 inflation[ *uid_i as usize ] = inflation_i.to_num::<u64>();
                 total_inflation += inflation_i.to_num::<u64>();
-                // if_std! {
-                //     println!("incentive_i: {:?} | inflation_i: {:?}", incentive_i, inflation_i);
-                // }
+                if_std! {
+                    println!("incentive_i: {:?} | inflation_i: {:?}", incentive_i, inflation_i);
+                }
             }
         }
-        // if_std! {
-        //     println!("inflation: {:?}, {:?}", inflation, total_inflation);
-        // }
+        if_std! {
+            println!("inflation: {:?}, {:?}", inflation, total_inflation);
+        }
 
         // Compute trust and ranks.
         let mut total_dividends: u64 = 0;
         let mut sparse_bonds: Vec<Vec<(u32,u64)>> = vec![vec![]; n];
-        for uid_i in active_uids.iter() {
+        for uid_i in uids.iter() {
 
             // To be filled: Sparsified bonds.
             let mut sparse_bonds_row: Vec<(u32, u64)> = vec![];
 
             // Only count bond dividends between active uids.
-            for uid_j in active_uids.iter() {
+            for uid_j in uids.iter() {
                 
                 // Get denomenator.
                 let bonds_ij: u64 = bonds[ *uid_i as usize ][ *uid_j as usize ];
@@ -269,18 +263,18 @@ impl<T: Config> Pallet<T> {
                     dividends[ *uid_i as usize ] += dividends_ji.to_num::<u64>();
                     total_dividends += dividends_ji.to_num::<u64>();
 
-                    // if_std! {
-                    //     println!("bonds_ij: {:?} | ownership_fraction_ij: {:?} | dividends_ji: {:?}", bonds_ij, ownership_fraction_ij, dividends_ji);
-                    // }
+                    if_std! {
+                        println!("bonds_ij: {:?} | ownership_fraction_ij: {:?} | dividends_ji: {:?}", bonds_ij, ownership_fraction_ij, dividends_ji);
+                    }
                 }
             }
             // Fill sparse bonds row.
-            // if_std! {
-            //     println!("sparse_bonds: {:?}", sparse_bonds_row );
-            // }
+            if_std! {
+                println!("sparse_bonds: {:?}", sparse_bonds_row );
+            }
             sparse_bonds[ *uid_i as usize ] = sparse_bonds_row;
         }
-        for uid_i in active_uids.iter() {
+        for uid_i in uids.iter() {
             let total_bonds_i: u64 = bond_totals[ *uid_i as usize ];
             let dividends_ii: u64;
             if total_bonds_i == 0 {
@@ -293,35 +287,39 @@ impl<T: Config> Pallet<T> {
             stake[ *uid_i as usize ] += dividends[ *uid_i as usize ];
 
         }
-        // if_std! {
-        //     println!("dividends: {:?}, {:?}", dividends, total_dividends);
-        // }
+        if_std! {
+            println!("dividends: {:?}, {:?}", dividends, total_dividends);
+        }
 
-        for ( uid_i, mut neuron_i ) in <Metagraph<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+        for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
-            if active[ uid_i as usize ] == 0 {
-                neuron_i.active = 0;
-                neuron_i.rank = 0;
-                neuron_i.trust = 0;
-                neuron_i.consensus = 0;
-                neuron_i.inflation = 0;
-                neuron_i.dividends = 0;
-            } else {
-                neuron_i.active = 1;
-                neuron_i.stake = stake[ uid_i as usize ];
-                neuron_i.rank = rank[ uid_i as usize ];
-                neuron_i.trust = trust[ uid_i as usize ];
-                neuron_i.consensus = consensus[ uid_i as usize ];
-                neuron_i.incentive = incentive[ uid_i as usize ];
-                neuron_i.inflation = inflation[ uid_i as usize ];
-                neuron_i.dividends = dividends[ uid_i as usize ];
-                neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
-            }
-            Metagraph::<T>::insert( neuron_i.uid, neuron_i );
+            neuron_i.active = active[ uid_i as usize ];
+            neuron_i.priority = priority[ uid_i as usize ];
+            neuron_i.stake = stake[ uid_i as usize ];
+            neuron_i.rank = rank[ uid_i as usize ];
+            neuron_i.trust = trust[ uid_i as usize ];
+            neuron_i.consensus = consensus[ uid_i as usize ];
+            neuron_i.incentive = incentive[ uid_i as usize ];
+            neuron_i.inflation = inflation[ uid_i as usize ];
+            neuron_i.dividends = dividends[ uid_i as usize ];
+            neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
+            Neurons::<T>::insert( neuron_i.uid, neuron_i );
         }
 
         // Update totals.
+        TotalRanks::<T>::set( total_ranks );
+        TotalTrust::<T>::set( total_trust );
+        TotalIncentives::<T>::set( total_incentive.to_num::<u64>() );
+        TotalInflation::<T>::set( total_inflation );
+        TotalDividends::<T>::set( total_dividends );
+        TotalBondsPurchased::<T>::set( total_bonds_purchased );
         TotalIssuance::<T>::mutate( |val| *val += total_dividends );
         TotalStake::<T>::mutate( |val| *val += total_dividends );
     }
+    
+    pub fn get_current_block_as_u64( ) -> u64 {
+        let block_as_u64: u64 = TryInto::try_into( system::Pallet::<T>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
+        block_as_u64
+    }
+
 }

@@ -13,21 +13,15 @@ impl<T: Config> Pallet<T> {
         //debug(&("--- Called add_stake with coldkey id {:?}, hotkey {:?} and amount_staked {:?}", coldkey, hotkey, stake_to_be_added));
 
         // Check if the hotkey is active
-        ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotActive);
+        ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotRegistered);
         let neuron = Self::get_neuron_for_hotkey(&hotkey);
 
         // Check if uid is active
-        ensure!(Self::is_uid_active(neuron.uid), Error::<T>::NotActive);
+        ensure!(Self::is_uid_active(neuron.uid), Error::<T>::NotRegistered);
 
         // ---- We check that the NeuronMetadata is linked to the calling
         // cold key, otherwise throw a NonAssociatedColdKey error.
         ensure!(Self::neuron_belongs_to_coldkey(&neuron, &coldkey), Error::<T>::NonAssociatedColdKey);
-
-        // --- We call the emit function for the associated hotkey. Neurons must call an emit before they change 
-        // their stake or else can cheat the system by adding stake just before
-        // and emission to maximize their inflation.
-        // TODO(const): can we pay for this transaction through inflation.
-        Self::emit_for_neuron(&neuron);
 
         // ---- We check that the calling coldkey contains enough funds to
         // create the staking transaction.
@@ -57,7 +51,7 @@ impl<T: Config> Pallet<T> {
     /// 5) The total amount of stake is reduced after transfer is complete
     ///
     /// It throws the following errors if there is something wrong
-    /// - NotActive : The suplied hotkey is not in use. This ususally means a node that uses this key has not subscribed yet, or has unsubscribed
+    /// - NotRegistered : The suplied hotkey is not in use. This ususally means a node that uses this key has not subscribed yet, or has unsubscribed
     /// - NonAssociatedColdKey : The supplied hotkey account id is not subscribed using the supplied cold key
     /// - NotEnoughStaketoWithdraw : The ammount of stake available in the hotkey account is lower than the requested amount
     /// - CouldNotConvertToBalance : A conversion error occured while converting stake from u64 to Balance
@@ -70,21 +64,15 @@ impl<T: Config> Pallet<T> {
 
         // ---- We query the Neuron set for the NeuronMetadata stored under
         // the passed hotkey.
-        ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotActive);
+        ensure!(Self::is_hotkey_active(&hotkey), Error::<T>::NotRegistered);
         let neuron = Self::get_neuron_for_hotkey(&hotkey);
 
         // Check if uid is active
-        ensure!(Self::is_uid_active(neuron.uid), Error::<T>::NotActive);
-
+        ensure!(Self::is_uid_active(neuron.uid), Error::<T>::NotRegistered);
 
         // ---- We check that the NeuronMetadata is linked to the calling
         // cold key, otherwise throw a NonAssociatedColdKey error.
         ensure!(Self::neuron_belongs_to_coldkey(&neuron, &coldkey), Error::<T>::NonAssociatedColdKey);
-
-        // --- We call the emit function for the associated hotkey.
-        // Neurons must call an emit before they remove
-        // stake or they may be able to cheat their peers of inflation.
-        Self::emit_for_neuron(&neuron);
 
         // ---- We check that the hotkey has enough stake to withdraw
         // and then withdraw from the account.
@@ -110,12 +98,8 @@ impl<T: Config> Pallet<T> {
     --==[[  Helper functions   ]]==--
     *********************************/
 
-    pub fn get_stake_of_neuron_hotkey_account_by_uid(uid: u64) -> u64 {
-        return Stake::<T>::get(uid);
-    }
-
-    pub fn get_total_stake() -> u64 {
-        return TotalStake::<T>::get();
+    pub fn get_stake_of_neuron_hotkey_account_by_uid(uid: u32) -> u64 {
+        return Self::get_neuron_for_uid(uid).stake
     }
 
     /// Increases the amount of stake of the entire stake pool by the supplied amount
@@ -152,18 +136,19 @@ impl<T: Config> Pallet<T> {
     /// is calculated and this should always <= 1. Having this function be atomic, fills this
     /// requirement.
     ///
-    pub fn add_stake_to_neuron_hotkey_account(uid: u64, amount: u64) {
+    pub fn add_stake_to_neuron_hotkey_account(uid: u32, amount: u64) {
         assert!(Self::is_uid_active(uid));
 
-        let prev_stake: u64 = Stake::<T>::get(uid);
+        let mut neuron: NeuronMetadataOf<T> = Self::get_neuron_for_uid( uid );
+        let prev_stake: u64 = neuron.stake;
 
         // This should never happen. If a user has this ridiculous amount of stake,
         // we need to come up with a better solution
         assert!(u64::MAX - amount > prev_stake);
 
         let new_stake = prev_stake + amount;
-
-        Stake::<T>::insert(uid, new_stake);
+        neuron.stake = new_stake;
+        Neurons::<T>::insert(uid, neuron);
 
         Self::increase_total_stake(amount);
     }
@@ -178,16 +163,17 @@ impl<T: Config> Pallet<T> {
     ///
     /// Furthermore, a check to see if the uid is active before this method is called is also required
     ///
-    pub fn remove_stake_from_neuron_hotkey_account(uid: u64, amount: u64) {
+    pub fn remove_stake_from_neuron_hotkey_account(uid: u32, amount: u64) {
         assert!(Self::is_uid_active(uid));
 
-        let hotkey_stake: u64 = Stake::<T>::get(uid);
+        let mut neuron: NeuronMetadataOf<T> = Self::get_neuron_for_uid( uid );
+        let hotkey_stake: u64 = neuron.stake;
 
         // By this point, there should be enough stake in the hotkey account for this to work.
         assert!(hotkey_stake >= amount);
+        neuron.stake -= amount;
 
-        Stake::<T>::insert(uid, hotkey_stake - amount);
-
+        Neurons::<T>::insert(uid, neuron);
         Self::decrease_total_stake(amount);
     }
 
@@ -247,23 +233,14 @@ impl<T: Config> Pallet<T> {
     /// the requested amount.
     ///
     pub fn has_enough_stake(neuron: &NeuronMetadataOf<T>, amount: u64) -> bool {
-        let hotkey_stake: u64 = Stake::<T>::get(neuron.uid);
-        return hotkey_stake >= amount;
-    }
-
-    /// Creates a hotkey account to which stake can be added.
-    /// This needs to be done on subsribed, as its presence is used for
-    /// uid validity checking
-    ///
-    pub fn create_hotkey_account(uid: u64) {
-        Stake::<T>::insert(uid, 0);
+        return neuron.stake >= amount;
     }
 
     /// Returns true if there is an entry for uid in the Stake map,
     /// false otherwise
     ///
-    pub fn has_hotkey_account(uid: &u64) -> bool {
-        return Stake::<T>::contains_key(*uid);
+    pub fn has_hotkey_account(uid: &u32) -> bool {
+        return Neurons::<T>::contains_key(*uid);
     }
 
     /// This calculates the fraction of the total amount of stake the specfied neuron owns.
@@ -277,8 +254,7 @@ impl<T: Config> Pallet<T> {
     ///
     pub fn calculate_stake_fraction_for_neuron(neuron: &NeuronMetadataOf<T>) -> U64F64 {
         let total_stake = U64F64::from_num(TotalStake::<T>::get());
-        let neuron_stake = U64F64::from_num(Stake::<T>::get(neuron.uid));
-
+        let neuron_stake = U64F64::from_num(neuron.stake);
 
         // Total stake is 0, this should virtually never happen, but is still here because it could
         if total_stake == U64F64::from_num(0) {

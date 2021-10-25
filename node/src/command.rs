@@ -19,7 +19,7 @@ use crate::{chain_spec, service};
 use crate::cli::{Cli, Subcommand};
 use sc_cli::{SubstrateCli, RuntimeVersion, Role, ChainSpec};
 use sc_service::PartialComponents;
-use node_template_runtime::Block;
+use node_subtensor_runtime::Block;
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
@@ -50,6 +50,8 @@ impl SubstrateCli for Cli {
 		Ok(match id {
 			"dev" => Box::new(chain_spec::development_config()?),
 			"local" => Box::new(chain_spec::local_testnet_config()?),
+			"stage" => Box::new(chain_spec::nobunaga_stagenet_config()?),
+			"test" => Box::new(chain_spec::akatsuki_testnet_config()?),
 			"" | "akatsuki" => Box::new(chain_spec::akatsuki_config()?),
 			
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
@@ -59,7 +61,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		&node_template_runtime::VERSION
+		&node_subtensor_runtime::VERSION
 	}
 }
 
