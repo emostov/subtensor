@@ -452,7 +452,11 @@ pub mod pallet {
 		/// 		associated colkey account.
 		///
         #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn set_weights(origin:OriginFor<T>, dests: Vec<u32>, weights: Vec<u32>) -> DispatchResult {
+		pub fn set_weights(
+			origin:OriginFor<T>, 
+			dests: Vec<u32>, 
+			weights: Vec<u32>
+		) -> DispatchResult {
 			Self::do_set_weights(origin, dests, weights)
 		}
 		
@@ -489,7 +493,11 @@ pub mod pallet {
 		/// 		associated colkey account.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
-		pub fn add_stake(origin:OriginFor<T>, hotkey: T::AccountId, ammount_staked: u64) -> DispatchResult {
+		pub fn add_stake(
+			origin:OriginFor<T>, 
+			hotkey: T::AccountId, 
+			ammount_staked: u64
+		) -> DispatchResult {
 			Self::do_add_stake(origin, hotkey, ammount_staked)
 		}
 
@@ -521,7 +529,11 @@ pub mod pallet {
 		/// 		associated hotkey staking account.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
-		pub fn remove_stake(origin:OriginFor<T>, hotkey: T::AccountId, ammount_unstaked: u64) -> DispatchResult {
+		pub fn remove_stake(
+			origin:OriginFor<T>, 
+			hotkey: T::AccountId, 
+			ammount_unstaked: u64
+		) -> DispatchResult {
 			Self::do_remove_stake(origin, hotkey, ammount_unstaked)
 		}
 
@@ -549,7 +561,14 @@ pub mod pallet {
 		/// 		- On subscription of a new neuron to the active set.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn serve_axon(origin:OriginFor<T>, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8 ) -> DispatchResult {
+		pub fn serve_axon (
+			origin:OriginFor<T>, 
+			version: u32, 
+			ip: u128, 
+			port: u16, 
+			ip_type: u8, 
+			modality: u8 
+		) -> DispatchResult {
 			Self::do_serve_axon( origin, version, ip, port, ip_type, modality )
 		}
 

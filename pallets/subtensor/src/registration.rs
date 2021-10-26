@@ -23,7 +23,7 @@ impl<T: Config> Pallet<T> {
         // --- Check block number is not invalid.
         let current_block_number: u64 = Self::get_current_block_as_u64_here();
         // If the block number is from the past.
-        ensure! ( current_block_number > block_number, Error::<T>::InvalidEmailHash ); // TODO(const): change error.
+        ensure! ( current_block_number >= block_number, Error::<T>::InvalidEmailHash ); // TODO(const): change error.
 
         // --- Get the block hash for this height.
         let block_hash_at_number: H256 = Self::get_block_hash_from_u64( block_number );
@@ -127,14 +127,14 @@ impl<T: Config> Pallet<T> {
         // Do a concat of the block_hash + nonce.
         let hash_as_bytes: &[u8] = block_hash.as_bytes();
         let nonce_bytes: &[u8; 32] = &[
-            nonce.byte(0), nonce.byte(1), nonce.byte(2), nonce.byte(3), 
-            nonce.byte(4), nonce.byte(5), nonce.byte(6), nonce.byte(7), 
-            nonce.byte(8), nonce.byte(9), nonce.byte(10), nonce.byte(11), 
+            nonce.byte(0),  nonce.byte(1),  nonce.byte(2),  nonce.byte(3), 
+            nonce.byte(4),  nonce.byte(5),  nonce.byte(6),  nonce.byte(7), 
+            nonce.byte(8),  nonce.byte(9),  nonce.byte(10), nonce.byte(11), 
             nonce.byte(12), nonce.byte(13), nonce.byte(14), nonce.byte(15), 
             nonce.byte(16), nonce.byte(17), nonce.byte(18), nonce.byte(19), 
             nonce.byte(20), nonce.byte(21), nonce.byte(22), nonce.byte(23), 
-            nonce.byte(24),nonce.byte(25), nonce.byte(26), nonce.byte(27), 
-            nonce.byte(28), nonce.byte(29) ,nonce.byte(30), nonce.byte(31), 
+            nonce.byte(24), nonce.byte(25), nonce.byte(26), nonce.byte(27), 
+            nonce.byte(28), nonce.byte(29), nonce.byte(30), nonce.byte(31), 
         ];
         let seal: Vec<u8> = [hash_as_bytes, nonce_bytes].concat();
 

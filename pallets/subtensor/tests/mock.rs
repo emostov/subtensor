@@ -253,9 +253,11 @@ pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExterna
 // }
 
 #[allow(dead_code)]
-pub fn register_ok_neuron( registration_key: u64, email_uid: u8, hotkey_account_id: u64, coldkey_account_id: u64) -> NeuronMetadata<u64> {
-	let email_hash: Vec<u8> = vec![ email_uid; 32 ];
-	let result = Subtensor::register( <<Test as frame_system::Config>::Origin>::signed(registration_key), email_hash, hotkey_account_id, coldkey_account_id );
+pub fn register_ok_neuron( hotkey_account_id: u64, coldkey_account_id: u64) -> NeuronMetadata<u64> {
+	let block_number: u64 = 0;
+	let nonce: u64 = 0;
+	let work: Vec<u8> = vec![0;32];
+	let result = Subtensor::register( <<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id );
 	assert_ok!(result);
 	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
 	neuron
@@ -269,15 +271,15 @@ pub fn serve_axon( hotkey_account_id : u64, version: u32, ip: u128, port: u16, i
 	neuron
 }
 
-#[allow(dead_code)]
-pub fn n_subscribe_ok_neuron(n: usize) -> Vec<NeuronMetadata<u64>> {
-	let mut neurons: Vec<NeuronMetadata<u64>> = vec![];
-	for i in 0..n {
-		let neuron: NeuronMetadata<u64> = register_ok_neuron(0, i as u8, i as u64, i as u64);
-		neurons.push(neuron);
-	}
-	return neurons;
-}
+// #[allow(dead_code)]
+// pub fn n_subscribe_ok_neuron(n: usize) -> Vec<NeuronMetadata<u64>> {
+// 	let mut neurons: Vec<NeuronMetadata<u64>> = vec![];
+// 	for i in 0..n {
+// 		let neuron: NeuronMetadata<u64> = register_ok_neuron(0, i as u8, i as u64, i as u64);
+// 		neurons.push(neuron);
+// 	}
+// 	return neurons;
+// }
 
 #[allow(dead_code)]
 pub(crate) fn run_to_block(n: u64) {
