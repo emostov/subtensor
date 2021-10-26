@@ -60,6 +60,7 @@ mod staking;
 mod serving;
 mod step;
 mod registration;
+mod hashing;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -214,27 +215,6 @@ pub mod pallet {
 		ValueQuery
 	>;
 
-	/// ---- Maps from 0 to the registration key.
-	#[pallet::storage]
-    pub(super) type RegistrationKey<T:Config> = StorageMap<
-		_, 
-		Identity,
-		u32,
-		T::AccountId, 
-		ValueQuery
-	>;
-
-	/// ---- Maps from coldkey to set of hotkeys.
-	#[pallet::storage]
-    #[pallet::getter(fn uids)]
-    pub(super) type EmailHashes<T:Config> = StorageMap<
-		_, 
-		Blake2_128Concat, 
-		Vec<u8>, 
-		Vec<T::AccountId>, 
-		ValueQuery
-	>;
-
 	/// ---- Maps from hotkey to uid.
 	#[pallet::storage]
 	#[pallet::getter(fn hotkey)]
@@ -330,9 +310,6 @@ pub mod pallet {
 		/// --- Event created when stake has been removed from 
 		/// the staking account into the coldkey account.
 		StakeRemoved(T::AccountId, u64),
-
-		/// --- Event created when the registration auth key is set on the chain.
-		RegistrationKeySet(T::AccountId),
 	}
 
 	/// ************************************************************
@@ -374,16 +351,6 @@ pub mod pallet {
 		/// ---- Thrown when the caller requests registering a neuron which 
 		/// already exists in the active set.
 		AlreadyRegistered,
-
-		/// ---- Thrown when the caller requests registering a neuron which 
-		/// exceeds MAX_REGISTRATIONS_PER_EMAIL
-		MaxRegistrationsReached,
-
-		/// ---- Thrown when registration is called from a non-authorized key.
-		NonAuthorizedRegistrationKey,
-
-		/// ---- Thrown when the registration key is not set and registraion is disabled.
-		RegistrationDisabled,
 
 		/// ---- Thrown when a stake, unstake or subscribe request is made by a coldkey
 		/// which is not associated with the hotkey account. 
@@ -586,50 +553,43 @@ pub mod pallet {
 			Self::do_serve_axon( origin, version, ip, port, ip_type, modality )
 		}
 
-		/// ---- Registers a new neuron to the graph. Function must be called by the registration key.
+		/// ---- Registers a new neuron to the graph. 
 		///
 		/// # Args:
 		/// 	* 'origin': (<T as frame_system::Config>Origin):
 		/// 		- The caller, registration key as found in RegistrationKey::get(0);
 		///
-		/// 	* 'ip' (u128):
-		/// 		- The u64 encoded IP address of type 6 or 4.
+		/// 	* 'block_number' (u64):
+		/// 		- Block number of hash to attempt.
 		///
-		/// 	* 'port' (u16):
-		/// 		- The port number where this neuron receives RPC requests.
+		/// 	* 'nonce' (u64):
+		/// 		- Hashing nonce as a u64.
 		///
-		/// 	* 'ip_type' (u8):
-		/// 		- The ip type one of (4,6).
+		/// 	* 'work' (Vec<u8>):
+		/// 		- Work hash as list of bytes.
 		/// 
-		/// 	* 'modality' (u8):
-		/// 		- The neuron modality type.
+		/// 	* 'hotkey' (T::AccountId,):
+		/// 		- Hotkey to register.
+		/// 
+		/// 	* 'coldkey' (T::AccountId,):
+		/// 		- Coldkey to register.
 		///
 		/// # Event:
-		/// 	* 'AxonServed':
+		/// 	* 'NeuronRegistered':
 		/// 		- On subscription of a new neuron to the active set.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn register( origin:OriginFor<T>, email_hash: Vec<u8>, hotkey: T::AccountId, coldkey: T::AccountId ) -> DispatchResult {
-			Self::do_registration(origin, email_hash, hotkey, coldkey)
+		pub fn register( 
+				origin:OriginFor<T>, 
+				block_number: u64, 
+				nonce: u64, 
+				work: Vec<u8>,
+				hotkey: T::AccountId, 
+				coldkey: T::AccountId 
+		) -> DispatchResult {
+			Self::do_registration(origin, block_number, nonce, work, hotkey, coldkey)
 		}
 
-		/// ---- (SUDO ONLY): Sets the registration key.
-		///
-		/// # Args:
-		/// 	* 'origin': (<T as frame_system::Config>Origin):
-		/// 		- The caller, must be sudo.
-		///
-		/// 	* 'registration_key' (T::AccountId):
-		/// 		- Key to be given permissions to register peers to the network.
-		///
-		/// # Event:
-		/// 	* 'RegistrationKeySet':
-		/// 		- A new registration key has been properly set.
-		///
-		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn set_registeration_key( origin:OriginFor<T>, registration_key: T::AccountId ) -> DispatchResult {
-			Self::set_registration_auth( origin, registration_key )
-		}
 	}
 	
 	// ---- Subtensor helper functions.
