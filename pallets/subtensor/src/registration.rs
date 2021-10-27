@@ -5,6 +5,7 @@ use sp_std::convert::TryInto;
 use sp_core::{H256, U256};
 use sp_io::hashing::sha2_256;
 use frame_system::{ensure_signed};
+use substrate_fixed::types::U64F64;
 
 impl<T: Config> Pallet<T> {
 
@@ -20,28 +21,35 @@ impl<T: Config> Pallet<T> {
         // --- Check the callers hotkey signature.
         let hotkey_id = ensure_signed(origin)?;
 
+        // --- Check that registrations per block does not exceed limit.
+        let registrations_this_block: u64 = Self::get_registrations_this_block();
+        ensure! ( registrations_this_block < Self::get_max_registratations_per_block(), Error::<T>::ToManyRegistrationsThisBlock ); // TODO(const): change error.
+
         // --- Check block number is not invalid.
         let current_block_number: u64 = Self::get_current_block_as_u64_here();
+
         // If the block number is from the past.
-        ensure! ( current_block_number >= block_number, Error::<T>::InvalidEmailHash ); // TODO(const): change error.
+        ensure! ( current_block_number >= block_number, Error::<T>::InvalidWorkBlock ); // TODO(const): change error.
+        let block_difference: U256 = U256::from( current_block_number - block_number + 1 );
 
         // --- Get the block hash for this height.
         let block_hash_at_number: H256 = Self::get_block_hash_from_u64( block_number );
 
         // --- Get the difficulty for this block.
-        let difficulty: U256 = U256::zero();
+        let vanilla_difficulty: U256 = Self::get_difficulty();
+        let difficulty = block_difference * vanilla_difficulty;
 
         // --- Get work as hash
         let work_hash: H256 = Self::vec_to_hash( work );
 
         // --- Check that the work-hash meets the difficulty.
-        ensure! ( Self::hash_meets_difficulty( &work_hash,  difficulty ), Error::<T>::InvalidEmailHash ); // TODO(const): change error.
+        ensure! ( Self::hash_meets_difficulty( &work_hash, difficulty ), Error::<T>::InvalidDifficulty ); // TODO(const): change error.
 
         // --- Check that the work is correctly done.
         // Check that the seal matches the work.
-        let nonce_as_U256: U256 = U256::from( nonce );
-        let seal: H256 = Self::create_seal_hash( block_hash_at_number, nonce_as_U256 );
-        ensure! ( seal != work_hash, Error::<T>::InvalidEmailHash ); // TODO(const): change error.
+        let nonce_as_u256: U256 = U256::from( nonce );
+        let seal: H256 = Self::create_seal_hash( block_hash_at_number, nonce_as_u256 );
+        ensure! ( seal == work_hash, Error::<T>::InvalidSeal ); // TODO(const): change error.
 
         // --- AT THIS POINT WE KNOW THE USER HAS SOLVED THE POW.
         
@@ -74,6 +82,10 @@ impl<T: Config> Pallet<T> {
             bonds: vec![],
             weights: vec![(uid, u32::MAX)], // self weight set to 1.
         };
+
+        // --- Update avg registrations per 1000 block.
+        RegistrationsThisInterval::<T>::mutate( |val| *val += 1 );
+        RegistrationsThisBlock::<T>::mutate( |val| *val += 1 );
         
         // --- We deposit the neuron registered event.
         Neurons::<T>::insert(uid, neuron); // Insert neuron info under uid.
@@ -92,9 +104,9 @@ impl<T: Config> Pallet<T> {
         let de_ref_hash = &vec_hash; // b: &Vec<u8>
         let de_de_ref_hash: &[u8] = &de_ref_hash; // c: &[u8]
         let real_hash: H256 = H256::from_slice( de_de_ref_hash );
-        if_std! {
-            println!("real_hash: {:?}, vec_hash{:?}", real_hash, vec_hash);
-        }
+        // if_std! {
+        //     println!("real_hash: {:?}, vec_hash{:?}", real_hash, vec_hash);
+        // }
         return real_hash
     }
 
@@ -103,11 +115,12 @@ impl<T: Config> Pallet<T> {
     /// overflows the bounds of U256, then the product (and thus the hash)
     /// was too high.
     pub fn hash_meets_difficulty(hash: &H256, difficulty: U256) -> bool {
-        let num_hash = U256::from(&hash[..]);
+        let bytes: &[u8] = &hash.as_bytes();
+        let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
-        if_std! {
-            println!("num_hash: {:?}, value: {:?} overflowed: {:?}", num_hash, value, overflowed);
-        }
+        // if_std! {
+        //     println!("Difficulty: hash:{:?}, bytes: {:?}, hash_as_num: {:?}, difficulty:{:?}, value: {:?} overflowed: {:?}", hash, bytes, num_hash, difficulty, value, overflowed);
+        // }
         !overflowed
     }
 
@@ -117,10 +130,16 @@ impl<T: Config> Pallet<T> {
         let vec_hash: Vec<u8> = block_hash_at_number.as_ref().into_iter().cloned().collect();
         let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
         let real_hash: H256 = H256::from_slice( deref_vec_hash );
-        if_std! {
-            println!("block_number: {:?}, vec_hash: {:?}, real_hash: {:?}", block_number, vec_hash, real_hash);
-        }
+        // if_std! {
+        //     println!("block_number: {:?}, vec_hash: {:?}, real_hash: {:?}", block_number, vec_hash, real_hash);
+        // }
         return real_hash;
+    }
+
+    pub fn hash_to_vec( hash: H256 ) -> Vec<u8> {
+        let hash_as_bytes: &[u8] = hash.as_bytes();
+        let hash_as_vec: Vec<u8> = hash_as_bytes.iter().cloned().collect();
+        return hash_as_vec
     }
 
     pub fn create_seal_hash( block_hash: H256, nonce: U256 ) -> H256 {
@@ -139,11 +158,11 @@ impl<T: Config> Pallet<T> {
         let seal: Vec<u8> = [hash_as_bytes, nonce_bytes].concat();
 
         // Use sha256 to create the hash.
-        let seal_hash: [u8; 32] = sha2_256( &seal );
-        let seal_hash: H256 = H256::from_slice( &seal_hash );
-        if_std! {
-            println!("block_hash: {:?}, nonce: {:?}, seal: {:?}, seal_hash: {:?}", block_hash, nonce, seal, seal_hash);
-        }
+        let seal_hash_vec: [u8; 32] = sha2_256( &seal );
+        let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
+        // if_std! {
+        //     println!("Seal: block_hash: {:?}, nonce: {:?}, seal_hash: {:?}, seal_hash_vec: {:?}", block_hash, nonce, seal, seal_hash_vec);
+        // }
         return seal_hash;
     }
 

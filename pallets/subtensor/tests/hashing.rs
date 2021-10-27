@@ -63,6 +63,70 @@ fn check_work() {
     });
 }
 
+#[test]
+fn check_work_10() {
+    new_test_ext().execute_with(|| {
+        let block_number: u64 = 0;
+        let block_hash: H256 = Subtensor::get_block_hash_from_u64( block_number );
+        let difficulty: U256 = U256::from( 10 );
+
+        let mut nonce: u64 = 0;
+        let mut hash: H256 = Subtensor::create_seal_hash( block_hash,  U256::from( nonce) );
+        while !Subtensor::hash_meets_difficulty(&hash, difficulty) {
+            nonce = nonce + 1;
+            hash = Subtensor::create_seal_hash( block_hash, U256::from( nonce)  );  
+            if_std! {
+                println!("nonce:{:?}, hash: {:?}", nonce, hash);
+            }  
+        }
+        assert!( Subtensor::hash_meets_difficulty(&hash, difficulty) );
+        assert!( nonce == 5 );
+        
+    });
+}
+
+#[test]
+fn check_work_100() {
+    new_test_ext().execute_with(|| {
+        let block_number: u64 = 0;
+        let block_hash: H256 = Subtensor::get_block_hash_from_u64( block_number );
+        let difficulty: U256 = U256::from( 100 );
+
+        let mut nonce: u64 = 0;
+        let mut hash: H256 = Subtensor::create_seal_hash( block_hash,  U256::from( nonce) );
+        while !Subtensor::hash_meets_difficulty(&hash, difficulty) {
+            nonce = nonce + 1;
+            hash = Subtensor::create_seal_hash( block_hash, U256::from( nonce)  );    
+            if_std! {
+                println!("nonce:{:?}, hash: {:?}", nonce, hash);
+            }
+        }
+        assert!( Subtensor::hash_meets_difficulty(&hash, difficulty) );
+        assert!( nonce == 114 );
+    });
+}
+
+#[test]
+fn check_work_10000() {
+    new_test_ext().execute_with(|| {
+        let block_number: u64 = 0;
+        let block_hash: H256 = Subtensor::get_block_hash_from_u64( block_number );
+        let difficulty: U256 = U256::from( 10000 );
+
+        let mut nonce: u64 = 0;
+        let mut hash: H256 = Subtensor::create_seal_hash( block_hash,  U256::from( nonce) );
+        while !Subtensor::hash_meets_difficulty(&hash, difficulty) {
+            nonce = nonce + 1;
+            hash = Subtensor::create_seal_hash( block_hash, U256::from( nonce)  );    
+            if_std! {
+                println!("nonce:{:?}, hash: {:?}", nonce, hash);
+            }
+        }
+        assert!( Subtensor::hash_meets_difficulty(&hash, difficulty) );
+        assert!( nonce == 890 );
+    });
+}
+
 
 
 

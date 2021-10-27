@@ -65,6 +65,7 @@ mod hashing;
 #[frame_support::pallet]
 pub mod pallet {
 	use substrate_fixed::types::I65F63;
+	use sp_core::{U256};
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, Printable, traits::{Currency}};
 	use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
@@ -215,6 +216,56 @@ pub mod pallet {
 		ValueQuery
 	>;
 
+	#[pallet::storage]
+	pub type Difficulty<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	pub type RegistrationsThisInterval<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type RegistrationsThisBlock<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type MaxRegistrationsPerBlock<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type LastDifficultyAdjustmentBlock<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+	#[pallet::storage]
+	pub type TargetRegistrationsPerInterval<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
+
+	#[pallet::storage]
+	pub type AdjustmentInterval<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+	>;
+
 	/// ---- Maps from hotkey to uid.
 	#[pallet::storage]
 	#[pallet::getter(fn hotkey)]
@@ -257,8 +308,7 @@ pub mod pallet {
     
     #[pallet::genesis_build]
     impl<T:Config> GenesisBuild<T> for GenesisConfig {
-        fn build(&self) {
-			
+        fn build(&self) {		
         }
 	}
 
@@ -341,8 +391,17 @@ pub mod pallet {
 		/// does not exist in the metagraph.
 		InvalidUid,
 
-		/// ---- Thrown if the supplied email hash is not of correct size.
-		InvalidEmailHash,
+		/// ---- Thrown if the supplied pow hash block is in the future or negative
+		InvalidWorkBlock,
+
+		/// ---- Thrown if the supplied pow hash block does not meet the network difficulty.
+		InvalidDifficulty,
+
+		/// ---- Thrown if the supplied pow hash seal does not match the supplied work.
+		InvalidSeal,
+
+		/// ---- Thrown when registrations this block exceeds allowed number.
+		ToManyRegistrationsThisBlock,
 
 		/// ---- Thrown when the caller requests setting or removing data from
 		/// a neuron which does not exist in the active set.
@@ -398,6 +457,7 @@ pub mod pallet {
 		/// 		- The number of the block we are initializing.
 		fn on_initialize( _n: BlockNumberFor<T> ) -> Weight {
 			Self::block_step();
+			Self::update_difficulty();
 			return 0;
 		}
 	}
@@ -614,14 +674,55 @@ pub mod pallet {
 	// ---- Subtensor helper functions.
 	impl<T: Config> Pallet<T> {
 
-		// Getters.
-		pub fn get_max_registrations_per_email( ) -> u32 {
-			let max_registratations_per_email: u32 = 100;
-			max_registratations_per_email
+		// Getters
+		pub fn get_registrations_this_interval( ) -> u64 {
+			RegistrationsThisInterval::<T>::get()
 		}
-		pub fn get_max_registrations_per_block( ) -> u32 {
-			let max_registratations_per_block: u32 = 10;
-			max_registratations_per_block
+		pub fn get_registrations_this_block( ) -> u64 {
+			RegistrationsThisBlock::<T>::get()
+		}
+		pub fn get_difficulty( ) -> U256 {
+			return U256::from( Self::get_difficulty_as_u64() );
+		}
+		pub fn get_difficulty_as_u64( ) -> u64 {
+			let default_difficulty: u64 = 1;
+			if Difficulty::<T>::get() == 0 {
+				Difficulty::<T>::put( default_difficulty )
+			}
+			Difficulty::<T>::get()
+		}
+		pub fn get_target_registrations_per_interval() -> u64 {
+			let default_target_registrations_per_interval: u64 = 1;
+			if TargetRegistrationsPerInterval::<T>::get() == 0 {
+				TargetRegistrationsPerInterval::<T>::put( default_target_registrations_per_interval )
+			}
+			TargetRegistrationsPerInterval::<T>::get()
+		}
+		pub fn get_adjustment_interval() -> u64 {
+			let default_adjustment_interval: u64 = 100;
+			if AdjustmentInterval::<T>::get() == 0 {
+				AdjustmentInterval::<T>::put( default_adjustment_interval );
+			}
+			AdjustmentInterval::<T>::get()
+		}
+		pub fn get_max_registratations_per_block( ) -> u64 {
+			let default_max_registrations_per_block: u64 = 10;
+			if MaxRegistrationsPerBlock::<T>::get() == 0 {
+				MaxRegistrationsPerBlock::<T>::put( default_max_registrations_per_block );
+			}
+			MaxRegistrationsPerBlock::<T>::get()
+		}
+		pub fn set_difficulty_from_u64( difficulty: u64 ) {
+			Difficulty::<T>::set( difficulty );
+		}
+		pub fn set_adjustment_interval( interval: u64 ) {
+			AdjustmentInterval::<T>::put( interval );
+		}
+		pub fn set_target_registrations_per_interval( target: u64 ) {
+			TargetRegistrationsPerInterval::<T>::put( target );
+		}
+		pub fn set_max_registratations_per_block( max_registrations: u64 ){
+			MaxRegistrationsPerBlock::<T>::put( max_registrations );
 		}
 		pub fn get_total_stake( ) -> u64 {
 			return TotalStake::<T>::get();

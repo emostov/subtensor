@@ -7,6 +7,71 @@ use sp_std::if_std; // Import into scope the if_std! macro.
 
 impl<T: Config> Pallet<T> {
 
+    pub fn update_difficulty() {
+
+        // --- Set registrations per block to 0 after each block.
+        RegistrationsThisBlock::<T>::set( 0 );
+
+        // --- Difficulty adjustment constants for registration.
+        let max_difficulty: u64 = u64::MAX/4; // Difficulty should never exceed this value.
+        let min_difficulty: u64 = 1; // Difficulty should never be lower than this value.
+        let adjustment_interval: u64 = Self::get_adjustment_interval(); // Number of blocks average registrations are taken over.
+        let target_registrations_per_interval: I65F63 = I65F63::from_num( Self::get_target_registrations_per_interval() ); // Target number of registrations on average over interval.
+        if_std! {
+            println!( "max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}", max_difficulty, min_difficulty, adjustment_interval, target_registrations_per_interval);
+        }
+
+        let current_block:u64 = Self::get_current_block_as_u64();
+        let last_adjustment:u64 = LastDifficultyAdjustmentBlock::<T>::get();
+        if_std! {
+            println!( "current_block: {:?}, last_adjustment: {:?}", current_block, last_adjustment);
+        }
+
+        // --- Check if we have reached out adjustment interval.
+        if current_block - last_adjustment >= adjustment_interval {
+
+            // --- Compute average registrations over the adjustment interval.
+            let registrations_since_last_adjustment: I65F63 = I65F63::from_num( Self::get_registrations_this_interval() );
+            if_std! {
+                println!( " ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ", registrations_since_last_adjustment);
+            }
+
+            // --- Compare average against target.
+            if registrations_since_last_adjustment > target_registrations_per_interval {
+
+                // --- Double difficulty.
+                let current_difficulty: u64 = Difficulty::<T>::get();
+                let mut next_difficulty = current_difficulty * 2;
+                if next_difficulty >= max_difficulty {
+                    next_difficulty = max_difficulty
+                }
+                Self::set_difficulty_from_u64( next_difficulty );
+
+            } else {
+                if_std! {
+                    println!( " halve difficulty" );
+                }
+
+                // --- Halve difficulty.
+                let current_difficulty: u64 = Difficulty::<T>::get();
+                let mut next_difficulty = current_difficulty / 2;
+                if next_difficulty <= min_difficulty {
+                    next_difficulty = min_difficulty
+                }
+                if_std! {
+                    println!( " next_difficulty: {:?}", next_difficulty );
+                }
+                Self::set_difficulty_from_u64( next_difficulty );
+
+            }
+
+            // --- Update last adjustment to current block and zero the registrations since last difficulty.
+            LastDifficultyAdjustmentBlock::<T>::set( current_block );
+            RegistrationsThisInterval::<T>::set( 0 );
+        }
+
+    }
+
     /// Block setup: Computation performed each block which updates the incentive mechanism and distributes new stake as dividends.
     /// 
     /// The following operations are performed in order.
