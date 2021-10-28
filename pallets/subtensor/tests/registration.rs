@@ -3,7 +3,6 @@ use frame_support::{assert_ok};
 use frame_system::Config;
 mod mock;
 use mock::*;
-use sp_core::{U256,H256};
 use frame_support::sp_runtime::DispatchError;
 use frame_support::dispatch::{GetDispatchInfo, DispatchInfo};
 use frame_support::weights::{DispatchClass, Pays};
@@ -31,7 +30,7 @@ fn test_subscribe_ok_dispatch_info_ok() {
 #[test]
 fn test_difficulty() {
 	new_test_ext().execute_with(|| {
-		assert_eq!( Subtensor::get_difficulty().as_u64(), 1 );
+		assert_eq!( Subtensor::get_difficulty().as_u64(), 10000 );
 	});
 
 }
@@ -40,7 +39,7 @@ fn test_difficulty() {
 fn test_registration_ok() {
 	new_test_ext().execute_with(|| {
 		let block_number: u64 = 0;
-		let (nonce, work): (u64, Vec<u8>) = create_work_for_block_number( block_number );
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 
@@ -74,38 +73,25 @@ fn test_registration_ok() {
 	});
 }
 
-
-pub fn create_work_for_block_number( block_number: u64 ) -> (u64, Vec<u8>) {
-	let block_hash: H256 = Subtensor::get_block_hash_from_u64( block_number );
-	let difficulty: U256 = Subtensor::get_difficulty();
-
-	let mut nonce: u64 = 0;
-	let mut work: H256 = Subtensor::create_seal_hash( block_hash,  U256::from( nonce ) );
-	while !Subtensor::hash_meets_difficulty(&work, difficulty) {
-		nonce = nonce + 1;
-		work = Subtensor::create_seal_hash( block_hash, U256::from( nonce)  );    
-	}
-	let vec_work: Vec<u8> = Subtensor::hash_to_vec( work );
-	return (nonce, vec_work)
-}
-
 #[test]
 fn test_too_many_registrations_per_block() {
 	new_test_ext().execute_with(|| {
 		
+		Subtensor::set_max_registratations_per_block( 10 );
+
 		let block_number: u64 = 0;
-		let (nonce0, work0): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce1, work1): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce2, work2): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce3, work3): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce4, work4): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce5, work5): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce6, work6): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce7, work7): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce8, work8): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce9, work9): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		let (nonce10, work10): (u64, Vec<u8>) = create_work_for_block_number( block_number );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
+		let (nonce0, work0): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce1, work1): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce2, work2): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce3, work3): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce4, work4): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce5, work5): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce6, work6): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce7, work7): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce8, work8): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce9, work9): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let (nonce10, work10): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 10000 );
 
 		// Subscribe and check extrinsic output
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(0), block_number, nonce0, work0, 0, 0));
@@ -126,15 +112,15 @@ fn test_too_many_registrations_per_block() {
 #[test]
 fn test_defaults() {
 	new_test_ext().execute_with(|| {
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
-		assert_eq!( Subtensor::get_target_registrations_per_interval(), 1 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 10000 );
+		assert_eq!( Subtensor::get_target_registrations_per_interval(), 2 );
 		assert_eq!( Subtensor::get_adjustment_interval(), 100 );
-		assert_eq!( Subtensor::get_max_registratations_per_block(), 10 );
+		assert_eq!( Subtensor::get_max_registratations_per_block(), 2 );
 		step_block ( 1 );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
-		assert_eq!( Subtensor::get_target_registrations_per_interval(), 1 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 10000 );
+		assert_eq!( Subtensor::get_target_registrations_per_interval(), 2 );
 		assert_eq!( Subtensor::get_adjustment_interval(), 100 );
-		assert_eq!( Subtensor::get_max_registratations_per_block(), 10 );
+		assert_eq!( Subtensor::get_max_registratations_per_block(), 2 );
 		Subtensor::set_adjustment_interval( 2 );
 		Subtensor::set_target_registrations_per_interval( 2 );
 		Subtensor::set_difficulty_from_u64( 2 );
@@ -155,10 +141,10 @@ fn test_difficulty_adjustment() {
 		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
 		assert_eq!( Subtensor::get_target_registrations_per_interval(), 1 );
 		assert_eq!( Subtensor::get_adjustment_interval(), 1 );
-		assert_eq!( Subtensor::get_max_registratations_per_block(), 10 );
+		assert_eq!( Subtensor::get_max_registratations_per_block(), 2 );
 
-		let (nonce0, work0): (u64, Vec<u8>) = create_work_for_block_number( 0 );
-		let (nonce1, work1): (u64, Vec<u8>) = create_work_for_block_number( 0 );
+		let (nonce0, work0): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 0 );
+		let (nonce1, work1): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 0 );
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(0), 0, nonce0, work0, 0, 0));
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(1), 0, nonce1, work1, 1, 1));
 		assert_eq!( Subtensor::get_registrations_this_interval(), 2 );
@@ -168,14 +154,14 @@ fn test_difficulty_adjustment() {
 		assert_eq!( Subtensor::get_difficulty_as_u64(), 2 );
 		step_block ( 1 );
 		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
-		let (nonce2, work2): (u64, Vec<u8>) = create_work_for_block_number( 2 );
-		let (nonce3, work3): (u64, Vec<u8>) = create_work_for_block_number( 2 );
+		let (nonce2, work2): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 2 );
+		let (nonce3, work3): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 2 );
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(2), 2, nonce2, work2, 2, 2));
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(3), 2, nonce3, work3, 3, 3));
 		step_block ( 1 );
 		assert_eq!( Subtensor::get_difficulty_as_u64(), 2 );
-		let (nonce4, work4): (u64, Vec<u8>) = create_work_for_block_number( 3 );
-		let (nonce5, work5): (u64, Vec<u8>) = create_work_for_block_number( 3 );
+		let (nonce4, work4): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 3 );
+		let (nonce5, work5): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 3 );
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(4), 3, nonce4, work4, 4, 4));
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(5), 3, nonce5, work5, 5, 5));
 		step_block ( 1 );
@@ -197,15 +183,14 @@ fn test_already_active_hotkey() {
 	new_test_ext().execute_with(|| {
 
 		let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let (nonce, work): (u64, Vec<u8>) = create_work_for_block_number( block_number );
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667;
 
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
 
 		let block_number: u64 = 0;
-		let (nonce, work): (u64, Vec<u8>) = create_work_for_block_number( block_number );
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667;
 		let result = Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id);
@@ -218,7 +203,7 @@ fn test_already_active_hotkey() {
 fn test_invalid_seal() {
 	new_test_ext().execute_with(|| {
 		let block_number: u64 = 0;
-		let (nonce, work): (u64, Vec<u8>) = create_work_for_block_number( 1 );
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 1 );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667;
 		let result = Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id);
@@ -230,7 +215,7 @@ fn test_invalid_seal() {
 fn test_invalid_block_number() {
 	new_test_ext().execute_with(|| {
 		let block_number: u64 = 1;
-		let (nonce, work): (u64, Vec<u8>) = create_work_for_block_number( block_number );
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667;
 		let result = Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id);
@@ -242,7 +227,7 @@ fn test_invalid_block_number() {
 fn test_invalid_difficulty() {
 	new_test_ext().execute_with(|| {
 		let block_number: u64 = 0;
-		let (nonce, work): (u64, Vec<u8>) = create_work_for_block_number( block_number );
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667;
 		Subtensor::set_difficulty_from_u64( 18_446_744_073_709_551_615u64 );
@@ -256,7 +241,7 @@ fn test_register_failed_no_signature() {
 	new_test_ext().execute_with(|| {
 
 		let block_number: u64 = 1;
-		let (nonce, work): (u64, Vec<u8>) = create_work_for_block_number( block_number );
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 

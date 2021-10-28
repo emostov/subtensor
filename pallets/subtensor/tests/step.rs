@@ -1,5 +1,3 @@
-use frame_support::{assert_ok};
-use frame_system::{Config};
 mod mock;
 use mock::*;
 
@@ -28,6 +26,7 @@ fn test_step_with_neuron_no_balances() {
     let coldkey:u64 = 1;
     let hotkey:u64 = 2;
     new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
         let neuron = register_ok_neuron( hotkey, coldkey );
         assert_eq!( Subtensor::get_neuron_count(), 1 );
         assert_eq!( Subtensor::get_total_stake(), 0 );
@@ -64,6 +63,7 @@ fn test_step_with_neuron_with_balances() {
     let hotkey:u64= 2;
     let initial_stake:u64 = 1000000000;
     new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
         let neuron = register_ok_neuron( hotkey, coldkey );
         Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, initial_stake);
         assert_eq!( Subtensor::get_total_stake(), initial_stake );
@@ -96,6 +96,7 @@ fn test_step_with_neuron_with_balances() {
 #[test]
 fn test_step_with_many() {
     new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
         let initial_stake:u64 = 1000000000;
         for i in 0..4 {
             register_ok_neuron( i as u64, i as u64 );
@@ -140,6 +141,7 @@ fn test_step_with_many() {
 #[test]
 fn test_step_with_many_zero_weights() {
     new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
         let initial_stake:u64 = 1000000000;
         for i in 0..4 {
             register_ok_neuron( i as u64, i as u64 );
@@ -187,6 +189,7 @@ fn test_step_with_many_zero_weights() {
 #[test]
 fn test_step_with_many_self_weights() {
     new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
         let initial_stake:u64 = 1000000000;
         for i in 0..4 {
             register_ok_neuron(i as u64, i as u64 );
@@ -258,6 +261,7 @@ pub fn mat_approx_equals( a_vec: &Vec<Vec<u64>>, b_vec: &Vec<Vec<u64>>, eps: u64
 #[test]
 fn test_two_steps_with_many_outward_weights() {
     new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
         let initial_stake:u64 = 1000000000;
         let u64m: u64 = 18446744073709551615;
         for i in 0..4 {

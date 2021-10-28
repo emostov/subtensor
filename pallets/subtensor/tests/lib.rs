@@ -1,15 +1,15 @@
-use pallet_subtensor::{ChargeTransactionPayment, Error, CallType};
+use pallet_subtensor::{ChargeTransactionPayment, CallType};
 use frame_support::{assert_ok};
 
 mod mock;
 
 use mock::*;
 use frame_system::Config;
-use frame_support::weights::{DispatchInfo, Pays};
+use frame_support::weights::{DispatchInfo};
 use frame_support::weights::PostDispatchInfo;
 use sp_std::marker::PhantomData;
 use sp_runtime::traits::SignedExtension;
-use sp_runtime::transaction_validity::{InvalidTransaction, ValidTransaction};
+use sp_runtime::transaction_validity::{ValidTransaction};
 use frame_support::dispatch::GetDispatchInfo;
 
 #[test]
@@ -37,8 +37,7 @@ fn fee_from_emission_priority_with_neuron() {
     new_test_ext().execute_with(|| {
 
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
@@ -64,8 +63,7 @@ fn fee_from_emission_priority_with_neuron_and_weights_and_stake() {
     new_test_ext().execute_with(|| {
 
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
@@ -107,9 +105,8 @@ fn test_charge_transaction_payment_get_priority_vanilla() {
 fn test_charge_transaction_payment_validate_set_weights_ok() {
     new_test_ext().execute_with(|| {
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
-		let hotkey_account_id = 1;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+        let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1_000_000_000); // Add the stake.
@@ -130,8 +127,7 @@ fn test_charge_transaction_payment_validate_set_weights_ok() {
 fn test_charge_transaction_payment_validate_add_stake_ok() {
     new_test_ext().execute_with(|| {
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
@@ -153,8 +149,7 @@ fn test_charge_transaction_payment_validate_add_stake_ok() {
 fn test_charge_transaction_payment_validate_remove_stake_ok() {
     new_test_ext().execute_with(|| {
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
@@ -176,8 +171,7 @@ fn test_charge_transaction_payment_validate_remove_stake_ok() {
 fn test_charge_transaction_payment_validate_serve_axon_ok() {
     new_test_ext().execute_with(|| {
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
@@ -222,8 +216,7 @@ fn test_charge_transaction_payment_validate_other_ok() {
 fn pre_dispatch_works() {
     new_test_ext().execute_with(|| {
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
@@ -253,8 +246,7 @@ fn pre_dispatch_works() {
 fn post_dispatch_works() {
     new_test_ext().execute_with(|| {
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
@@ -286,11 +278,10 @@ fn test_sudo_call_does_not_pay_transaction_fee() {
 
     test_ext_with_balances(vec![(source_key_id, balance)]).execute_with(|| {
         let block_number: u64 = 0;
-		let nonce: u64 = 0;
-		let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
-		let result = Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id);
+		let _ = Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id);
         
         assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), vec![0], vec![u32::MAX]));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1000000000); // Add the stake.

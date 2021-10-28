@@ -100,6 +100,7 @@ fn test_dividends_with_run_to_block() {
 		let initial_stake:u64 = 5000;
 
 		// Subscribe neuron, this will set a self weight
+		Subtensor::set_max_registratations_per_block( 3 );
 		let _adam = register_ok_neuron( 0, coldkey_account_id);
 		let neuron_src = register_ok_neuron(neuron_src_hotkey_id, coldkey_account_id);
 		let neuron_dest = register_ok_neuron(neuron_dest_hotkey_id, coldkey_account_id);

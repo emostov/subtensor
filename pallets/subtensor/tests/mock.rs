@@ -254,9 +254,8 @@ pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExterna
 
 #[allow(dead_code)]
 pub fn register_ok_neuron( hotkey_account_id: u64, coldkey_account_id: u64) -> NeuronMetadata<u64> {
-	let block_number: u64 = 0;
-	let nonce: u64 = 0;
-	let work: Vec<u8> = vec![133, 107, 208, 61, 223, 10, 240, 71, 41, 108, 243, 82, 88, 114, 146, 65, 133, 235, 52, 216, 228, 95, 227, 65, 128, 228, 138, 133, 126, 121, 172, 139];
+	let block_number: u64 = Subtensor::get_current_block_as_u64();
+	let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 	let result = Subtensor::register( <<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id );
 	assert_ok!(result);
 	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);

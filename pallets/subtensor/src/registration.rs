@@ -1,11 +1,9 @@
 use super::*;
-use super::*;
 use sp_std::if_std; 
 use sp_std::convert::TryInto;
 use sp_core::{H256, U256};
 use sp_io::hashing::sha2_256;
 use frame_system::{ensure_signed};
-use substrate_fixed::types::U64F64;
 
 impl<T: Config> Pallet<T> {
 
@@ -19,39 +17,26 @@ impl<T: Config> Pallet<T> {
     ) -> dispatch::DispatchResult {
 
         // --- Check the callers hotkey signature.
-        let hotkey_id = ensure_signed(origin)?;
+        ensure_signed(origin)?;
 
-        // --- Check that registrations per block does not exceed limit.
+        // --- Check that registrations per block and hotkey.
         let registrations_this_block: u64 = Self::get_registrations_this_block();
-        ensure! ( registrations_this_block < Self::get_max_registratations_per_block(), Error::<T>::ToManyRegistrationsThisBlock ); // TODO(const): change error.
+        ensure! ( registrations_this_block < Self::get_max_registratations_per_block(), Error::<T>::ToManyRegistrationsThisBlock ); // Number of registrations this block exceeded.
+        ensure!( !Hotkeys::<T>::contains_key(&hotkey), Error::<T>::AlreadyRegistered );  // Hotkey has already registered.
 
-        // --- Check block number is not invalid.
+        // --- Check block number validity.
         let current_block_number: u64 = Self::get_current_block_as_u64_here();
-
-        // If the block number is from the past.
         ensure! ( current_block_number >= block_number, Error::<T>::InvalidWorkBlock ); // TODO(const): change error.
-        let block_difference: U256 = U256::from( current_block_number - block_number + 1 );
+        ensure! ( current_block_number - block_number < 100, Error::<T>::InvalidWorkBlock ); // TODO(const): change error.
 
-        // --- Get the block hash for this height.
-        let block_hash_at_number: H256 = Self::get_block_hash_from_u64( block_number );
-
-        // --- Get the difficulty for this block.
-        let vanilla_difficulty: U256 = Self::get_difficulty();
-        let difficulty = block_difference * vanilla_difficulty;
-
-        // --- Get work as hash
+        // --- Check difficulty.
+        let difficulty: U256 = Self::get_difficulty();
         let work_hash: H256 = Self::vec_to_hash( work );
-
-        // --- Check that the work-hash meets the difficulty.
         ensure! ( Self::hash_meets_difficulty( &work_hash, difficulty ), Error::<T>::InvalidDifficulty ); // TODO(const): change error.
 
-        // --- Check that the work is correctly done.
-        // Check that the seal matches the work.
-        let nonce_as_u256: U256 = U256::from( nonce );
-        let seal: H256 = Self::create_seal_hash( block_hash_at_number, nonce_as_u256 );
+        // --- Check work.
+        let seal: H256 = Self::create_seal_hash( block_number, nonce );
         ensure! ( seal == work_hash, Error::<T>::InvalidSeal ); // TODO(const): change error.
-
-        // --- AT THIS POINT WE KNOW THE USER HAS SOLVED THE POW.
         
         // Check that the hotkey has not already been registered.
         ensure!( !Hotkeys::<T>::contains_key(&hotkey), Error::<T>::AlreadyRegistered );
@@ -117,9 +102,9 @@ impl<T: Config> Pallet<T> {
     pub fn hash_meets_difficulty(hash: &H256, difficulty: U256) -> bool {
         let bytes: &[u8] = &hash.as_bytes();
         let num_hash: U256 = U256::from( bytes );
-        let (value, overflowed) = num_hash.overflowing_mul(difficulty);
+        let (_, overflowed) = num_hash.overflowing_mul(difficulty);
         // if_std! {
-        //     println!("Difficulty: hash:{:?}, bytes: {:?}, hash_as_num: {:?}, difficulty:{:?}, value: {:?} overflowed: {:?}", hash, bytes, num_hash, difficulty, value, overflowed);
+        //     println!("Difficulty: hash:{:?}, hash_bytes: {:?}, hash_as_num: {:?}, difficulty:{:?}, value: {:?} overflowed: {:?}", hash, bytes, num_hash, difficulty, value, overflowed);
         // }
         !overflowed
     }
@@ -142,55 +127,75 @@ impl<T: Config> Pallet<T> {
         return hash_as_vec
     }
 
-    pub fn create_seal_hash( block_hash: H256, nonce: U256 ) -> H256 {
-        // Do a concat of the block_hash + nonce.
-        let hash_as_bytes: &[u8] = block_hash.as_bytes();
-        let nonce_bytes: &[u8; 32] = &[
+    pub fn create_seal_hash( block_number_u64: u64, nonce_u64: u64 ) -> H256 {
+        let nonce = U256::from( nonce_u64 );
+        let block_hash_at_number: H256 = Self::get_block_hash_from_u64( block_number_u64 );
+        let block_hash_bytes: &[u8] = block_hash_at_number.as_bytes();
+        let full_bytes: &[u8; 40] = &[
             nonce.byte(0),  nonce.byte(1),  nonce.byte(2),  nonce.byte(3), 
-            nonce.byte(4),  nonce.byte(5),  nonce.byte(6),  nonce.byte(7), 
-            nonce.byte(8),  nonce.byte(9),  nonce.byte(10), nonce.byte(11), 
-            nonce.byte(12), nonce.byte(13), nonce.byte(14), nonce.byte(15), 
-            nonce.byte(16), nonce.byte(17), nonce.byte(18), nonce.byte(19), 
-            nonce.byte(20), nonce.byte(21), nonce.byte(22), nonce.byte(23), 
-            nonce.byte(24), nonce.byte(25), nonce.byte(26), nonce.byte(27), 
-            nonce.byte(28), nonce.byte(29), nonce.byte(30), nonce.byte(31), 
-        ];
-        let seal: Vec<u8> = [hash_as_bytes, nonce_bytes].concat();
+            nonce.byte(4),  nonce.byte(5),  nonce.byte(6),  nonce.byte(7),
 
-        // Use sha256 to create the hash.
-        let seal_hash_vec: [u8; 32] = sha2_256( &seal );
+            block_hash_bytes[0], block_hash_bytes[1], block_hash_bytes[2], block_hash_bytes[3],
+            block_hash_bytes[4], block_hash_bytes[5], block_hash_bytes[6], block_hash_bytes[7],
+            block_hash_bytes[8], block_hash_bytes[9], block_hash_bytes[10], block_hash_bytes[11],
+            block_hash_bytes[12], block_hash_bytes[13], block_hash_bytes[14], block_hash_bytes[15],
+
+            block_hash_bytes[16], block_hash_bytes[17], block_hash_bytes[18], block_hash_bytes[19],
+            block_hash_bytes[20], block_hash_bytes[21], block_hash_bytes[22], block_hash_bytes[23],
+            block_hash_bytes[24], block_hash_bytes[25], block_hash_bytes[26], block_hash_bytes[27],
+            block_hash_bytes[28], block_hash_bytes[29], block_hash_bytes[30], block_hash_bytes[31],
+        ];
+        let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
         // if_std! {
-        //     println!("Seal: block_hash: {:?}, nonce: {:?}, seal_hash: {:?}, seal_hash_vec: {:?}", block_hash, nonce, seal, seal_hash_vec);
+        //     println!("\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}", block_number_u64, nonce_u64, block_hash_at_number, full_bytes, seal_hash_vec, seal_hash);
         // }
         return seal_hash;
     }
 
+    // Helper function for creating nonce and work.
+    pub fn create_work_for_block_number( block_number: u64 ) -> (u64, Vec<u8>) {
+        let difficulty: U256 = Self::get_difficulty();
+        let mut nonce: u64 = 0;
+        let mut work: H256 = Self::create_seal_hash( block_number, nonce );
+        while !Self::hash_meets_difficulty(&work, difficulty) {
+            nonce = nonce + 1;
+            work = Self::create_seal_hash( block_number, nonce );    
+        }
+        let vec_work: Vec<u8> = Self::hash_to_vec( work );
+        return (nonce, vec_work)
+    }
 
-    pub fn check_work ( block_number: u64, block_hash: H256, nonce: U256, difficulty: U256, work: H256 ) -> bool {
+    pub fn print_seal( block_number: u64, nonce_u64: u64, difficulty: u64 ) {
+        let block_hash: H256 = Self::get_block_hash_from_u64(block_number);
+        let block_hash_bytes: &[u8] = block_hash.as_bytes();
+        let nonce = U256::from( nonce_u64 );
+        let full_bytes: &[u8; 40] = &[
+            nonce.byte(0),  nonce.byte(1),  nonce.byte(2),  nonce.byte(3), 
+            nonce.byte(4),  nonce.byte(5),  nonce.byte(6),  nonce.byte(7),
+            block_hash_bytes[0], block_hash_bytes[1], block_hash_bytes[2], block_hash_bytes[3],
+            block_hash_bytes[4], block_hash_bytes[5], block_hash_bytes[6], block_hash_bytes[7],
+            block_hash_bytes[8], block_hash_bytes[9], block_hash_bytes[10], block_hash_bytes[11],
+            block_hash_bytes[12], block_hash_bytes[13], block_hash_bytes[14], block_hash_bytes[15],
 
-        // Check block number range.
-        let current_block_number: u64 = Self::get_current_block_as_u64();
-        if current_block_number < block_number {
-            return false
+            block_hash_bytes[16], block_hash_bytes[17], block_hash_bytes[18], block_hash_bytes[19],
+            block_hash_bytes[20], block_hash_bytes[21], block_hash_bytes[22], block_hash_bytes[23],
+            block_hash_bytes[24], block_hash_bytes[25], block_hash_bytes[26], block_hash_bytes[27],
+            block_hash_bytes[28], block_hash_bytes[29], block_hash_bytes[30], block_hash_bytes[31],
+        ];
+        //let pre_seal: Vec<u8> = &[nonce_bytes, block_hash_bytes].concat();
+        let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
+        let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
+        if_std! {
+            println!("\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nblock_hash_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}", block_number, nonce_u64, block_hash, full_bytes, block_hash_bytes, seal_hash_vec, seal_hash);
         }
 
-        // Check that the submitted block hash is the same as the block hash at this height.
-        let block_hash_at_number: H256 = Self::get_block_hash_from_u64( block_number );
-        if block_hash_at_number != block_hash {
-            return false;
+        let difficulty = U256::from( difficulty );
+        let bytes: &[u8] = &seal_hash.as_bytes();
+        let num_hash: U256 = U256::from( bytes );
+        let (value, overflowed) = num_hash.overflowing_mul(difficulty);
+        if_std! {
+            println!("Difficulty: \nseal_hash:{:?}, \nhash_bytes: {:?}, \nhash_as_num: {:?}, \ndifficulty:{:?}, \nvalue: {:?} \noverflowed: {:?}", seal_hash, bytes, num_hash, difficulty, value, overflowed);
         }
-
-        // Check that the difficulty has been met by the submitted work.
-        if !Self::hash_meets_difficulty( &work,  difficulty ) {
-            return false;
-        }
-
-        // Check that the seal matches the work.
-        let seal: H256 = Self::create_seal_hash( block_hash, nonce );
-        if seal != work {
-            return false;
-        }
-        return true;
     }
 }

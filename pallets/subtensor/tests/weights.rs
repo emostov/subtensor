@@ -1,6 +1,5 @@
 mod mock;
 use mock::*;
-use frame_system::{Config};
 use pallet_subtensor::{Error};
 use frame_support::weights::{GetDispatchInfo, DispatchInfo, DispatchClass, Pays};
 use frame_support::{assert_ok};

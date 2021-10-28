@@ -147,9 +147,6 @@ impl<T: Config> Pallet<T> {
         // Number of peers.
         let n: usize = Self::get_neuron_count() as usize;
         
-        // Get total stake
-        let total_stake: u64 = TotalStake::<T>::get();
-
         // Constants.
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );

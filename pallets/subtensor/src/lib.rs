@@ -47,7 +47,6 @@ use sp_runtime::{
 		InvalidTransaction,
     }
 };
-use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
 use sp_std::vec;
 use sp_std::marker::PhantomData;
@@ -60,11 +59,9 @@ mod staking;
 mod serving;
 mod step;
 mod registration;
-mod hashing;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use substrate_fixed::types::I65F63;
 	use sp_core::{U256};
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, Printable, traits::{Currency}};
 	use frame_system::pallet_prelude::*;
@@ -89,7 +86,7 @@ pub mod pallet {
 		/// --- Currency type that will be used to place deposits on neurons
 		type Currency: Currency<Self::AccountId> + Send + Sync;
 		
-		/// - The transaction fee in RAO per byte
+		/// --- The transaction fee in RAO per byte
 		type TransactionByteFee: Get<BalanceOf<Self>>;
 	}
 
@@ -309,7 +306,11 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T:Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {		
-        }
+			Difficulty::<T>::put( 10000 );
+			AdjustmentInterval::<T>::put( 100 );
+			MaxRegistrationsPerBlock::<T>::put( 2 );
+			TargetRegistrationsPerInterval::<T>::put( 2 );
+		}
 	}
 
 	#[cfg(feature = "std")]
@@ -674,44 +675,39 @@ pub mod pallet {
 	// ---- Subtensor helper functions.
 	impl<T: Config> Pallet<T> {
 
-		// Getters
+		// Constants and defaults
+		pub fn default_difficulty() -> u64 { 10000 }
+		pub fn default_adjustment_interval() -> u64 { 100 }
+		pub fn default_target_registrations_per_interval() -> u64 { 2 }
+		pub fn default_max_registrations_per_block() -> u64 { 2 }
+		pub fn get_difficulty( ) -> U256 {
+			return U256::from( Self::get_difficulty_as_u64() );
+		}
+		pub fn get_difficulty_as_u64( ) -> u64 {
+			if Difficulty::<T>::get() == 0 { Difficulty::<T>::put( Self::default_difficulty() ); }
+			Difficulty::<T>::get()
+		}
+		pub fn get_target_registrations_per_interval() -> u64 {
+			if TargetRegistrationsPerInterval::<T>::get() == 0 { TargetRegistrationsPerInterval::<T>::put( Self::default_target_registrations_per_interval() ); }
+			TargetRegistrationsPerInterval::<T>::get()
+		}
+		pub fn get_adjustment_interval() -> u64 {
+			if AdjustmentInterval::<T>::get() == 0 { AdjustmentInterval::<T>::put( Self::default_adjustment_interval() ); }
+			AdjustmentInterval::<T>::get()
+		}
+		pub fn get_max_registratations_per_block( ) -> u64 {
+			if MaxRegistrationsPerBlock::<T>::get() == 0 { MaxRegistrationsPerBlock::<T>::put( Self::default_max_registrations_per_block() ); }
+			MaxRegistrationsPerBlock::<T>::get()
+		}
+
 		pub fn get_registrations_this_interval( ) -> u64 {
 			RegistrationsThisInterval::<T>::get()
 		}
 		pub fn get_registrations_this_block( ) -> u64 {
 			RegistrationsThisBlock::<T>::get()
 		}
-		pub fn get_difficulty( ) -> U256 {
-			return U256::from( Self::get_difficulty_as_u64() );
-		}
-		pub fn get_difficulty_as_u64( ) -> u64 {
-			let default_difficulty: u64 = 1;
-			if Difficulty::<T>::get() == 0 {
-				Difficulty::<T>::put( default_difficulty )
-			}
-			Difficulty::<T>::get()
-		}
-		pub fn get_target_registrations_per_interval() -> u64 {
-			let default_target_registrations_per_interval: u64 = 1;
-			if TargetRegistrationsPerInterval::<T>::get() == 0 {
-				TargetRegistrationsPerInterval::<T>::put( default_target_registrations_per_interval )
-			}
-			TargetRegistrationsPerInterval::<T>::get()
-		}
-		pub fn get_adjustment_interval() -> u64 {
-			let default_adjustment_interval: u64 = 100;
-			if AdjustmentInterval::<T>::get() == 0 {
-				AdjustmentInterval::<T>::put( default_adjustment_interval );
-			}
-			AdjustmentInterval::<T>::get()
-		}
-		pub fn get_max_registratations_per_block( ) -> u64 {
-			let default_max_registrations_per_block: u64 = 10;
-			if MaxRegistrationsPerBlock::<T>::get() == 0 {
-				MaxRegistrationsPerBlock::<T>::put( default_max_registrations_per_block );
-			}
-			MaxRegistrationsPerBlock::<T>::get()
-		}
+
+
 		pub fn set_difficulty_from_u64( difficulty: u64 ) {
 			Difficulty::<T>::set( difficulty );
 		}
