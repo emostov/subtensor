@@ -51,8 +51,7 @@ impl SubstrateCli for Cli {
 			"dev" => Box::new(chain_spec::development_config()?),
 			"local" => Box::new(chain_spec::local_testnet_config()?),
 			"stage" => Box::new(chain_spec::nobunaga_stagenet_config()?),
-			"test" => Box::new(chain_spec::akatsuki_testnet_config()?),
-			"" | "akatsuki" => Box::new(chain_spec::akatsuki_config()?),
+			"" | "test" | "akatsuki" => Box::new(chain_spec::akatsuki_config()?),
 			
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
