@@ -40,8 +40,7 @@ fn test_add_stake_transaction_fee_ends_up_in_transaction_fee_pool() {
 
 	mock::test_ext_with_balances(balances).execute_with(|| {
 		// Register neuron_1
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let test_neuron = register_ok_neuron(0, 0, test_neuron_hot_key, test_neuron_cold_key);
+		let test_neuron = register_ok_neuron(test_neuron_hot_key, test_neuron_cold_key);
 
 		// Verify start situation
         let start_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
@@ -66,8 +65,7 @@ fn test_add_stake_ok_no_emission() {
 		let coldkey_account_id = 55453;
 
 		// Subscribe neuron
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0, 0, hotkey_account_id, coldkey_account_id);
+		let neuron = register_ok_neuron( hotkey_account_id, coldkey_account_id);
 
 		// Give it some $$$ in his coldkey balance
 		Subtensor::add_balance_to_coldkey_account(&coldkey_account_id, 10000);
@@ -102,10 +100,10 @@ fn test_dividends_with_run_to_block() {
 		let initial_stake:u64 = 5000;
 
 		// Subscribe neuron, this will set a self weight
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let _adam = register_ok_neuron(0, 0, 0, coldkey_account_id);
-		let neuron_src = register_ok_neuron(0, 0, neuron_src_hotkey_id, coldkey_account_id);
-		let neuron_dest = register_ok_neuron(0, 0, neuron_dest_hotkey_id, coldkey_account_id);
+		Subtensor::set_max_registratations_per_block( 3 );
+		let _adam = register_ok_neuron( 0, coldkey_account_id);
+		let neuron_src = register_ok_neuron(neuron_src_hotkey_id, coldkey_account_id);
+		let neuron_dest = register_ok_neuron(neuron_dest_hotkey_id, coldkey_account_id);
 
 		// Add some stake to the hotkey account, so we can test for emission before the transfer takes place
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron_src.uid, initial_stake);
@@ -156,8 +154,7 @@ fn test_add_stake_err_neuron_does_not_belong_to_coldkey() {
 		let hotkey_id = 54544;
 		let other_cold_key = 99498;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let _neuron = register_ok_neuron(0, 0, hotkey_id, coldkey_id);
+		let _neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
 		// Perform the request which is signed by a different cold key
 		let result = Subtensor::add_stake(<<Test as Config>::Origin>::signed(other_cold_key), hotkey_id, 1000);
@@ -171,8 +168,7 @@ fn test_add_stake_err_not_enough_belance() {
 		let coldkey_id = 544;
 		let hotkey_id = 54544;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let _neuron = register_ok_neuron(0, 0, hotkey_id, coldkey_id);
+		let _neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
 		// Lets try to stake with 0 balance in cold key account
 		assert_eq!(Subtensor::get_coldkey_balance(&coldkey_id), 0);
@@ -210,8 +206,7 @@ fn test_remove_stake_ok_no_emission() {
 		let amount = 10000;
 
 		// Let's spin up a neuron
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0,0,hotkey_account_id, coldkey_account_id);
+		let neuron = register_ok_neuron( hotkey_account_id, coldkey_account_id );
 
 		// Some basic assertions
 		assert_eq!(Subtensor::get_total_stake(), 0);
@@ -259,8 +254,7 @@ fn test_remove_stake_err_neuron_does_not_belong_to_coldkey() {
 		let hotkey_id = 54544;
 		let other_cold_key = 99498;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let _neuron = register_ok_neuron(0,0,hotkey_id,coldkey_id);
+		let _neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
 		// Perform the request which is signed by a different cold key
 		let result = Subtensor::remove_stake(<<Test as Config>::Origin>::signed(other_cold_key), hotkey_id, 1000);
@@ -275,8 +269,7 @@ fn test_remove_stake_no_enough_stake() {
 		let hotkey_id = 54544;
 		let amount = 10000;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0,0,hotkey_id, coldkey_id);
+		let neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
 
@@ -330,8 +323,7 @@ fn test_add_stake_to_neuron_hotkey_account_ok() {
 		let coldkey_id = 5443433;
 		let amount: u64 = 10000;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0,0,hotkey_id, coldkey_id);
+		let neuron = register_ok_neuron( hotkey_id, coldkey_id);
 
 		// There is not stake in the system at first, so result should be 0;
 		assert_eq!(Subtensor::get_total_stake(), 0);
@@ -357,8 +349,7 @@ fn test_remove_stake_from_hotkey_account() {
 		let coldkey_id = 5443433;
 		let amount: u64 = 10000;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0,0,hotkey_id, coldkey_id);
+		let neuron = register_ok_neuron( hotkey_id, coldkey_id);
 
 		// Add some stake that can be removed
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, amount);
@@ -493,8 +484,7 @@ fn test_neuron_belongs_to_coldkey_ok() {
         let hotkey_id = 4434334;
 		let coldkey_id = 34333;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0,0,hotkey_id, coldkey_id);
+		let neuron = register_ok_neuron( hotkey_id, coldkey_id );
 		assert_eq!(Subtensor::neuron_belongs_to_coldkey(&neuron, &coldkey_id), true);
 	});
 }
@@ -506,8 +496,7 @@ fn test_neurong_belongs_to_coldkey_err() {
 		let coldkey_id = 34333;
 		let other_coldkey_id = 8979879;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0,0,hotkey_id, other_coldkey_id);
+		let neuron = register_ok_neuron( hotkey_id, other_coldkey_id);
 		assert_eq!(Subtensor::neuron_belongs_to_coldkey(&neuron, &coldkey_id), false);
 	});
 }
@@ -550,8 +539,7 @@ fn test_has_enough_stake_yes() {
 		let coldkey_id = 87989;
 		let intial_amount = 10000;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0,0,hotkey_id, coldkey_id);
+		let neuron = register_ok_neuron( hotkey_id, coldkey_id );
 
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, intial_amount);
 		let neuron = Subtensor::get_neuron_for_uid(neuron.uid);
@@ -566,9 +554,7 @@ fn test_has_enough_stake_no() {
 		let coldkey_id = 87989;
 		let intial_amount = 0;
 
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), 0));
-		let neuron = register_ok_neuron(0,0,hotkey_id, coldkey_id);
-
+		let neuron = register_ok_neuron( hotkey_id, coldkey_id );
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, intial_amount);
 		assert_eq!(Subtensor::has_enough_stake(&neuron, 5000), false);
 

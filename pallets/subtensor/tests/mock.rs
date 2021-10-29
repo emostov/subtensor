@@ -80,6 +80,18 @@ parameter_types! {
 	pub BlockWeights: limits::BlockWeights = limits::BlockWeights::simple_max(1024);
 	pub const ExistentialDeposit: Balance = 1;
 	pub const TransactionByteFee: Balance = 100;
+	pub const SDebug:u64 = 1;
+	pub const StepRho: u64 = 10;
+	pub const StepKappa: u64 = 2;
+	pub const SelfOwnership: u64 = 2;
+	pub const InitialIssuance: u64 = 548833985028256;
+	pub const InitialDifficulty: u64 = 10000;
+	pub const MinimumDifficulty: u64 = 10000;
+	pub const InitialActivityCutoff: u64 = 5000;
+	pub const MaximumDifficulty: u64 = u64::MAX/4;
+	pub const InitialAdjustmentInterval: u64 = 100;
+	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
+	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
 }
 
 thread_local!{
@@ -145,6 +157,18 @@ impl pallet_subtensor::Config for Test {
 	type Event = ();
 	type Currency = Balances;
 	type TransactionByteFee = TransactionByteFee;
+	type SDebug = SDebug;
+	type StepRho = StepRho;
+	type StepKappa = StepKappa;
+	type SelfOwnership = SelfOwnership;
+	type InitialIssuance = InitialIssuance;
+	type InitialDifficulty = InitialDifficulty;
+	type MinimumDifficulty = MinimumDifficulty;
+	type MaximumDifficulty = MaximumDifficulty;
+	type InitialActivityCutoff = InitialActivityCutoff;
+	type InitialAdjustmentInterval = InitialAdjustmentInterval;
+	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
+	type InitialTargetRegistrationsPerInterval = InitialTargetRegistrationsPerInterval;
 }
 
 impl pallet_sudo::Config for Test {
@@ -226,6 +250,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 }
 
+
 #[allow(dead_code)]
 pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default()
@@ -253,9 +278,10 @@ pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExterna
 // }
 
 #[allow(dead_code)]
-pub fn register_ok_neuron( registration_key: u64, email_uid: u8, hotkey_account_id: u64, coldkey_account_id: u64) -> NeuronMetadata<u64> {
-	let email_hash: Vec<u8> = vec![ email_uid; 32 ];
-	let result = Subtensor::register( <<Test as frame_system::Config>::Origin>::signed(registration_key), email_hash, hotkey_account_id, coldkey_account_id );
+pub fn register_ok_neuron( hotkey_account_id: u64, coldkey_account_id: u64) -> NeuronMetadata<u64> {
+	let block_number: u64 = Subtensor::get_current_block_as_u64();
+	let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+	let result = Subtensor::register( <<Test as frame_system::Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id );
 	assert_ok!(result);
 	let neuron = Subtensor::get_neuron_for_hotkey(&hotkey_account_id);
 	neuron
@@ -269,15 +295,15 @@ pub fn serve_axon( hotkey_account_id : u64, version: u32, ip: u128, port: u16, i
 	neuron
 }
 
-#[allow(dead_code)]
-pub fn n_subscribe_ok_neuron(n: usize) -> Vec<NeuronMetadata<u64>> {
-	let mut neurons: Vec<NeuronMetadata<u64>> = vec![];
-	for i in 0..n {
-		let neuron: NeuronMetadata<u64> = register_ok_neuron(0, i as u8, i as u64, i as u64);
-		neurons.push(neuron);
-	}
-	return neurons;
-}
+// #[allow(dead_code)]
+// pub fn n_subscribe_ok_neuron(n: usize) -> Vec<NeuronMetadata<u64>> {
+// 	let mut neurons: Vec<NeuronMetadata<u64>> = vec![];
+// 	for i in 0..n {
+// 		let neuron: NeuronMetadata<u64> = register_ok_neuron(0, i as u8, i as u64, i as u64);
+// 		neurons.push(neuron);
+// 	}
+// 	return neurons;
+// }
 
 #[allow(dead_code)]
 pub(crate) fn run_to_block(n: u64) {

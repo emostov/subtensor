@@ -44,18 +44,15 @@ fn test_serve_not_registered() {
 #[test]
 fn test_serve_invalid_modality() {
 	new_test_ext().execute_with(|| {
-        let registration_id = 0;
 		let version = 0;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
 		let port = 1337;
 		let modality = 1; // Not Allowed.
-        let email_hash: Vec<u8> = vec![0;32];
 		let hotkey: u64 = 0;
 		let coldkey: u64 = 0;
 
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey, coldkey));
+		register_ok_neuron(hotkey, coldkey);
 		let result = Subtensor::serve_axon(<<Test as Config>::Origin>::signed(hotkey), version, ip, port, ip_type, modality );
 		assert_eq!(result, Err(Error::<Test>::InvalidModality.into()));
     });
@@ -64,18 +61,15 @@ fn test_serve_invalid_modality() {
 #[test]
 fn test_serve_invalid_ip() {
 	new_test_ext().execute_with(|| {
-        let registration_id = 0;
 		let version = 0;
 		let ip = ipv4(127,0,0,1); // Not allowed.
 		let ip_type = 4;
 		let port = 1337;
 		let modality = 0;
-        let email_hash: Vec<u8> = vec![0;32];
 		let hotkey: u64 = 0;
 		let coldkey: u64 = 0;
 
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey, coldkey));
+		register_ok_neuron(hotkey, coldkey);
 		let result = Subtensor::serve_axon(<<Test as Config>::Origin>::signed(hotkey), version, ip, port, ip_type, modality );
 		assert_eq!(result, Err(Error::<Test>::InvalidIpAddress.into()));
 	});
@@ -84,18 +78,15 @@ fn test_serve_invalid_ip() {
 #[test]
 fn test_serve_invalid_ipv6() {
 	new_test_ext().execute_with(|| {
-        let registration_id = 0;
 		let version = 0;
 		let ip = ipv6(0,0,0,0,0,0,0,1); // Ipv6 localhost, invalid
 		let ip_type = 6;
         let port = 1337;
 		let modality = 0;
-        let email_hash: Vec<u8> = vec![0;32];
 		let hotkey: u64 = 0;
 		let coldkey: u64 = 0;
 
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey, coldkey));
+		register_ok_neuron(hotkey, coldkey);
 		let result = Subtensor::serve_axon(<<Test as Config>::Origin>::signed(hotkey), version, ip, port, ip_type, modality );
 		assert_eq!(result, Err(Error::<Test>::InvalidIpAddress.into()));
 	});
@@ -104,18 +95,15 @@ fn test_serve_invalid_ipv6() {
 #[test]
 fn test_serve_invalid_ip_type() {
 	new_test_ext().execute_with(|| {
-        let registration_id = 0;
 		let version = 0;
 		let ip = ipv4(8,8,8,8); 
 		let ip_type = 10; // must be 4 or 6
 		let port = 1337;
 		let modality = 0;
-        let email_hash: Vec<u8> = vec![0;32];
 		let hotkey: u64 = 0;
 		let coldkey: u64 = 0;
 
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey, coldkey));
+		register_ok_neuron(hotkey, coldkey);
 		let result = Subtensor::serve_axon(<<Test as Config>::Origin>::signed(hotkey), version, ip, port, ip_type, modality );
 		assert_eq!(result, Err(Error::<Test>::InvalidIpType.into()));
 	});
@@ -124,18 +112,15 @@ fn test_serve_invalid_ip_type() {
 #[test]
 fn test_serve_success() {
 	new_test_ext().execute_with(|| {
-        let registration_id = 0;
 		let version = 0;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
 		let port = 1337;
 		let modality = 0;
-        let email_hash: Vec<u8> = vec![0;32];
 		let hotkey: u64 = 0;
 		let coldkey: u64 = 0;
 
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey, coldkey));
+		register_ok_neuron(hotkey, coldkey);
 		assert_ok!(Subtensor::serve_axon(<<Test as Config>::Origin>::signed(hotkey), version, ip, port, ip_type, modality ));
         let neuron = Subtensor::get_neuron_for_hotkey(&hotkey);
 
@@ -168,18 +153,15 @@ fn test_serve_success() {
 #[test]
 fn test_serve_success_with_update() {
 	new_test_ext().execute_with(|| {
-        let registration_id = 0;
 		let version = 0;
 		let ip = ipv4(8,8,8,8);
 		let ip_type = 4;
 		let port = 1337;
 		let modality = 0;
-        let email_hash: Vec<u8> = vec![0;32];
 		let hotkey: u64 = 0;
 		let coldkey: u64 = 0;
 
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey, coldkey));
+		register_ok_neuron(hotkey, coldkey);
 		assert_ok!(Subtensor::serve_axon(<<Test as Config>::Origin>::signed(hotkey), version, ip, port, ip_type, modality ));
         let neuron = Subtensor::get_neuron_for_hotkey(&hotkey);
 

@@ -47,7 +47,6 @@ use sp_runtime::{
 		InvalidTransaction,
     }
 };
-use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
 use sp_std::vec;
 use sp_std::marker::PhantomData;
@@ -63,7 +62,7 @@ mod registration;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use substrate_fixed::types::I65F63;
+	use sp_core::{U256};
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*, Printable, traits::{Currency}};
 	use frame_system::pallet_prelude::*;
     use sp_std::vec::Vec;
@@ -87,8 +86,56 @@ pub mod pallet {
 		/// --- Currency type that will be used to place deposits on neurons
 		type Currency: Currency<Self::AccountId> + Send + Sync;
 		
-		/// - The transaction fee in RAO per byte
+		/// --- The transaction fee in RAO per byte
 		type TransactionByteFee: Get<BalanceOf<Self>>;
+
+		/// Debug is on
+		#[pallet::constant]
+		type SDebug: Get<u64>;
+
+		/// Activity constant
+		#[pallet::constant]
+		type StepRho: Get<u64>;
+
+		/// Activity constant
+		#[pallet::constant]
+		type StepKappa: Get<u64>;
+
+		/// Activity constant
+		#[pallet::constant]
+		type SelfOwnership: Get<u64>;
+
+		/// Activity constant
+		#[pallet::constant]
+		type InitialActivityCutoff: Get<u64>;
+
+		/// Initial registration difficulty.
+		#[pallet::constant]
+		type InitialIssuance: Get<u64>;
+
+		/// Initial registration difficulty.
+		#[pallet::constant]
+		type InitialDifficulty: Get<u64>;
+
+		/// Minimum registration difficulty
+		#[pallet::constant]
+		type MinimumDifficulty: Get<u64>;
+
+		/// Maximum registration difficulty
+		#[pallet::constant]
+		type MaximumDifficulty: Get<u64>;
+
+		/// Initial adjustment interval.
+		#[pallet::constant]
+		type InitialAdjustmentInterval: Get<u64>;
+
+		/// Initial max registrations per block.
+		#[pallet::constant]
+		type InitialMaxRegistrationsPerBlock: Get<u64>;
+
+		/// Initial target registrations per interval.
+		#[pallet::constant]
+		type InitialTargetRegistrationsPerInterval: Get<u64>;
 	}
 
 	/// ************************************************************
@@ -207,33 +254,89 @@ pub mod pallet {
 		ValueQuery
 	>;
 
+
+	#[pallet::type_value] 
+	pub fn DefaultTotalIssuance<T: Config>() -> u64 { T::InitialIssuance::get() }
 	#[pallet::storage]
 	pub type TotalIssuance<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultTotalIssuance<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultDifficulty<T: Config>() -> u64 { T::InitialDifficulty::get() }
+	#[pallet::storage]
+	pub type Difficulty<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultDifficulty<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultActivityCutoff<T: Config>() -> u64 { T::InitialActivityCutoff::get() }
+	#[pallet::storage]
+	pub type ActivityCutoff<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultActivityCutoff<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultAdjustmentInterval<T: Config>() -> u64 { T::InitialAdjustmentInterval::get() }
+	#[pallet::storage]
+	pub type AdjustmentInterval<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultAdjustmentInterval<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u64 { T::InitialTargetRegistrationsPerInterval::get() }
+	#[pallet::storage]
+	pub type TargetRegistrationsPerInterval<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultTargetRegistrationsPerInterval<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u64 { T::InitialMaxRegistrationsPerBlock::get() }
+	#[pallet::storage]
+	pub type MaxRegistrationsPerBlock<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultMaxRegistrationsPerBlock<T>
+	>;
+
+	#[pallet::storage]
+	pub type LastDifficultyAdjustmentBlock<T> = StorageValue<
 		_, 
 		u64, 
 		ValueQuery
 	>;
 
-	/// ---- Maps from 0 to the registration key.
+
 	#[pallet::storage]
-    pub(super) type RegistrationKey<T:Config> = StorageMap<
+	pub type RegistrationsThisInterval<T> = StorageValue<
 		_, 
-		Identity,
-		u32,
-		T::AccountId, 
+		u64, 
 		ValueQuery
 	>;
 
-	/// ---- Maps from coldkey to set of hotkeys.
 	#[pallet::storage]
-    #[pallet::getter(fn uids)]
-    pub(super) type EmailHashes<T:Config> = StorageMap<
+	pub type RegistrationsThisBlock<T> = StorageValue<
 		_, 
-		Blake2_128Concat, 
-		Vec<u8>, 
-		Vec<T::AccountId>, 
+		u64, 
 		ValueQuery
 	>;
+
 
 	/// ---- Maps from hotkey to uid.
 	#[pallet::storage]
@@ -277,10 +380,10 @@ pub mod pallet {
     
     #[pallet::genesis_build]
     impl<T:Config> GenesisBuild<T> for GenesisConfig {
-        fn build(&self) {
-			
-        }
+        fn build(&self) {		
+		}
 	}
+
 
 	#[cfg(feature = "std")]
 	impl GenesisConfig {
@@ -330,9 +433,6 @@ pub mod pallet {
 		/// --- Event created when stake has been removed from 
 		/// the staking account into the coldkey account.
 		StakeRemoved(T::AccountId, u64),
-
-		/// --- Event created when the registration auth key is set on the chain.
-		RegistrationKeySet(T::AccountId),
 	}
 
 	/// ************************************************************
@@ -364,8 +464,17 @@ pub mod pallet {
 		/// does not exist in the metagraph.
 		InvalidUid,
 
-		/// ---- Thrown if the supplied email hash is not of correct size.
-		InvalidEmailHash,
+		/// ---- Thrown if the supplied pow hash block is in the future or negative
+		InvalidWorkBlock,
+
+		/// ---- Thrown if the supplied pow hash block does not meet the network difficulty.
+		InvalidDifficulty,
+
+		/// ---- Thrown if the supplied pow hash seal does not match the supplied work.
+		InvalidSeal,
+
+		/// ---- Thrown when registrations this block exceeds allowed number.
+		ToManyRegistrationsThisBlock,
 
 		/// ---- Thrown when the caller requests setting or removing data from
 		/// a neuron which does not exist in the active set.
@@ -374,16 +483,6 @@ pub mod pallet {
 		/// ---- Thrown when the caller requests registering a neuron which 
 		/// already exists in the active set.
 		AlreadyRegistered,
-
-		/// ---- Thrown when the caller requests registering a neuron which 
-		/// exceeds MAX_REGISTRATIONS_PER_EMAIL
-		MaxRegistrationsReached,
-
-		/// ---- Thrown when registration is called from a non-authorized key.
-		NonAuthorizedRegistrationKey,
-
-		/// ---- Thrown when the registration key is not set and registraion is disabled.
-		RegistrationDisabled,
 
 		/// ---- Thrown when a stake, unstake or subscribe request is made by a coldkey
 		/// which is not associated with the hotkey account. 
@@ -431,6 +530,7 @@ pub mod pallet {
 		/// 		- The number of the block we are initializing.
 		fn on_initialize( _n: BlockNumberFor<T> ) -> Weight {
 			Self::block_step();
+			Self::update_difficulty();
 			return 0;
 		}
 	}
@@ -485,7 +585,11 @@ pub mod pallet {
 		/// 		associated colkey account.
 		///
         #[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn set_weights(origin:OriginFor<T>, dests: Vec<u32>, weights: Vec<u32>) -> DispatchResult {
+		pub fn set_weights(
+			origin:OriginFor<T>, 
+			dests: Vec<u32>, 
+			weights: Vec<u32>
+		) -> DispatchResult {
 			Self::do_set_weights(origin, dests, weights)
 		}
 		
@@ -522,7 +626,11 @@ pub mod pallet {
 		/// 		associated colkey account.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
-		pub fn add_stake(origin:OriginFor<T>, hotkey: T::AccountId, ammount_staked: u64) -> DispatchResult {
+		pub fn add_stake(
+			origin:OriginFor<T>, 
+			hotkey: T::AccountId, 
+			ammount_staked: u64
+		) -> DispatchResult {
 			Self::do_add_stake(origin, hotkey, ammount_staked)
 		}
 
@@ -554,7 +662,11 @@ pub mod pallet {
 		/// 		associated hotkey staking account.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
-		pub fn remove_stake(origin:OriginFor<T>, hotkey: T::AccountId, ammount_unstaked: u64) -> DispatchResult {
+		pub fn remove_stake(
+			origin:OriginFor<T>, 
+			hotkey: T::AccountId, 
+			ammount_unstaked: u64
+		) -> DispatchResult {
 			Self::do_remove_stake(origin, hotkey, ammount_unstaked)
 		}
 
@@ -582,73 +694,142 @@ pub mod pallet {
 		/// 		- On subscription of a new neuron to the active set.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn serve_axon(origin:OriginFor<T>, version: u32, ip: u128, port: u16, ip_type: u8, modality: u8 ) -> DispatchResult {
+		pub fn serve_axon (
+			origin:OriginFor<T>, 
+			version: u32, 
+			ip: u128, 
+			port: u16, 
+			ip_type: u8, 
+			modality: u8 
+		) -> DispatchResult {
 			Self::do_serve_axon( origin, version, ip, port, ip_type, modality )
 		}
 
-		/// ---- Registers a new neuron to the graph. Function must be called by the registration key.
+		/// ---- Registers a new neuron to the graph. 
 		///
 		/// # Args:
 		/// 	* 'origin': (<T as frame_system::Config>Origin):
 		/// 		- The caller, registration key as found in RegistrationKey::get(0);
 		///
-		/// 	* 'ip' (u128):
-		/// 		- The u64 encoded IP address of type 6 or 4.
+		/// 	* 'block_number' (u64):
+		/// 		- Block number of hash to attempt.
 		///
-		/// 	* 'port' (u16):
-		/// 		- The port number where this neuron receives RPC requests.
+		/// 	* 'nonce' (u64):
+		/// 		- Hashing nonce as a u64.
 		///
-		/// 	* 'ip_type' (u8):
-		/// 		- The ip type one of (4,6).
+		/// 	* 'work' (Vec<u8>):
+		/// 		- Work hash as list of bytes.
 		/// 
-		/// 	* 'modality' (u8):
-		/// 		- The neuron modality type.
+		/// 	* 'hotkey' (T::AccountId,):
+		/// 		- Hotkey to register.
+		/// 
+		/// 	* 'coldkey' (T::AccountId,):
+		/// 		- Coldkey to register.
 		///
 		/// # Event:
-		/// 	* 'AxonServed':
+		/// 	* 'NeuronRegistered':
 		/// 		- On subscription of a new neuron to the active set.
 		///
 		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn register( origin:OriginFor<T>, email_hash: Vec<u8>, hotkey: T::AccountId, coldkey: T::AccountId ) -> DispatchResult {
-			Self::do_registration(origin, email_hash, hotkey, coldkey)
+		pub fn register( 
+				origin:OriginFor<T>, 
+				block_number: u64, 
+				nonce: u64, 
+				work: Vec<u8>,
+				hotkey: T::AccountId, 
+				coldkey: T::AccountId 
+		) -> DispatchResult {
+			Self::do_registration(origin, block_number, nonce, work, hotkey, coldkey)
 		}
 
-		/// ---- (SUDO ONLY): Sets the registration key.
-		///
-		/// # Args:
-		/// 	* 'origin': (<T as frame_system::Config>Origin):
-		/// 		- The caller, must be sudo.
-		///
-		/// 	* 'registration_key' (T::AccountId):
-		/// 		- Key to be given permissions to register peers to the network.
-		///
-		/// # Event:
-		/// 	* 'RegistrationKeySet':
-		/// 		- A new registration key has been properly set.
-		///
-		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
-		pub fn set_registeration_key( origin:OriginFor<T>, registration_key: T::AccountId ) -> DispatchResult {
-			Self::set_registration_auth( origin, registration_key )
-		}
 	}
 	
 	// ---- Subtensor helper functions.
 	impl<T: Config> Pallet<T> {
 
-		// Getters.
-		pub fn get_max_registrations_per_email( ) -> u32 {
-			let max_registratations_per_email: u32 = 100;
-			max_registratations_per_email
+		// TURN ON DEBUG
+		pub fn debug() -> bool {
+			return T::SDebug::get() == 1
 		}
-		pub fn get_max_registrations_per_block( ) -> u32 {
-			let max_registratations_per_block: u32 = 10;
-			max_registratations_per_block
+
+		// Adjustable Constants.
+		// -- Difficulty.
+		pub fn get_difficulty( ) -> U256 {
+			return U256::from( Self::get_difficulty_as_u64() );
+		}
+		pub fn get_difficulty_as_u64( ) -> u64 {
+			Difficulty::<T>::get()
+		}
+		pub fn set_difficulty_from_u64( difficulty: u64 ) {
+			Difficulty::<T>::set( difficulty );
+		}
+		// -- Activity cuttoff
+		pub fn get_activity_cutoff( ) -> u64 {
+			return ActivityCutoff::<T>::get();
+		}
+		pub fn set_activity_cutoff( cuttoff: u64 ) {
+			ActivityCutoff::<T>::set( cuttoff );
+		}
+		// -- Adjustment Interval.
+		pub fn get_adjustment_interval() -> u64 {
+			AdjustmentInterval::<T>::get()
+		}
+		pub fn set_adjustment_interval( interval: u64 ) {
+			AdjustmentInterval::<T>::put( interval );
+		}
+		// -- Target registrations per interval.
+		pub fn get_target_registrations_per_interval() -> u64 {
+			TargetRegistrationsPerInterval::<T>::get()
+		}
+		pub fn set_target_registrations_per_interval( target: u64 ) {
+			TargetRegistrationsPerInterval::<T>::put( target );
+		}
+		pub fn get_max_registratations_per_block( ) -> u64 {
+			MaxRegistrationsPerBlock::<T>::get()
+		}
+		pub fn set_max_registratations_per_block( max_registrations: u64 ){
+			MaxRegistrationsPerBlock::<T>::put( max_registrations );
+		}
+		// -- Minimum difficulty
+		pub fn get_minimum_difficulty( ) -> u64 {
+			return T::MinimumDifficulty::get();
+		}
+		// -- Maximum difficulty
+		pub fn get_maximum_difficulty( ) -> u64 {
+			return T::MaximumDifficulty::get();
+		}
+		// -- Get Block emission.
+		pub fn get_block_emission( ) -> u64 {
+			return 1000000000;
+		}
+		// -- Get step consensus temperature (rho)
+		pub fn get_rho( ) -> u64 {
+			return T::StepRho::get();
+		}
+		// -- Get step consensus shift (1/kappa)
+		pub fn get_kappa( ) -> u64 {
+			return T::StepKappa::get();
+		}
+		// -- Get self ownership proportion denominator
+		pub fn get_self_ownership( ) -> u64 {
+			return T::SelfOwnership::get();
+		}
+
+		// Variable Parameters
+		pub fn get_registrations_this_interval( ) -> u64 {
+			RegistrationsThisInterval::<T>::get()
+		}
+		pub fn get_registrations_this_block( ) -> u64 {
+			RegistrationsThisBlock::<T>::get()
 		}
 		pub fn get_total_stake( ) -> u64 {
 			return TotalStake::<T>::get();
 		}
 		pub fn get_total_issuance( ) -> u64 {
 			return TotalIssuance::<T>::get();
+		}
+		pub fn get_initial_total_issuance( ) -> u64 {
+			return T::InitialIssuance::get();
 		}
 		pub fn get_lastupdate( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
@@ -753,6 +934,13 @@ pub mod pallet {
 			}
 			TotalStake::<T>::set( total_stake );
 		}
+		pub fn set_last_update_from_vector( last_update: Vec<u64> ) {
+			for uid_i in 0..Self::get_neuron_count() {
+				let mut neuron = Neurons::<T>::get(uid_i);
+				neuron.last_update = last_update[ uid_i as usize ];
+				Neurons::<T>::insert( uid_i, neuron );
+			}
+		}
 		pub fn set_weights_from_matrix( weights: Vec<Vec<u32>> ) {
 			for uid_i in 0..Self::get_neuron_count() {
 				let mut sparse_weights: Vec<(u32, u32)> = vec![];
@@ -768,6 +956,7 @@ pub mod pallet {
 			}
 		}
 	
+		// Helpers.
 		// --- Returns Option if the u64 converts to a balance
 		// use .unwarp if the result returns .some().
 		pub fn u64_to_balance(input: u64) -> Option<<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance>

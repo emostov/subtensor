@@ -1,15 +1,15 @@
-use pallet_subtensor::{ChargeTransactionPayment, Error, CallType};
+use pallet_subtensor::{ChargeTransactionPayment, CallType};
 use frame_support::{assert_ok};
 
 mod mock;
 
 use mock::*;
 use frame_system::Config;
-use frame_support::weights::{DispatchInfo, Pays};
+use frame_support::weights::{DispatchInfo};
 use frame_support::weights::PostDispatchInfo;
 use sp_std::marker::PhantomData;
 use sp_runtime::traits::SignedExtension;
-use sp_runtime::transaction_validity::{InvalidTransaction, ValidTransaction};
+use sp_runtime::transaction_validity::{ValidTransaction};
 use frame_support::dispatch::GetDispatchInfo;
 
 #[test]
@@ -36,13 +36,11 @@ fn fee_from_emission_priority_no_neuron() {
 fn fee_from_emission_priority_with_neuron() {
     new_test_ext().execute_with(|| {
 
-        // Register a neuron
-        let registration_id = 0;
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
-		let email_hash: Vec<u8> = vec![0;32];
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
+		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
 
         // Registered neuron has zero priority because they have no stake.
         let call = SubtensorCall::set_weights(vec![0], vec![0]).into();
@@ -64,13 +62,11 @@ fn fee_from_emission_priority_with_neuron() {
 fn fee_from_emission_priority_with_neuron_and_weights_and_stake() {
     new_test_ext().execute_with(|| {
 
-        // Register a neuron
-        let registration_id = 0;
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
-		let email_hash: Vec<u8> = vec![0;32];
-		assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
+		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1_000_000_000); // Add the stake.
 
         // Registered neuron has zero priority because they have no stake.
@@ -108,13 +104,11 @@ fn test_charge_transaction_payment_get_priority_vanilla() {
 #[test]
 fn test_charge_transaction_payment_validate_set_weights_ok() {
     new_test_ext().execute_with(|| {
-        // Register a neuron
-        let registration_id = 0;
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
         let hotkey_account_id = 1;
-        let coldkey_account_id = 667; // Neighbour of the beast, har har
-        let email_hash: Vec<u8> = vec![0;32];
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-        assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
+		let coldkey_account_id = 667; // Neighbour of the beast, har har
+		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1_000_000_000); // Add the stake.
 
         let call: mock::Call = SubtensorCall::set_weights(vec![0], vec![0]).into();
@@ -132,13 +126,11 @@ fn test_charge_transaction_payment_validate_set_weights_ok() {
 #[test]
 fn test_charge_transaction_payment_validate_add_stake_ok() {
     new_test_ext().execute_with(|| {
-        // Register a neuron
-        let registration_id = 0;
-        let hotkey_account_id = 1;
-        let coldkey_account_id = 667; // Neighbour of the beast, har har
-        let email_hash: Vec<u8> = vec![0;32];
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-        assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let hotkey_account_id = 1;
+		let coldkey_account_id = 667; // Neighbour of the beast, har har
+		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1_000_000_000); // Add the stake.
 
         let call: mock::Call = SubtensorCall::add_stake(hotkey_account_id, 5_000).into();
@@ -156,13 +148,11 @@ fn test_charge_transaction_payment_validate_add_stake_ok() {
 #[test]
 fn test_charge_transaction_payment_validate_remove_stake_ok() {
     new_test_ext().execute_with(|| {
-        // Register a neuron
-        let registration_id = 0;
-        let hotkey_account_id = 1;
-        let coldkey_account_id = 667; // Neighbour of the beast, har har
-        let email_hash: Vec<u8> = vec![0;32];
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-        assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let hotkey_account_id = 1;
+		let coldkey_account_id = 667; // Neighbour of the beast, har har
+		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1_000_000_000); // Add the stake.
 
         let call: mock::Call = SubtensorCall::add_stake(hotkey_account_id, 5_000).into();
@@ -180,14 +170,11 @@ fn test_charge_transaction_payment_validate_remove_stake_ok() {
 #[test]
 fn test_charge_transaction_payment_validate_serve_axon_ok() {
     new_test_ext().execute_with(|| {
-        // Register a neuron
-        let registration_id = 0;
-        let hotkey_account_id = 1;
-        let coldkey_account_id = 667; // Neighbour of the beast, har har
-        let email_hash: Vec<u8> = vec![0;32];
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-        assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
-        Subtensor::add_stake_to_neuron_hotkey_account(0, 1_000_000_000); // Add the stake.
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let hotkey_account_id = 1;
+		let coldkey_account_id = 667; // Neighbour of the beast, har har
+		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
 
         let version = 0;
 		let ip = ipv4(8,8,8,8);
@@ -228,12 +215,11 @@ fn test_charge_transaction_payment_validate_other_ok() {
 #[test]
 fn pre_dispatch_works() {
     new_test_ext().execute_with(|| {
-        let registration_id = 0;
-        let hotkey_account_id = 1;
-        let coldkey_account_id = 667; // Neighbour of the beast, har har
-        let email_hash: Vec<u8> = vec![0;32];
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-        assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let hotkey_account_id = 1;
+		let coldkey_account_id = 667; // Neighbour of the beast, har har
+		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
 
         assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), vec![0], vec![u32::MAX]));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1000000000); // Add the stake.
@@ -259,12 +245,12 @@ fn pre_dispatch_works() {
 #[test]
 fn post_dispatch_works() {
     new_test_ext().execute_with(|| {
-        let registration_id = 0;
-        let hotkey_account_id = 1;
-        let coldkey_account_id = 667; // Neighbour of the beast, har har
-        let email_hash: Vec<u8> = vec![0;32];
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-        assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let hotkey_account_id = 1;
+		let coldkey_account_id = 667; // Neighbour of the beast, har har
+		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
+
         assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), vec![0], vec![u32::MAX]));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1000000000); // Add the stake.
         
@@ -291,12 +277,12 @@ fn test_sudo_call_does_not_pay_transaction_fee() {
     let sudo_key = 1;
 
     test_ext_with_balances(vec![(source_key_id, balance)]).execute_with(|| {
-        let registration_id = 0;
-        let hotkey_account_id = 1;
-        let coldkey_account_id = 667; // Neighbour of the beast, har har
-        let email_hash: Vec<u8> = vec![0;32];
-        assert_ok!(Subtensor::set_registeration_key(<<Test as Config>::Origin>::root(), registration_id));
-        assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(registration_id), email_hash, hotkey_account_id, coldkey_account_id));
+        let block_number: u64 = 0;
+		let (nonce, work): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( block_number );
+		let hotkey_account_id = 1;
+		let coldkey_account_id = 667; // Neighbour of the beast, har har
+		let _ = Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id);
+        
         assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), vec![0], vec![u32::MAX]));
         Subtensor::add_stake_to_neuron_hotkey_account(0, 1000000000); // Add the stake.
 
