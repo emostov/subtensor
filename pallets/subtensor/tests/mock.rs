@@ -80,6 +80,18 @@ parameter_types! {
 	pub BlockWeights: limits::BlockWeights = limits::BlockWeights::simple_max(1024);
 	pub const ExistentialDeposit: Balance = 1;
 	pub const TransactionByteFee: Balance = 100;
+	pub const SDebug:u64 = 1;
+	pub const StepRho: u64 = 10;
+	pub const StepKappa: u64 = 2;
+	pub const SelfOwnership: u64 = 2;
+	pub const InitialIssuance: u64 = 548833985028256;
+	pub const InitialDifficulty: u64 = 10000;
+	pub const MinimumDifficulty: u64 = 10000;
+	pub const InitialActivityCutoff: u64 = 5000;
+	pub const MaximumDifficulty: u64 = u64::MAX/4;
+	pub const InitialAdjustmentInterval: u64 = 100;
+	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
+	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
 }
 
 thread_local!{
@@ -145,6 +157,18 @@ impl pallet_subtensor::Config for Test {
 	type Event = ();
 	type Currency = Balances;
 	type TransactionByteFee = TransactionByteFee;
+	type SDebug = SDebug;
+	type StepRho = StepRho;
+	type StepKappa = StepKappa;
+	type SelfOwnership = SelfOwnership;
+	type InitialIssuance = InitialIssuance;
+	type InitialDifficulty = InitialDifficulty;
+	type MinimumDifficulty = MinimumDifficulty;
+	type MaximumDifficulty = MaximumDifficulty;
+	type InitialActivityCutoff = InitialActivityCutoff;
+	type InitialAdjustmentInterval = InitialAdjustmentInterval;
+	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
+	type InitialTargetRegistrationsPerInterval = InitialTargetRegistrationsPerInterval;
 }
 
 impl pallet_sudo::Config for Test {
@@ -225,6 +249,7 @@ pub fn sign_extra(who: u64, nonce: u64) -> Option<(u64, SignedExtra)> {
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 }
+
 
 #[allow(dead_code)]
 pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExternalities {

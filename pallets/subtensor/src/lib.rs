@@ -88,6 +88,54 @@ pub mod pallet {
 		
 		/// --- The transaction fee in RAO per byte
 		type TransactionByteFee: Get<BalanceOf<Self>>;
+
+		/// Debug is on
+		#[pallet::constant]
+		type SDebug: Get<u64>;
+
+		/// Activity constant
+		#[pallet::constant]
+		type StepRho: Get<u64>;
+
+		/// Activity constant
+		#[pallet::constant]
+		type StepKappa: Get<u64>;
+
+		/// Activity constant
+		#[pallet::constant]
+		type SelfOwnership: Get<u64>;
+
+		/// Activity constant
+		#[pallet::constant]
+		type InitialActivityCutoff: Get<u64>;
+
+		/// Initial registration difficulty.
+		#[pallet::constant]
+		type InitialIssuance: Get<u64>;
+
+		/// Initial registration difficulty.
+		#[pallet::constant]
+		type InitialDifficulty: Get<u64>;
+
+		/// Minimum registration difficulty
+		#[pallet::constant]
+		type MinimumDifficulty: Get<u64>;
+
+		/// Maximum registration difficulty
+		#[pallet::constant]
+		type MaximumDifficulty: Get<u64>;
+
+		/// Initial adjustment interval.
+		#[pallet::constant]
+		type InitialAdjustmentInterval: Get<u64>;
+
+		/// Initial max registrations per block.
+		#[pallet::constant]
+		type InitialMaxRegistrationsPerBlock: Get<u64>;
+
+		/// Initial target registrations per interval.
+		#[pallet::constant]
+		type InitialTargetRegistrationsPerInterval: Get<u64>;
 	}
 
 	/// ************************************************************
@@ -206,19 +254,74 @@ pub mod pallet {
 		ValueQuery
 	>;
 
+
+	#[pallet::type_value] 
+	pub fn DefaultTotalIssuance<T: Config>() -> u64 { T::InitialIssuance::get() }
 	#[pallet::storage]
 	pub type TotalIssuance<T> = StorageValue<
 		_, 
 		u64, 
-		ValueQuery
+		ValueQuery,
+		DefaultTotalIssuance<T>
 	>;
 
+	#[pallet::type_value] 
+	pub fn DefaultDifficulty<T: Config>() -> u64 { T::InitialDifficulty::get() }
 	#[pallet::storage]
 	pub type Difficulty<T> = StorageValue<
 		_, 
 		u64, 
 		ValueQuery,
+		DefaultDifficulty<T>
 	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultActivityCutoff<T: Config>() -> u64 { T::InitialActivityCutoff::get() }
+	#[pallet::storage]
+	pub type ActivityCutoff<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultActivityCutoff<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultAdjustmentInterval<T: Config>() -> u64 { T::InitialAdjustmentInterval::get() }
+	#[pallet::storage]
+	pub type AdjustmentInterval<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultAdjustmentInterval<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultTargetRegistrationsPerInterval<T: Config>() -> u64 { T::InitialTargetRegistrationsPerInterval::get() }
+	#[pallet::storage]
+	pub type TargetRegistrationsPerInterval<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultTargetRegistrationsPerInterval<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultMaxRegistrationsPerBlock<T: Config>() -> u64 { T::InitialMaxRegistrationsPerBlock::get() }
+	#[pallet::storage]
+	pub type MaxRegistrationsPerBlock<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultMaxRegistrationsPerBlock<T>
+	>;
+
+	#[pallet::storage]
+	pub type LastDifficultyAdjustmentBlock<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
+
 
 	#[pallet::storage]
 	pub type RegistrationsThisInterval<T> = StorageValue<
@@ -234,34 +337,6 @@ pub mod pallet {
 		ValueQuery
 	>;
 
-	#[pallet::storage]
-	pub type MaxRegistrationsPerBlock<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
-
-	#[pallet::storage]
-	pub type LastDifficultyAdjustmentBlock<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
-
-	#[pallet::storage]
-	pub type TargetRegistrationsPerInterval<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery
-	>;
-
-
-	#[pallet::storage]
-	pub type AdjustmentInterval<T> = StorageValue<
-		_, 
-		u64, 
-		ValueQuery,
-	>;
 
 	/// ---- Maps from hotkey to uid.
 	#[pallet::storage]
@@ -306,12 +381,9 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T:Config> GenesisBuild<T> for GenesisConfig {
         fn build(&self) {		
-			Difficulty::<T>::put( 10000 );
-			AdjustmentInterval::<T>::put( 100 );
-			MaxRegistrationsPerBlock::<T>::put( 2 );
-			TargetRegistrationsPerInterval::<T>::put( 2 );
 		}
 	}
+
 
 	#[cfg(feature = "std")]
 	impl GenesisConfig {
@@ -675,56 +747,89 @@ pub mod pallet {
 	// ---- Subtensor helper functions.
 	impl<T: Config> Pallet<T> {
 
-		// Constants and defaults
-		pub fn default_difficulty() -> u64 { 10000 }
-		pub fn default_adjustment_interval() -> u64 { 100 }
-		pub fn default_target_registrations_per_interval() -> u64 { 2 }
-		pub fn default_max_registrations_per_block() -> u64 { 2 }
+		// TURN ON DEBUG
+		pub fn debug() -> bool {
+			return T::SDebug::get() == 1
+		}
+
+		// Adjustable Constants.
+		// -- Difficulty.
 		pub fn get_difficulty( ) -> U256 {
 			return U256::from( Self::get_difficulty_as_u64() );
 		}
 		pub fn get_difficulty_as_u64( ) -> u64 {
-			if Difficulty::<T>::get() == 0 { Difficulty::<T>::put( Self::default_difficulty() ); }
 			Difficulty::<T>::get()
 		}
-		pub fn get_target_registrations_per_interval() -> u64 {
-			if TargetRegistrationsPerInterval::<T>::get() == 0 { TargetRegistrationsPerInterval::<T>::put( Self::default_target_registrations_per_interval() ); }
-			TargetRegistrationsPerInterval::<T>::get()
+		pub fn set_difficulty_from_u64( difficulty: u64 ) {
+			Difficulty::<T>::set( difficulty );
 		}
+		// -- Activity cuttoff
+		pub fn get_activity_cutoff( ) -> u64 {
+			return ActivityCutoff::<T>::get();
+		}
+		pub fn set_activity_cutoff( cuttoff: u64 ) {
+			ActivityCutoff::<T>::set( cuttoff );
+		}
+		// -- Adjustment Interval.
 		pub fn get_adjustment_interval() -> u64 {
-			if AdjustmentInterval::<T>::get() == 0 { AdjustmentInterval::<T>::put( Self::default_adjustment_interval() ); }
 			AdjustmentInterval::<T>::get()
 		}
+		pub fn set_adjustment_interval( interval: u64 ) {
+			AdjustmentInterval::<T>::put( interval );
+		}
+		// -- Target registrations per interval.
+		pub fn get_target_registrations_per_interval() -> u64 {
+			TargetRegistrationsPerInterval::<T>::get()
+		}
+		pub fn set_target_registrations_per_interval( target: u64 ) {
+			TargetRegistrationsPerInterval::<T>::put( target );
+		}
 		pub fn get_max_registratations_per_block( ) -> u64 {
-			if MaxRegistrationsPerBlock::<T>::get() == 0 { MaxRegistrationsPerBlock::<T>::put( Self::default_max_registrations_per_block() ); }
 			MaxRegistrationsPerBlock::<T>::get()
 		}
+		pub fn set_max_registratations_per_block( max_registrations: u64 ){
+			MaxRegistrationsPerBlock::<T>::put( max_registrations );
+		}
+		// -- Minimum difficulty
+		pub fn get_minimum_difficulty( ) -> u64 {
+			return T::MinimumDifficulty::get();
+		}
+		// -- Maximum difficulty
+		pub fn get_maximum_difficulty( ) -> u64 {
+			return T::MaximumDifficulty::get();
+		}
+		// -- Get Block emission.
+		pub fn get_block_emission( ) -> u64 {
+			return 1000000000;
+		}
+		// -- Get step consensus temperature (rho)
+		pub fn get_rho( ) -> u64 {
+			return T::StepRho::get();
+		}
+		// -- Get step consensus shift (1/kappa)
+		pub fn get_kappa( ) -> u64 {
+			return T::StepKappa::get();
+		}
+		// -- Get self ownership proportion denominator
+		pub fn get_self_ownership( ) -> u64 {
+			return T::SelfOwnership::get();
+		}
 
+		// Variable Parameters
 		pub fn get_registrations_this_interval( ) -> u64 {
 			RegistrationsThisInterval::<T>::get()
 		}
 		pub fn get_registrations_this_block( ) -> u64 {
 			RegistrationsThisBlock::<T>::get()
 		}
-
-
-		pub fn set_difficulty_from_u64( difficulty: u64 ) {
-			Difficulty::<T>::set( difficulty );
-		}
-		pub fn set_adjustment_interval( interval: u64 ) {
-			AdjustmentInterval::<T>::put( interval );
-		}
-		pub fn set_target_registrations_per_interval( target: u64 ) {
-			TargetRegistrationsPerInterval::<T>::put( target );
-		}
-		pub fn set_max_registratations_per_block( max_registrations: u64 ){
-			MaxRegistrationsPerBlock::<T>::put( max_registrations );
-		}
 		pub fn get_total_stake( ) -> u64 {
 			return TotalStake::<T>::get();
 		}
 		pub fn get_total_issuance( ) -> u64 {
 			return TotalIssuance::<T>::get();
+		}
+		pub fn get_initial_total_issuance( ) -> u64 {
+			return T::InitialIssuance::get();
 		}
 		pub fn get_lastupdate( ) -> Vec<u64> {
 			let mut result: Vec<u64> = vec![ 0; Self::get_neuron_count() as usize ];
@@ -829,6 +934,13 @@ pub mod pallet {
 			}
 			TotalStake::<T>::set( total_stake );
 		}
+		pub fn set_last_update_from_vector( last_update: Vec<u64> ) {
+			for uid_i in 0..Self::get_neuron_count() {
+				let mut neuron = Neurons::<T>::get(uid_i);
+				neuron.last_update = last_update[ uid_i as usize ];
+				Neurons::<T>::insert( uid_i, neuron );
+			}
+		}
 		pub fn set_weights_from_matrix( weights: Vec<Vec<u32>> ) {
 			for uid_i in 0..Self::get_neuron_count() {
 				let mut sparse_weights: Vec<(u32, u32)> = vec![];
@@ -844,6 +956,7 @@ pub mod pallet {
 			}
 		}
 	
+		// Helpers.
 		// --- Returns Option if the u64 converts to a balance
 		// use .unwarp if the result returns .some().
 		pub fn u64_to_balance(input: u64) -> Option<<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance>

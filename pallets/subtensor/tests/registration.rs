@@ -153,27 +153,27 @@ fn test_difficulty_adjustment() {
 		step_block ( 1 );
 		assert_eq!( Subtensor::get_difficulty_as_u64(), 2 );
 		step_block ( 1 );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 10000 );
 		let (nonce2, work2): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 2 );
 		let (nonce3, work3): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 2 );
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(2), 2, nonce2, work2, 2, 2));
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(3), 2, nonce3, work3, 3, 3));
 		step_block ( 1 );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 2 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 20000 );
 		let (nonce4, work4): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 3 );
 		let (nonce5, work5): (u64, Vec<u8>) = Subtensor::create_work_for_block_number( 3 );
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(4), 3, nonce4, work4, 4, 4));
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(5), 3, nonce5, work5, 5, 5));
 		step_block ( 1 );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 4 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 40000 );
 		step_block ( 1 );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 2 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 20000 );
 		step_block ( 1 );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 10000 );
 		step_block ( 1 );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 10000 );
 		step_block ( 1 );
-		assert_eq!( Subtensor::get_difficulty_as_u64(), 1 );
+		assert_eq!( Subtensor::get_difficulty_as_u64(), 10000 );
 
 	});
 }

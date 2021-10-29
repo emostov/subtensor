@@ -96,7 +96,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 105,
+	spec_version: 100,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -266,10 +266,36 @@ impl pallet_sudo::Config for Runtime {
 }
 
 /// Configure the pallet-subtensor in pallets/subtensor.
+parameter_types! {
+	pub const SDebug:u64 = 0;
+	pub const StepRho: u64 = 10;
+	pub const StepKappa: u64 = 2;
+	pub const SelfOwnership: u64 = 2;
+	pub const InitialIssuance: u64 = 548833985028256;
+	pub const InitialDifficulty: u64 = 10000;
+	pub const MinimumDifficulty: u64 = 10000;
+	pub const InitialActivityCutoff: u64 = 5000;
+	pub const MaximumDifficulty: u64 = u64::MAX/4;
+	pub const InitialAdjustmentInterval: u64 = 100;
+	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
+	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
+}
 impl pallet_subtensor::Config for Runtime {
 	type Currency = Balances;
 	type Event = Event;
 	type TransactionByteFee = ();
+	type SDebug = SDebug;
+	type StepRho = StepRho;
+	type StepKappa = StepKappa;
+	type SelfOwnership = SelfOwnership;
+	type InitialIssuance = InitialIssuance;
+	type InitialDifficulty = InitialDifficulty;
+	type MinimumDifficulty = MinimumDifficulty;
+	type MaximumDifficulty = MaximumDifficulty;
+	type InitialActivityCutoff = InitialActivityCutoff;
+	type InitialAdjustmentInterval = InitialAdjustmentInterval;
+	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
+	type InitialTargetRegistrationsPerInterval = InitialTargetRegistrationsPerInterval;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

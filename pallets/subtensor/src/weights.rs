@@ -28,8 +28,8 @@ impl<T: Config> Pallet<T> {
             zipped_weights.push((*uid, *val))
         }
         neuron.weights = zipped_weights;
-        neuron.active = 1;
-        neuron.priority = 0;
+        neuron.active = 1; // Set activity back to 1.
+        neuron.priority = 0; // Priority is drained.
         neuron.last_update = Self::get_current_block_as_u64();
 
         // Sink update.

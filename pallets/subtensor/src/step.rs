@@ -13,28 +13,29 @@ impl<T: Config> Pallet<T> {
         RegistrationsThisBlock::<T>::set( 0 );
 
         // --- Difficulty adjustment constants for registration.
-        let max_difficulty: u64 = u64::MAX/4; // Difficulty should never exceed this value.
-        let min_difficulty: u64 = 1; // Difficulty should never be lower than this value.
+        let max_difficulty: u64 = Self::get_maximum_difficulty(); // Difficulty should never exceed this value.
+        let min_difficulty: u64 = Self::get_minimum_difficulty(); // Difficulty should never be lower than this value.
         let adjustment_interval: u64 = Self::get_adjustment_interval(); // Number of blocks average registrations are taken over.
+        let current_difficulty: u64 = Self::get_difficulty_as_u64();
         let target_registrations_per_interval: I65F63 = I65F63::from_num( Self::get_target_registrations_per_interval() ); // Target number of registrations on average over interval.
-        if_std! {
-            println!( "max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}", max_difficulty, min_difficulty, adjustment_interval, target_registrations_per_interval);
-        }
+        if Self::debug() { if_std! {
+            println!( "current_difficulty: {:?}, max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}", current_difficulty, max_difficulty, min_difficulty, adjustment_interval, target_registrations_per_interval);
+        }}
 
         let current_block:u64 = Self::get_current_block_as_u64();
         let last_adjustment:u64 = LastDifficultyAdjustmentBlock::<T>::get();
-        if_std! {
+        if Self::debug() { if_std! {
             println!( "current_block: {:?}, last_adjustment: {:?}", current_block, last_adjustment);
-        }
+        }}
 
         // --- Check if we have reached out adjustment interval.
         if current_block - last_adjustment >= adjustment_interval {
 
             // --- Compute average registrations over the adjustment interval.
             let registrations_since_last_adjustment: I65F63 = I65F63::from_num( Self::get_registrations_this_interval() );
-            if_std! {
+            if Self::debug() { if_std! {
                 println!( " ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ", registrations_since_last_adjustment);
-            }
+            }}
 
             // --- Compare average against target.
             if registrations_since_last_adjustment > target_registrations_per_interval {
@@ -46,23 +47,21 @@ impl<T: Config> Pallet<T> {
                     next_difficulty = max_difficulty
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
+                if Self::debug() { if_std! {
+                    println!( " next_difficulty: {:?}", next_difficulty );
+                }}
 
             } else {
-                if_std! {
-                    println!( " halve difficulty" );
-                }
-
                 // --- Halve difficulty.
                 let current_difficulty: u64 = Difficulty::<T>::get();
                 let mut next_difficulty = current_difficulty / 2;
                 if next_difficulty <= min_difficulty {
                     next_difficulty = min_difficulty
                 }
-                if_std! {
-                    println!( " next_difficulty: {:?}", next_difficulty );
-                }
                 Self::set_difficulty_from_u64( next_difficulty );
-
+                if Self::debug() { if_std! {
+                    println!( " next_difficulty: {:?}", next_difficulty );
+                }}
             }
 
             // --- Update last adjustment to current block and zero the registrations since last difficulty.
@@ -146,15 +145,17 @@ impl<T: Config> Pallet<T> {
 
         // Number of peers.
         let n: usize = Self::get_neuron_count() as usize;
+        let block: u64 = Self::get_current_block_as_u64();
         
         // Constants.
+        let activity_cutoff: u64 = Self::get_activity_cutoff();
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
-        let rho: I65F63 = I65F63::from_num( 10.0 );
-        let kappa: I65F63 = I65F63::from_num( 0.5 );
-        let self_ownership: I65F63 = I65F63::from_num( 0.5 );
-        let block_emission: I65F63 = I65F63::from_num( 1000000000 ); 
+        let rho: I65F63 = I65F63::from_num( Self::get_rho() );
+        let kappa: I65F63 = one / I65F63::from_num( Self::get_kappa() );
+        let self_ownership: I65F63 = one / I65F63::from_num( Self::get_self_ownership()  );
+        let block_emission: I65F63 = I65F63::from_num( Self::get_block_emission() ); 
 
         // To be filled.
         let mut uids: Vec<u32> = vec![];
@@ -164,13 +165,19 @@ impl<T: Config> Pallet<T> {
         let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
         let mut weights: Vec<Vec<(u32,u32)>> = vec![];
         let mut total_stake: I65F63 = I65F63::from_num( 0.0 );
-        let mut total_normalized_stake: I65F63 = I65F63::from_num( 0.0 );
+        let mut total_active_stake: I65F63 = I65F63::from_num( 0.0 );
+        let mut total_normalized_active_stake: I65F63 = I65F63::from_num( 0.0 );
         let mut stake: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
         for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
              uids.push( uid_i );
-             active [ uid_i as usize ] = 1;
-             stake [ uid_i as usize ] = I65F63::from_num( neuron_i.stake );
+             if block - neuron_i.last_update >= activity_cutoff {
+                active [ uid_i as usize ] = 0;
+             } else {
+                active [ uid_i as usize ] = 1;
+                total_active_stake += I65F63::from_num( neuron_i.stake );
+             }
              total_stake += I65F63::from_num( neuron_i.stake );
+             stake [ uid_i as usize ] = I65F63::from_num( neuron_i.stake );
              priority [ uid_i as usize ] = neuron_i.priority;
              weights.push( neuron_i.weights );             
              let mut bonds_row: Vec<u64> = vec![0; n];
@@ -180,17 +187,19 @@ impl<T: Config> Pallet<T> {
              }
              bonds[ uid_i as usize ] = bonds_row;
         }
-        // Normalize stake.
-        if total_stake != 0 {
+        // Normalize stake based on activity.
+        if total_active_stake != 0 {
             for uid_i in uids.iter() {
-                let normalized_stake:I65F63 = stake[ *uid_i as usize ] / total_stake;
-                stake[ *uid_i as usize ] = normalized_stake;
-                total_normalized_stake += normalized_stake;
+                let normalized_active_stake:I65F63 = stake[ *uid_i as usize ] / total_active_stake;
+                stake[ *uid_i as usize ] = normalized_active_stake;
+                if active[ *uid_i as usize ] == 1 {
+                    total_normalized_active_stake += normalized_active_stake;
+                }
             }
-        }   
-        if_std! {
+        } 
+        if Self::debug() { if_std! {
             println!( "stake-: {:?}", stake );
-        }
+        }}
     
         
         // Compute ranks and trust.
@@ -213,40 +222,48 @@ impl<T: Config> Pallet<T> {
                 let trust_increment_ij: I65F63 = stake_i; // Range( 0, 1 )                
                 let rank_increment_ij: I65F63 = stake_i * weight_ij; // Range( 0, total_active_stake )
                 let bond_increment_ij: I65F63 = rank_increment_ij * block_emission; // Range( 0, block_emission )
-                if_std! {
+                if Self::debug() { if_std! {
+
                     println!( "-----: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}", weight_ij, stake_i, rank_increment_ij, trust_increment_ij, bond_increment_ij, bond_increment_ij.to_num::<u64>());
-                }
+                }}
 
                 // Distribute self weights as priority
                 if *uid_i == *uid_j {
                     priority[ *uid_i as usize ] += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
 
                 } else {
-                    // Increment neuron scores.
-                    ranks[ *uid_j as usize ] += rank_increment_ij;  // Range( 0, total_active_stake )
-                    trust[ *uid_j as usize ] += trust_increment_ij;  // Range( 0, total_active_stake )
-                    total_ranks += rank_increment_ij;  // Range( 0, total_active_stake )
-                    total_trust += trust_increment_ij;  // Range( 0, total_active_stake )
-                    
-                    // Distribute bonds.
-                    bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
-                    bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
-                    total_bonds_purchased += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
+                    // Only distribute ranks and trust from active stake.
+                    if active[ *uid_i as usize ] == 1 {
+                        // Increment neuron scores.
+                        ranks[ *uid_j as usize ] += rank_increment_ij;  // Range( 0, total_active_stake )
+                        trust[ *uid_j as usize ] += trust_increment_ij;  // Range( 0, total_active_stake )
+                        total_ranks += rank_increment_ij;  // Range( 0, total_active_stake )
+                        total_trust += trust_increment_ij;  // Range( 0, total_active_stake )
+                        
+                        // Distribute bonds.
+                        bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
+                        bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
+                        total_bonds_purchased += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
+                    }
                 }
             }
         }
         // Normalize ranks + trust.
         if total_trust > 0 && total_ranks > 0 {
             for uid_i in uids.iter() {
+                if Self::debug() { if_std! {
+
+                    println!( "trust-: {:?} / {:?}", trust[ *uid_i as usize ], total_normalized_active_stake);
+                }}
                 ranks[ *uid_i as usize ] = ranks[ *uid_i as usize ] / total_ranks; // Vector will sum to u64_max
-                trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_stake; // Vector will sum to u64_max
+                trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
         }
-        if_std! {
+        if Self::debug() { if_std! {
             println!("ranks: {:?}", ranks );
             println!("trust: {:?}", trust );
             println!("bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
-        }
+        }}
 
         // Compute consensus, incentive.
         let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
@@ -275,10 +292,10 @@ impl<T: Config> Pallet<T> {
                 incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
-        if_std! {
+        if Self::debug() { if_std! {
             println!("incentive: {:?} ", incentive);
             println!("consensus: {:?} ", consensus);
-        }
+        }}
 
         // Compute dividends.
         let mut total_dividends: I65F63 = I65F63::from_num( 0.0 );
@@ -334,10 +351,10 @@ impl<T: Config> Pallet<T> {
                 total_emission += emission_i;
             }
         }
-        if_std! {
+        if Self::debug() { if_std! {
             println!( "dividends: {:?}", dividends );
             println!( "emission: {:?}", emission );
-        }
+        }}
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.

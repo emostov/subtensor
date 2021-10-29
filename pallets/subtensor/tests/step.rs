@@ -12,11 +12,11 @@ fn test_run_step_ok() {
 	new_test_ext().execute_with(|| {
         assert_eq!( Subtensor::get_neuron_count(), 0 );
         assert_eq!( Subtensor::get_total_stake(), 0 );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         run_to_block( 1 );
         assert_eq!( Subtensor::get_neuron_count(), 0 );
         assert_eq!( Subtensor::get_total_stake(), 0 );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
 	});
 }
 
@@ -30,7 +30,7 @@ fn test_step_with_neuron_no_balances() {
         let neuron = register_ok_neuron( hotkey, coldkey );
         assert_eq!( Subtensor::get_neuron_count(), 1 );
         assert_eq!( Subtensor::get_total_stake(), 0 );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_stake(), vec![0] );
         assert_eq!( Subtensor::get_ranks(), vec![0] );
         assert_eq!( Subtensor::get_trust(), vec![0] );
@@ -43,7 +43,7 @@ fn test_step_with_neuron_no_balances() {
         run_to_block( 1 );
         assert_eq!( Subtensor::get_neuron_count(), 1 );
         assert_eq!( Subtensor::get_total_stake(), 0);
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_stake(), vec![0] );
         assert_eq!( Subtensor::get_ranks(), vec![0] );
         assert_eq!( Subtensor::get_trust(), vec![0] );
@@ -67,7 +67,7 @@ fn test_step_with_neuron_with_balances() {
         let neuron = register_ok_neuron( hotkey, coldkey );
         Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, initial_stake);
         assert_eq!( Subtensor::get_total_stake(), initial_stake );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_neuron_count(), 1 );
         assert_eq!( Subtensor::get_stake(), vec![initial_stake] );
         assert_eq!( Subtensor::get_ranks(), vec![0] );
@@ -80,7 +80,7 @@ fn test_step_with_neuron_with_balances() {
         assert_eq!( Subtensor::get_weights_for_neuron(&neuron), vec![u32::max_value()] );
         run_to_block( 1 );
         assert_eq!( Subtensor::get_total_stake(), initial_stake );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_neuron_count(), 1 );
         assert_eq!( Subtensor::get_stake(), vec![ initial_stake ] );
         assert_eq!( Subtensor::get_ranks(), vec![0] );
@@ -110,7 +110,7 @@ fn test_step_with_many() {
         ];
         Subtensor::set_stake_from_vector( vec![ initial_stake; 4 ] );
         assert_eq!( Subtensor::get_neuron_count(), 4 );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_stake(), vec![ initial_stake; 4 ] );
         assert_eq!( Subtensor::get_ranks(), vec![0; 4] );
         assert_eq!( Subtensor::get_trust(), vec![0; 4] );
@@ -123,7 +123,7 @@ fn test_step_with_many() {
         assert_eq!( Subtensor::get_weights(), weights_matrix );
         run_to_block( 1 );
         assert_eq!( Subtensor::get_neuron_count(), 4 );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_stake(), vec![ initial_stake; 4 ] );
         assert_eq!( Subtensor::get_ranks(), vec![0; 4] );
         assert_eq!( Subtensor::get_trust(), vec![0; 4] );
@@ -158,7 +158,7 @@ fn test_step_with_many_zero_weights() {
         Subtensor::set_weights_from_matrix( weights_matrix.clone() );
 
         assert_eq!( Subtensor::get_neuron_count(), 4 );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_stake(), vec![ initial_stake; 4 ] );
         assert_eq!( Subtensor::get_ranks(), vec![0; 4] );
         assert_eq!( Subtensor::get_trust(), vec![0; 4] );
@@ -171,7 +171,7 @@ fn test_step_with_many_zero_weights() {
         assert_eq!( Subtensor::get_weights(), weights_matrix );
         run_to_block( 1 );
         assert_eq!( Subtensor::get_neuron_count(), 4 );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_stake(), vec![ initial_stake; 4 ] );
         assert_eq!( Subtensor::get_ranks(), vec![0; 4] );
         assert_eq!( Subtensor::get_trust(), vec![0; 4] );
@@ -210,7 +210,7 @@ fn test_step_with_many_self_weights() {
         assert_eq!( Subtensor::get_weights(), weights_matrix );
         run_to_block( 1 );
         assert_eq!( Subtensor::get_neuron_count(), 4 );
-        assert_eq!( Subtensor::get_total_issuance(), 0 );
+        assert_eq!( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 0 );
         assert_eq!( Subtensor::get_stake(), vec![ initial_stake; 4 ] );
         assert_eq!( Subtensor::get_ranks(), vec![0; 4] );
         assert_eq!( Subtensor::get_trust(), vec![0; 4] );
@@ -284,7 +284,7 @@ fn test_two_steps_with_many_outward_weights() {
         step_block (1);
 
         assert_eq!( Subtensor::get_neuron_count(), 4 );
-        assert!( approx_equals( Subtensor::get_total_issuance(), 1000000000, 10)); // approx
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000, 10)); // approx
         assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1250000000, 1250000000, 1250000000, 1250000000], 10) );
         assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
@@ -304,7 +304,7 @@ fn test_two_steps_with_many_outward_weights() {
         step_block (1);
 
         assert_eq!( Subtensor::get_neuron_count(), 4 );
-        assert!( approx_equals( Subtensor::get_total_issuance(), 2000000000, 100)); // approx
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 2000000000, 100)); // approx
         assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1500000000, 1500000000, 1500000000, 1500000000], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
@@ -324,7 +324,7 @@ fn test_two_steps_with_many_outward_weights() {
         step_block ( 8 );
 
         assert_eq!( Subtensor::get_neuron_count(), 4 );
-        assert!( approx_equals( Subtensor::get_total_issuance(), 1000000000 * 10, 100)); // approx
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 10, 100)); // approx
         assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1000000000 + 250000000 * 10, 1000000000 + 250000000 * 10, 1000000000 + 250000000 * 10, 1000000000 + 250000000 * 10], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
@@ -343,3 +343,166 @@ fn test_two_steps_with_many_outward_weights() {
 
     });
 }
+
+
+
+#[test]
+fn test_two_steps_with_activity_cuttoff() {
+    new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
+        let initial_stake:u64 = 1000000000;
+        let u64m: u64 = 18446744073709551615;
+        for i in 0..4 {
+            register_ok_neuron(i as u64, i as u64 );
+        }
+        // Set stake.
+        Subtensor::set_stake_from_vector( vec![ initial_stake; 4 ] );
+        Subtensor::set_activity_cutoff( 2 );
+
+        // Shifted weights.
+        let weights_matrix: Vec<Vec<u32>> = vec! [
+            vec! [0, u32::max_value(), 0, 0 ],
+            vec! [0, 0, u32::max_value(), 0 ],
+            vec! [0, 0, 0, u32::max_value() ], 
+            vec! [u32::max_value(), 0, 0, 0 ],
+        ];
+        Subtensor::set_weights_from_matrix( weights_matrix.clone() );
+        assert_eq!( Subtensor::get_neuron_count(), 4 );
+        assert_eq!( Subtensor::get_stake(), vec![ initial_stake; 4 ] );
+        assert_eq!( Subtensor::get_weights(), weights_matrix );
+
+        step_block (1);
+
+        assert_eq!( Subtensor::get_neuron_count(), 4 );
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000, 10)); // approx
+        assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1250000000, 1250000000, 1250000000, 1250000000], 10) );
+        assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
+        assert_eq!( Subtensor::get_active(), vec![1; 4] );
+        assert!( vec_approx_equals ( &Subtensor::get_consensus(), &vec![1399336432749266785, 1399336432749266785, 1399336432749266785, 1399336432749266785], 10) );
+        assert!( vec_approx_equals ( &Subtensor::get_incentive(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![250000000, 250000000, 250000000, 250000000], 10) );
+        let expected_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 250000000, 0, 0 ],
+            vec! [0, 0, 250000000, 0 ],
+            vec! [0, 0, 0, 250000000 ], 
+            vec! [250000000, 0, 0, 0 ],
+        ];
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 10) );
+
+        step_block (1);
+
+        assert_eq!( Subtensor::get_neuron_count(), 4 );
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000, 100)); // approx
+        assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1250000000, 1250000000, 1250000000, 1250000000], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![0, 0, 0, 0], 100) );
+        assert_eq!( Subtensor::get_active(), vec![0; 4] );
+        assert!( vec_approx_equals ( &Subtensor::get_consensus(), &vec![0, 0, 0, 0], 10) );
+        assert!( vec_approx_equals ( &Subtensor::get_incentive(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![0, 0, 0, 0], 10) );
+        let expected_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 250000000, 0, 0 ],
+            vec! [0, 0, 250000000, 0 ],
+            vec! [0, 0, 0, 250000000 ], 
+            vec! [250000000, 0, 0, 0 ],
+        ];
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
+        
+        step_block ( 8 );
+
+        assert_eq!( Subtensor::get_neuron_count(), 4 );
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000, 100)); // approx
+        assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1250000000, 1250000000, 1250000000, 1250000000], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![0, 0, 0, 0], 100) );
+        assert_eq!( Subtensor::get_active(), vec![0; 4] );
+        assert!( vec_approx_equals ( &Subtensor::get_consensus(), &vec![0, 0, 0, 0], 10) );
+        assert!( vec_approx_equals ( &Subtensor::get_incentive(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![0, 0, 0, 0], 10) );
+        let expected_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 250000000, 0, 0 ],
+            vec! [0, 0, 250000000, 0 ],
+            vec! [0, 0, 0, 250000000 ], 
+            vec! [250000000, 0, 0, 0 ],
+        ];
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
+
+    });
+}
+
+
+#[test]
+fn test_two_steps_with_partial_activity() {
+    new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
+        let initial_stake:u64 = 1000000000;
+        let u64m: u64 = 18446744073709551615;
+        for i in 0..4 {
+            register_ok_neuron(i as u64, i as u64 );
+        }
+        // Set stake.
+        Subtensor::set_stake_from_vector( vec![ initial_stake; 4 ] );
+        Subtensor::set_activity_cutoff( 1 );
+
+        // Shifted weights.
+        let weights_matrix: Vec<Vec<u32>> = vec! [
+            vec! [0, u32::max_value(), 0, 0 ],
+            vec! [0, 0, u32::max_value(), 0 ],
+            vec! [0, 0, 0, u32::max_value() ], 
+            vec! [u32::max_value(), 0, 0, 0 ],
+        ];
+        Subtensor::set_weights_from_matrix( weights_matrix.clone() );
+        assert_eq!( Subtensor::get_neuron_count(), 4 );
+        assert_eq!( Subtensor::get_stake(), vec![ initial_stake; 4 ] );
+        assert_eq!( Subtensor::get_weights(), weights_matrix );
+        assert_eq!( Subtensor::get_lastupdate(), vec![0,0,0,0] );
+
+        step_block (1);
+        assert_eq!( Subtensor::get_neuron_count(), 4 );
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance(), 100)); // approx
+        assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![initial_stake, initial_stake, initial_stake, initial_stake], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![0, 0, 0, 0], 100) );
+        assert_eq!( Subtensor::get_active(), vec![0; 4] );
+        assert!( vec_approx_equals ( &Subtensor::get_consensus(), &vec![0, 0, 0, 0], 10) );
+        assert!( vec_approx_equals ( &Subtensor::get_incentive(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![0, 0, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![0, 0, 0, 0], 10) );
+        let expected_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 0, 0, 0 ],
+            vec! [0, 0, 0, 0 ],
+            vec! [0, 0, 0, 0 ], 
+            vec! [0, 0, 0, 0 ],
+        ];
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
+
+        Subtensor::set_activity_cutoff( 2 );
+        Subtensor::set_last_update_from_vector( vec![1,0,0,0] );
+        assert_eq!( Subtensor::get_lastupdate(), vec![1,0,0,0] );
+        step_block (1);
+
+        assert_eq!( Subtensor::get_neuron_count(), 4 );
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000, 100)); // approx
+        assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![initial_stake + 500000000, initial_stake + 500000000, initial_stake, initial_stake], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![0, u64m, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![0, u64m, 0, 0], 100) );
+        assert_eq!( Subtensor::get_active(), vec![1, 0, 0, 0] );
+        assert!( vec_approx_equals ( &Subtensor::get_incentive(), &vec![0, u64m, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![u64m/2, u64m/2, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![500000000, 500000000, 0, 0], 10) );
+        let expected_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 1000000000, 0, 0 ],
+            vec! [0, 0, 0, 0 ],
+            vec! [0, 0, 0, 0 ], 
+            vec! [0, 0, 0, 0 ],
+        ];
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
+
+
+    });
+}
+
