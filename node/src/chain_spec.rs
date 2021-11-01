@@ -571,7 +571,15 @@ fn network_genesis(
 				(AccountId::from_ss58check("5FTxEuLVS4yokmcFd9x6bjByWT1oNoWnQqmt7wZH9YyWCKcq").unwrap(),15584144138),
 				(AccountId::from_ss58check("5ELP2SFD3DgpxwZyacELZiqA7pkUndyoutvVtsDF9y2bLE2K").unwrap(),17706631605),
 				(AccountId::from_ss58check("5Dki8aVM2Wvr9PUkTiJyynsncr8vDLHNL2K3m6b8DSrZSviJ").unwrap(),11607766321),
-				(AccountId::from_ss58check("5Gxs2tmaCTpMJq3UrRHKWWLSxujXR5CUBzegZ3egJWSgv16F").unwrap(),393467619678)
+				(AccountId::from_ss58check("5Gxs2tmaCTpMJq3UrRHKWWLSxujXR5CUBzegZ3egJWSgv16F").unwrap(),393467619678),
+				(AccountId::from_ss58check("5EZ5HyfvD7Cfm5D9sJZGNofXdV29pbqYWrDDHfUoazYZ4cYp").unwrap(),21000000000),
+				(AccountId::from_ss58check("5FRodKLnzFsa8kZsNbB5s2wy5Dmc66bpSc1CNwFiosj1KWbo").unwrap(),999000000000),
+				(AccountId::from_ss58check("5CVKoSiF7AdcxnLv6iJsDnXw6EE51xRPeoJzr4q2nZ8ywpwf").unwrap(),290630219731),
+				(AccountId::from_ss58check("5GbSmaoza9rzDViaLTmFS2vhjobEQdv93cekXYAJ6XPstMej").unwrap(),199624999589),
+				(AccountId::from_ss58check("5HRPxma1TuTY4gPdAs4bPgyTcen13P43rucRiHppV6geJrqM").unwrap(),20184746050866),
+				(AccountId::from_ss58check("5GKhCgLGHgYJwkBui3evAWHTgDfB7smWpiKdT81o8VrakTtX").unwrap(),500000000000),
+				(AccountId::from_ss58check("5Hpqi1Hcq2Mih9oE2ykjT4umiwu63KcBNQaa7a8U9HZyk5rh").unwrap(),13649874999857)
+
 			],
 		},
 		aura: AuraConfig {
