@@ -224,12 +224,12 @@ pub fn nakamoto_mainnet_config() -> Result<ChainSpec, String> {
 		move || network_genesis(
 			wasm_binary,
 			vec![
-				authority_keys_from_ss58("5D8fjk71hHoTE4scU9kEDp4aypWEiAN4Dbna4ho5kq56m8XW", "5GKRQHHgWNQ83tATMPXidW3pj1QhpLa3Md2kTEFf7uPDL9PG"), // Gundam
-				authority_keys_from_ss58("5GbomNUwjpvDY1caDDAkKGRFfy7Yn92mbLTj4ywgBhiGy8Qu", "5G4X1bQNu76KNERe1bcfXiK5gxjrsB6C2VRNcNfKemnsHyqX"), // Connor
-				authority_keys_from_ss58("5Fd8fuLsRN7gkTbRGajVYWhy5SxVXH8LFquDRpj47W5bRWnw", "5EWfvPyZj7KLTR5fiznLz5fCqR3jTUC5eVYTVGYK6RDqsz5b"), // Miyagi
-				authority_keys_from_ss58("5GcxmAFDzUMbf5RuN57F5Vkjv4z29mXRk3ZXtm7SF5V5JWLM", "5GxMSQEh42BRnrN5XymDfivERDztTPiaV3PhmK5zbaN3dAq7"), // McFly
-				authority_keys_from_ss58("5E1SHdPdue3sy6T7P4N5tnbUizdCpaAYKihueNZe9r4i1Te6", "5EZZscTGTXmQDnKG5g7yxTZSQ6t3xwTvMpaPA43DAZ9LxjtB"), // Bodhi
-				authority_keys_from_ss58("5FKqEhKsWGi7tBX86LaJb9J8uJub4coJFAxehkBsQAPLaYPt", "5FPCNNxpns522avd5RJsTZpfg76X7zbtoHA2et388DsyWnfN"), // Vader
+				authority_keys_from_ss58("5D2tbCvaKpNyvnM1D272MHnjFXMfmR1A4aJ24XfSzH9zcm9t", "5Coe1QXmsMoXZMrQjYoQsUhYvVHDWze29HtrtLNEucdSY2qY"), // Gundam
+				authority_keys_from_ss58("5EekXHmQUjBrFQPct6Zwbg39E26mFrVwXm4HoGkSGpJZNr3A", "5FaU1wfZA4L6ob7c7U6c4HxLx96VECFQiporuo4QMiNMsfj9"), // Connor
+				authority_keys_from_ss58("5HEAoUKQcvH2GfXnNDrDcfFxAjuHvW7S14TFkfz6qYX3VsQy", "5CgXTNLmj3M7SMY232atsRweCRVoLKCaNFRfnYLuUBxojcpU"), // Miyagi
+				authority_keys_from_ss58("5Dq2nwHZCCaSiwYzBVhVp4fusmLh8eZ4nmzMzesqUnvW4DAs", "5DuyMR9XcD9JFN79YeGvGQDLVrE9ofcXWpGjmdbaggv9ZiWt"), // McFly
+				authority_keys_from_ss58("5H4PTNoyHZH2V8HkSamM9s4CE4SwJBmkq2KDF6zXrntTxwHs", "5FMeJZFHKjEPkoXS7svhfcasuAbvZFJnB8E2Ms1MTytPcFk3"), // Bodhi
+				authority_keys_from_ss58("5FePgMvuGPsHwaNKGvcC3eU7mv9uHcYwxWNaeYbgBs2RSFft", "5Eh9RhakCQATG3uvvvhcPv1xAdpFc31giDWK962bgFLD4vHz"), // Vader
 			],
 			AccountId::from_ss58check("5GLKGJdjCwBYgtim7F4eZCxDC3bMe9VvhCnpG2k9ihdyPX9p").unwrap(), // Sudo
 			vec![
