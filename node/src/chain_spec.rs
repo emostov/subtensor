@@ -238,8 +238,8 @@ pub fn nakamoto_mainnet_config() -> Result<ChainSpec, String> {
 			true,
 		),
 		vec![
-			MultiaddrWithPeerId::from_str("/dns4/skywalker.nakamoto.opentensor.ai/tcp/30333/ws/p2p/12D3KooWD3GGHDszTsaS7oWxoBygYNRKpgV2eyCwEgkiQWPRuTJg").unwrap(),
-			MultiaddrWithPeerId::from_str("/dns4/kenobi.nakamoto.opentensor.ai/tcp/30333/ws/p2p/12D3KooWANRE58J3RF7Nz1fF3C4MeenonBoMWwos1TyWNhNMZXjM").unwrap()
+			MultiaddrWithPeerId::from_str("/dns4/skywalker.nakamoto.opentensor.ai/tcp/30333/ws/p2p/12D3KooWDWw2Ph2JLHFxNUAhLpgGf2HAE2BHjXkoaj7HS9HapKnc").unwrap(),
+			MultiaddrWithPeerId::from_str("/dns4/kenobi.nakamoto.opentensor.ai/tcp/30333/ws/p2p/12D3KooWASPUokJTdXKKYvBhkcX4JxNVfaN9WUqZuoL33NJQEu7A").unwrap()
 	    ],
 		None,
 		None,
