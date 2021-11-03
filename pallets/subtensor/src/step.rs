@@ -323,6 +323,7 @@ impl<T: Config> Pallet<T> {
                 let bonds_ij: u64 = bonds[ *uid_i as usize ][ *uid_j as usize ]; // Range( 0, total_emission );
                 let total_bonds_j: u64 = bond_totals[ *uid_j as usize ]; // Range( 0, total_emission );
                 if total_bonds_j == 0 { continue; } // No bond ownership in this neuron.
+                if bonds_ij == 0 { continue; } // No need to distribute dividends for zero bonds.
 
                 // Compute bond fraction.
                 let bond_fraction_ij: I65F63 = I65F63::from_num( bonds_ij ) / I65F63::from_num( total_bonds_j ); // Range( 0, 1 );
