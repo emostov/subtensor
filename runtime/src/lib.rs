@@ -22,12 +22,11 @@ use pallet_grandpa::fg_primitives;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
+use frame_support::sp_runtime::transaction_validity::ValidTransaction;
 
 // A few exports that help ease life for downstream crates.
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-pub use pallet_timestamp::Call as TimestampCall;
-pub use pallet_balances::Call as BalancesCall;
 pub use sp_runtime::{Permill, Perbill};
 pub use frame_support::{
 	construct_runtime, parameter_types, StorageValue,
@@ -39,7 +38,7 @@ pub use frame_support::{
 };
 use pallet_transaction_payment::CurrencyAdapter;
 
-pub use pallet_subtensor;
+//pub use pallet_subtensor;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -96,7 +95,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 101,
+	spec_version: 123,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -137,7 +136,7 @@ parameter_types! {
 	pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
 		::with_sensible_defaults(5 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
 	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
-		::max_with_normal_ratio(1 * 1024 * 64, NORMAL_DISPATCH_RATIO);
+		::max_with_normal_ratio(1 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
 	pub const SS58Prefix: u8 = 42;
 }
 
@@ -265,38 +264,38 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
-/// Configure the pallet-subtensor in pallets/subtensor.
-parameter_types! {
-	pub const SDebug:u64 = 0;
-	pub const StepRho: u64 = 10;
-	pub const StepKappa: u64 = 2;
-	pub const SelfOwnership: u64 = 2;
-	pub const InitialIssuance: u64 = 548833985028256;
-	pub const InitialDifficulty: u64 = 10000;
-	pub const MinimumDifficulty: u64 = 10000;
-	pub const InitialActivityCutoff: u64 = 5000;
-	pub const MaximumDifficulty: u64 = u64::MAX/4;
-	pub const InitialAdjustmentInterval: u64 = 100;
-	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
-	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
-}
-impl pallet_subtensor::Config for Runtime {
-	type Currency = Balances;
-	type Event = Event;
-	type TransactionByteFee = ();
-	type SDebug = SDebug;
-	type StepRho = StepRho;
-	type StepKappa = StepKappa;
-	type SelfOwnership = SelfOwnership;
-	type InitialIssuance = InitialIssuance;
-	type InitialDifficulty = InitialDifficulty;
-	type MinimumDifficulty = MinimumDifficulty;
-	type MaximumDifficulty = MaximumDifficulty;
-	type InitialActivityCutoff = InitialActivityCutoff;
-	type InitialAdjustmentInterval = InitialAdjustmentInterval;
-	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
-	type InitialTargetRegistrationsPerInterval = InitialTargetRegistrationsPerInterval;
-}
+// Configure the pallet-subtensor in pallets/subtensor.
+// parameter_types! {
+// 	pub const SDebug:u64 = 0;
+// 	pub const StepRho: u64 = 10;
+// 	pub const StepKappa: u64 = 2;
+// 	pub const SelfOwnership: u64 = 2;
+// 	pub const InitialIssuance: u64 = 548833985028256;
+// 	pub const InitialDifficulty: u64 = 10000;
+// 	pub const MinimumDifficulty: u64 = 10000;
+// 	pub const InitialActivityCutoff: u64 = 5000;
+// 	pub const MaximumDifficulty: u64 = u64::MAX/4;
+// 	pub const InitialAdjustmentInterval: u64 = 100;
+// 	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
+// 	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
+// }
+// impl pallet_subtensor::Config for Runtime {
+// 	type Currency = Balances;
+// 	type Event = Event;
+// 	type TransactionByteFee = ();
+// 	type SDebug = SDebug;
+// 	type StepRho = StepRho;
+// 	type StepKappa = StepKappa;
+// 	type SelfOwnership = SelfOwnership;
+// 	type InitialIssuance = InitialIssuance;
+// 	type InitialDifficulty = InitialDifficulty;
+// 	type MinimumDifficulty = MinimumDifficulty;
+// 	type MaximumDifficulty = MaximumDifficulty;
+// 	type InitialActivityCutoff = InitialActivityCutoff;
+// 	type InitialAdjustmentInterval = InitialAdjustmentInterval;
+// 	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
+// 	type InitialTargetRegistrationsPerInterval = InitialTargetRegistrationsPerInterval;
+// }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -305,15 +304,15 @@ construct_runtime!(
 		NodeBlock = opaque::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
-		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		Aura: pallet_aura::{Pallet, Config<T>},
-		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-		SubtensorModule: pallet_subtensor::{Pallet, Call, Storage, Event<T>}
+		System: frame_system::{Call, Event<T>},
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet},
+		Timestamp: pallet_timestamp::{Call, Inherent},
+		Aura: pallet_aura::{Pallet},
+		Grandpa: pallet_grandpa::{Call, Event},
+		Balances: pallet_balances::{Event<T>},
+		TransactionPayment: pallet_transaction_payment::{Pallet},
+		Sudo: pallet_sudo::{Call, Event<T>},
+		//SubtensorModule: pallet_subtensor::{Pallet, Call, Storage, Event<T>}
 	}
 );
 
@@ -326,11 +325,11 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// The SignedExtension to the basic transaction logic.
 pub type SignedExtra = (
 	frame_system::CheckSpecVersion<Runtime>,
-	frame_system::CheckTxVersion<Runtime>,
-	frame_system::CheckGenesis<Runtime>,
-	frame_system::CheckEra<Runtime>,
-	frame_system::CheckNonce<Runtime>,
-	frame_system::CheckWeight<Runtime>,
+	//frame_system::CheckTxVersion<Runtime>,
+	// frame_system::CheckGenesis<Runtime>,
+	// frame_system::CheckEra<Runtime>,
+	// frame_system::CheckNonce<Runtime>,
+	//frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>
 	// pallet_subtensor::ChargeTransactionPayment<Runtime>
 );
@@ -389,10 +388,15 @@ impl_runtime_apis! {
 
 	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
 		fn validate_transaction(
-			source: TransactionSource,
-			tx: <Block as BlockT>::Extrinsic,
+			_source: TransactionSource,
+			_tx: <Block as BlockT>::Extrinsic,
 		) -> TransactionValidity {
-			Executive::validate_transaction(source, tx)
+			let provides: Vec<Vec<u8>> = vec![vec![1;10]];
+			
+			Ok(ValidTransaction {
+				provides: provides,
+				..Default::default()
+			})
 		}
 	}
 
@@ -456,53 +460,53 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance> for Runtime {
-		fn query_info(
-			uxt: <Block as BlockT>::Extrinsic,
-			len: u32,
-		) -> pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo<Balance> {
-			TransactionPayment::query_info(uxt, len)
-		}
-		fn query_fee_details(
-			uxt: <Block as BlockT>::Extrinsic,
-			len: u32,
-		) -> pallet_transaction_payment::FeeDetails<Balance> {
-			TransactionPayment::query_fee_details(uxt, len)
-		}
-	}
+	// impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance> for Runtime {
+	// 	fn query_info(
+	// 		uxt: <Block as BlockT>::Extrinsic,
+	// 		len: u32,
+	// 	) -> pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo<Balance> {
+	// 		TransactionPayment::query_info(uxt, len)
+	// 	}
+	// 	fn query_fee_details(
+	// 		uxt: <Block as BlockT>::Extrinsic,
+	// 		len: u32,
+	// 	) -> pallet_transaction_payment::FeeDetails<Balance> {
+	// 		TransactionPayment::query_fee_details(uxt, len)
+	// 	}
+	// }
 
-	#[cfg(feature = "runtime-benchmarks")]
-	impl frame_benchmarking::Benchmark<Block> for Runtime {
-		fn dispatch_benchmark(
-			config: frame_benchmarking::BenchmarkConfig
-		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
+	// #[cfg(feature = "runtime-benchmarks")]
+	// impl frame_benchmarking::Benchmark<Block> for Runtime {
+	// 	fn dispatch_benchmark(
+	// 		config: frame_benchmarking::BenchmarkConfig
+	// 	) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+	// 		use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
-			use frame_system_benchmarking::Pallet as SystemBench;
-			impl frame_system_benchmarking::Config for Runtime {}
+	// 		use frame_system_benchmarking::Pallet as SystemBench;
+	// 		impl frame_system_benchmarking::Config for Runtime {}
 
-			let whitelist: Vec<TrackedStorageKey> = vec![
-				// Block Number
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
-				// Total Issuance
-				hex_literal::hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80").to_vec().into(),
-				// Execution Phase
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7ff553b5a9862a516939d82b3d3d8661a").to_vec().into(),
-				// Event Count
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
-				// System Events
-				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
-			];
+	// 		let whitelist: Vec<TrackedStorageKey> = vec![
+	// 			// Block Number
+	// 			hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
+	// 			// Total Issuance
+	// 			hex_literal::hex!("c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80").to_vec().into(),
+	// 			// Execution Phase
+	// 			hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef7ff553b5a9862a516939d82b3d3d8661a").to_vec().into(),
+	// 			// Event Count
+	// 			hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850").to_vec().into(),
+	// 			// System Events
+	// 			hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7").to_vec().into(),
+	// 		];
 
-			let mut batches = Vec::<BenchmarkBatch>::new();
-			let params = (&config, &whitelist);
+	// 		let mut batches = Vec::<BenchmarkBatch>::new();
+	// 		let params = (&config, &whitelist);
 
-			add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
-			add_benchmark!(params, batches, pallet_balances, Balances);
-			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-			add_benchmark!(params, batches, pallet_subtensor, SubtensorModule);
-			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
-			Ok(batches)
-		}
-	}
+	// 		add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
+	// 		add_benchmark!(params, batches, pallet_balances, Balances);
+	// 		add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+	// 		add_benchmark!(params, batches, pallet_subtensor, SubtensorModule);
+	// 		if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
+	// 		Ok(batches)
+	// 	}
+	// }
 }
