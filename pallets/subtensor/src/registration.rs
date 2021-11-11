@@ -100,7 +100,7 @@ impl<T: Config> Pallet<T> {
         let bytes: &[u8] = &hash.as_bytes();
         let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
-        if Self::debug() { if_std! {
+        if Self::debug() && false { if_std! {
             println!("Difficulty: hash:{:?}, hash_bytes: {:?}, hash_as_num: {:?}, difficulty:{:?}, value: {:?} overflowed: {:?}", hash, bytes, num_hash, difficulty, value, overflowed);
         }}
         !overflowed
@@ -112,7 +112,7 @@ impl<T: Config> Pallet<T> {
         let vec_hash: Vec<u8> = block_hash_at_number.as_ref().into_iter().cloned().collect();
         let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
         let real_hash: H256 = H256::from_slice( deref_vec_hash );
-        if Self::debug() { if_std! {
+        if Self::debug() && false  { if_std! {
             println!("block_number: {:?}, vec_hash: {:?}, real_hash: {:?}", block_number, vec_hash, real_hash);
         }}
         return real_hash;
@@ -144,7 +144,7 @@ impl<T: Config> Pallet<T> {
         ];
         let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
-        if Self::debug() { if_std! {
+        if Self::debug() && false { if_std! {
             println!("\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}", block_number_u64, nonce_u64, block_hash_at_number, full_bytes, seal_hash_vec, seal_hash);
         }}
         return seal_hash;
@@ -183,7 +183,7 @@ impl<T: Config> Pallet<T> {
         //let pre_seal: Vec<u8> = &[nonce_bytes, block_hash_bytes].concat();
         let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
-        if Self::debug() { if_std! {
+        if Self::debug() && false { if_std! {
             println!("\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nblock_hash_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}", block_number, nonce_u64, block_hash, full_bytes, block_hash_bytes, seal_hash_vec, seal_hash);
         }}
 
@@ -191,7 +191,7 @@ impl<T: Config> Pallet<T> {
         let bytes: &[u8] = &seal_hash.as_bytes();
         let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
-        if Self::debug() { if_std! {
+        if Self::debug() && false { if_std! {
             println!("Difficulty: \nseal_hash:{:?}, \nhash_bytes: {:?}, \nhash_as_num: {:?}, \ndifficulty:{:?}, \nvalue: {:?} \noverflowed: {:?}", seal_hash, bytes, num_hash, difficulty, value, overflowed);
         }}
     }

@@ -141,7 +141,13 @@ impl<T: Config> Pallet<T> {
     /// 
     /// Note, operations 1 and 2 are computed together. 
     ////
-    pub fn block_step () {
+    pub fn mechanism_step ( emission_this_step: u64 ) {
+        
+        // The amount this mechanism step emits on this block.
+        let block_emission: I65F63 = I65F63::from_num( emission_this_step ); 
+        if_std! {
+            println!( "block_emission: {:?}", block_emission );
+        }
 
         // Number of peers.
         let n: usize = Self::get_neuron_count() as usize;
@@ -155,7 +161,6 @@ impl<T: Config> Pallet<T> {
         let rho: I65F63 = I65F63::from_num( Self::get_rho() );
         let kappa: I65F63 = one / I65F63::from_num( Self::get_kappa() );
         let self_ownership: I65F63 = one / I65F63::from_num( Self::get_self_ownership()  );
-        let block_emission: I65F63 = I65F63::from_num( Self::get_block_emission() ); 
 
         // To be filled.
         let mut uids: Vec<u32> = vec![];
@@ -197,9 +202,9 @@ impl<T: Config> Pallet<T> {
                 }
             }
         } 
-        if Self::debug() { if_std! {
+        if_std! {
             println!( "stake-: {:?}", stake );
-        }}
+        }
     
         
         // Compute ranks and trust.
@@ -222,10 +227,9 @@ impl<T: Config> Pallet<T> {
                 let trust_increment_ij: I65F63 = stake_i; // Range( 0, 1 )                
                 let rank_increment_ij: I65F63 = stake_i * weight_ij; // Range( 0, total_active_stake )
                 let bond_increment_ij: I65F63 = rank_increment_ij * block_emission; // Range( 0, block_emission )
-                if Self::debug() { if_std! {
-
+                if_std! {
                     println!( "-----: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}", weight_ij, stake_i, rank_increment_ij, trust_increment_ij, bond_increment_ij, bond_increment_ij.to_num::<u64>());
-                }}
+                }
 
                 // Distribute self weights as priority
                 if *uid_i == *uid_j {
@@ -251,19 +255,18 @@ impl<T: Config> Pallet<T> {
         // Normalize ranks + trust.
         if total_trust > 0 && total_ranks > 0 {
             for uid_i in uids.iter() {
-                if Self::debug() { if_std! {
-
+                if_std! {
                     println!( "trust-: {:?} / {:?}", trust[ *uid_i as usize ], total_normalized_active_stake);
-                }}
+                }
                 ranks[ *uid_i as usize ] = ranks[ *uid_i as usize ] / total_ranks; // Vector will sum to u64_max
                 trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
         }
-        if Self::debug() { if_std! {
+        if_std! {
             println!("ranks: {:?}", ranks );
             println!("trust: {:?}", trust );
             println!("bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
-        }}
+        }
 
         // Compute consensus, incentive.
         let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
@@ -292,10 +295,10 @@ impl<T: Config> Pallet<T> {
                 incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
-        if Self::debug() { if_std! {
+        if_std! {
             println!("incentive: {:?} ", incentive);
             println!("consensus: {:?} ", consensus);
-        }}
+        }
 
         // Compute dividends.
         let mut total_dividends: I65F63 = I65F63::from_num( 0.0 );
@@ -352,10 +355,10 @@ impl<T: Config> Pallet<T> {
                 total_emission += emission_i;
             }
         }
-        if Self::debug() { if_std! {
+        if_std! {
             println!( "dividends: {:?}", dividends );
             println!( "emission: {:?}", emission );
-        }}
+        }
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.

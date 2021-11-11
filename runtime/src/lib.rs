@@ -265,12 +265,12 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
-/// Configure the pallet-subtensor in pallets/subtensor.
 parameter_types! {
 	pub const SDebug:u64 = 0;
 	pub const StepRho: u64 = 10;
 	pub const StepKappa: u64 = 2;
 	pub const SelfOwnership: u64 = 2;
+	pub const InitialBlocksPerStep: u64 = 100;
 	pub const InitialIssuance: u64 = 548833985028256;
 	pub const InitialDifficulty: u64 = 10000;
 	pub const MinimumDifficulty: u64 = 10000;
@@ -280,6 +280,7 @@ parameter_types! {
 	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
 	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
 }
+/// Configure the pallet-subtensor in pallets/subtensor.
 impl pallet_subtensor::Config for Runtime {
 	type Currency = Balances;
 	type Event = Event;
@@ -288,6 +289,7 @@ impl pallet_subtensor::Config for Runtime {
 	type StepRho = StepRho;
 	type StepKappa = StepKappa;
 	type SelfOwnership = SelfOwnership;
+	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;
 	type InitialDifficulty = InitialDifficulty;
 	type MinimumDifficulty = MinimumDifficulty;

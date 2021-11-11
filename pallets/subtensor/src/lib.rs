@@ -32,6 +32,7 @@ use frame_system::{
 	ensure_signed
 };
 
+
 use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
 use substrate_fixed::types::U64F64;
 use sp_runtime::{
@@ -100,6 +101,10 @@ pub mod pallet {
 		/// Activity constant
 		#[pallet::constant]
 		type StepKappa: Get<u64>;
+
+		/// Blocks per step.
+		#[pallet::constant]
+		type InitialBlocksPerStep: Get<u64>;
 
 		/// Activity constant
 		#[pallet::constant]
@@ -263,6 +268,26 @@ pub mod pallet {
 		u64, 
 		ValueQuery,
 		DefaultTotalIssuance<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultBlocksSinceLastStep<T: Config>() -> u64 { 0 }
+	#[pallet::storage]
+	pub type BlocksSinceLastStep<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultBlocksSinceLastStep<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultBlocksPerStep<T: Config>() -> u64 { T::InitialBlocksPerStep::get() }
+	#[pallet::storage]
+	pub type BlocksPerStep<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultBlocksPerStep<T>
 	>;
 
 	#[pallet::type_value] 
@@ -433,6 +458,21 @@ pub mod pallet {
 		/// --- Event created when stake has been removed from 
 		/// the staking account into the coldkey account.
 		StakeRemoved(T::AccountId, u64),
+
+		/// --- Event created when the difficulty has been set.
+		DifficultySet(u64),
+
+		/// --- Event created when default blocks per step has been set.
+		BlocksPerStepSet(u64),
+
+		/// --- Event created when the difficulty adjustment interval has been set.
+		AdjustmentIntervalSet(u64),
+
+		/// --- Event created when the activity cuttoff has been set.
+		ActivityCuttoffSet(u64),
+
+		/// --- Event created when the target registrations per interval has been set.
+		TargetRegistrationsPerIntervalSet(u64)
 	}
 
 	/// ************************************************************
@@ -529,8 +569,33 @@ pub mod pallet {
 		/// 	* 'n': (T::BlockNumber):
 		/// 		- The number of the block we are initializing.
 		fn on_initialize( _n: BlockNumberFor<T> ) -> Weight {
-			Self::block_step();
+			
+			// Only run the block step every `blocks_per_step`.
+			// Initially `blocks_since_last_step` is 0 but increments until it reaches `blocks_per_step`.
+			// We use the >= here in the event that we lower get_blocks per step and these qualities never meet.
+			if Self::get_blocks_since_last_step() >= Self::get_blocks_per_step() {
+
+				// Compute the amount of emission we perform this step.
+				// Note that we use blocks_since_last_step here instead of block_per_step incase this is lowered
+				// This would mint more tao than is allowed.
+				let emission_this_step:u64 = Self::get_blocks_since_last_step() * Self::get_block_emission();
+
+				// Apply emission step based on mechanism and updates values.
+				Self::mechanism_step( emission_this_step );
+
+				// Reset counter down to 1, this ensures that if `blocks_per_step=1` we will do an emission on the next block.
+				// If `blocks_per_step=2` we will skip the next block, since 1 !>= 2, add one to the counter, and then apply the next
+				// token increment where 2 >= 2.
+				Self::set_blocks_since_last_step( 1 );
+
+			} else {
+				// Increment counter.
+				Self::set_blocks_since_last_step( Self::get_blocks_since_last_step() + 1 );
+			}
+
+			// Make a difficulty update.
 			Self::update_difficulty();
+			
 			return 0;
 		}
 	}
@@ -742,6 +807,80 @@ pub mod pallet {
 			Self::do_registration(origin, block_number, nonce, work, hotkey, coldkey)
 		}
 
+
+		/// ---- SUDO ONLY FUNCTIONS
+		///
+		/// # Args:
+		/// 	* 'origin': (<T as frame_system::Config>Origin):
+		/// 		- The caller, must be sudo.
+		///
+		/// ONE OF:
+		/// 	* 'adjustment_interval' (u64):
+		/// 	* 'activity_cutoff' (u64):
+		/// 	* 'difficulty' (u64):
+		///
+		/// # Events:
+		///		* 'DifficultySet'
+		/// 	* 'AdjustmentIntervalSet'
+		///		* 'ActivityCuttoffSet'
+		///		* 'TargetRegistrationsPerIntervalSet'
+		///
+		/// 
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_blocks_per_step ( 
+			origin:OriginFor<T>, 
+			blocks_per_step: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			BlocksPerStep::<T>::set( blocks_per_step );
+			Self::deposit_event( Event::BlocksPerStepSet( blocks_per_step ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_difficulty ( 
+			origin:OriginFor<T>, 
+			difficulty: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			Difficulty::<T>::set( difficulty );
+			Self::deposit_event( Event::DifficultySet( difficulty ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_adjustment_interval ( 
+			origin:OriginFor<T>, 
+			adjustment_interval: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			AdjustmentInterval::<T>::set( adjustment_interval );
+			Self::deposit_event( Event::AdjustmentIntervalSet( adjustment_interval ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_activity_cutoff ( 
+			origin:OriginFor<T>, 
+			activity_cutoff: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			ActivityCutoff::<T>::set( activity_cutoff );
+			Self::deposit_event( Event::ActivityCuttoffSet( activity_cutoff ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_target_registrations_per_interval ( 
+			origin:OriginFor<T>, 
+			target_registrations_per_interval: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			TargetRegistrationsPerInterval::<T>::set( target_registrations_per_interval );
+			Self::deposit_event( Event::TargetRegistrationsPerIntervalSet( target_registrations_per_interval ) );
+			Ok(())
+		}
+
 	}
 	
 	// ---- Subtensor helper functions.
@@ -753,6 +892,19 @@ pub mod pallet {
 		}
 
 		// Adjustable Constants.
+		// -- Blocks per step.
+		pub fn get_blocks_since_last_step( ) -> u64 {
+			BlocksSinceLastStep::<T>::get()
+		}
+		pub fn set_blocks_since_last_step( blocks_since_last_step: u64 ) {
+			BlocksSinceLastStep::<T>::set( blocks_since_last_step );
+		}
+		pub fn get_blocks_per_step( ) -> u64 {
+			BlocksPerStep::<T>::get()
+		}
+		pub fn set_blocks_per_step( blocks_per_step: u64 ) {
+			BlocksPerStep::<T>::set( blocks_per_step );
+		}
 		// -- Difficulty.
 		pub fn get_difficulty( ) -> U256 {
 			return U256::from( Self::get_difficulty_as_u64() );
