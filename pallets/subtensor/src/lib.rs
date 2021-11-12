@@ -625,7 +625,7 @@ pub mod pallet {
 		/// 		- When the amount to stake exceeds the amount of balance in the
 		/// 		associated colkey account.
 		///
-		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn add_stake(
 			origin:OriginFor<T>, 
 			hotkey: T::AccountId, 

@@ -21,7 +21,7 @@ fn test_add_stake_dispatch_info_ok() {
 		assert_eq!(call.get_dispatch_info(), DispatchInfo {
 			weight: 0,
 			class: DispatchClass::Normal,
-			pays_fee: Pays::Yes
+			pays_fee: Pays::No
 		});
 	});
 }
@@ -193,7 +193,7 @@ fn test_remove_stake_dispatch_info_ok() {
 		assert_eq!(call.get_dispatch_info(), DispatchInfo {
 			weight: 0,
 			class: DispatchClass::Normal,
-			pays_fee: Pays::Yes
+			pays_fee: Pays::No
 		});
 	});
 }
