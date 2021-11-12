@@ -60,7 +60,7 @@ fn test_fails_sudo_set_blocks_per_step() {
 	new_test_ext().execute_with(|| {
         let blocks_per_step: u64 = 10;
         let init_blocks_per_step: u64 = Subtensor::get_blocks_per_step();
-		assert_ok!(Subtensor::sudo_set_blocks_per_step(<<Test as Config>::Origin>::root(), blocks_per_step));
+		assert_ok!(Subtensor::sudo_set_blocks_per_step(<<Test as Config>::Origin>::signed(0), blocks_per_step));
         assert_eq!(Subtensor::get_blocks_per_step(), init_blocks_per_step)
     });
 }

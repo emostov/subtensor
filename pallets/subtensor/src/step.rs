@@ -168,7 +168,7 @@ impl<T: Config> Pallet<T> {
         let mut priority: Vec<u64> = vec![0;n];
         let mut bond_totals: Vec<u64> = vec![0; n];
         let mut bonds: Vec<Vec<u64>> = vec![vec![0;n]; n];
-        let mut weights: Vec<Vec<(u32,u32)>> = vec![];
+        let mut weights: Vec<Vec<(u32,u32)>> = vec![ vec![]; n ];
         let mut total_stake: I65F63 = I65F63::from_num( 0.0 );
         let mut total_active_stake: I65F63 = I65F63::from_num( 0.0 );
         let mut total_normalized_active_stake: I65F63 = I65F63::from_num( 0.0 );
@@ -184,7 +184,7 @@ impl<T: Config> Pallet<T> {
              total_stake += I65F63::from_num( neuron_i.stake );
              stake [ uid_i as usize ] = I65F63::from_num( neuron_i.stake );
              priority [ uid_i as usize ] = neuron_i.priority;
-             weights.push( neuron_i.weights );             
+             weights [ uid_i as usize ] = neuron_i.weights;             
              let mut bonds_row: Vec<u64> = vec![0; n];
              for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
                  bonds_row [ *uid_j as usize ] = *bonds_ij;
@@ -203,7 +203,7 @@ impl<T: Config> Pallet<T> {
             }
         } 
         if_std! {
-            println!( "stake-: {:?}", stake );
+            println!( "stake: {:?}", stake );
         }
     
         
@@ -227,9 +227,9 @@ impl<T: Config> Pallet<T> {
                 let trust_increment_ij: I65F63 = stake_i; // Range( 0, 1 )                
                 let rank_increment_ij: I65F63 = stake_i * weight_ij; // Range( 0, total_active_stake )
                 let bond_increment_ij: I65F63 = rank_increment_ij * block_emission; // Range( 0, block_emission )
-                if_std! {
-                    println!( "-----: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}", weight_ij, stake_i, rank_increment_ij, trust_increment_ij, bond_increment_ij, bond_increment_ij.to_num::<u64>());
-                }
+                // if_std! {
+                //     println!( "-----: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}", weight_ij, stake_i, rank_increment_ij, trust_increment_ij, bond_increment_ij, bond_increment_ij.to_num::<u64>());
+                // }
 
                 // Distribute self weights as priority
                 if *uid_i == *uid_j {
@@ -255,9 +255,9 @@ impl<T: Config> Pallet<T> {
         // Normalize ranks + trust.
         if total_trust > 0 && total_ranks > 0 {
             for uid_i in uids.iter() {
-                if_std! {
-                    println!( "trust-: {:?} / {:?}", trust[ *uid_i as usize ], total_normalized_active_stake);
-                }
+                // if_std! {
+                //     println!( "trust-: {:?} / {:?}", trust[ *uid_i as usize ], total_normalized_active_stake);
+                // }
                 ranks[ *uid_i as usize ] = ranks[ *uid_i as usize ] / total_ranks; // Vector will sum to u64_max
                 trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }

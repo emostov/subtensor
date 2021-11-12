@@ -81,7 +81,7 @@ fn fee_from_emission_priority_with_neuron_and_weights_and_stake() {
         let call = SubtensorCall::set_weights(vec![0], vec![0]).into();
         let info = DispatchInfo::default();
         let len = 10;
-        assert_eq!(ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 0);
+        assert_eq!(ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 100000000);
     });
 }
 

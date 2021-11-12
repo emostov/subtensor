@@ -345,6 +345,76 @@ fn test_two_steps_with_many_outward_weights() {
 }
 
 
+#[test]
+fn test_step_only_every_3_with_many_outward_weights() {
+    new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
+        let initial_stake:u64 = 1000000000;
+        for i in 0..4 { register_ok_neuron(i as u64, i as u64 ); }
+        let weights_matrix: Vec<Vec<u32>> = vec! [
+            vec! [0, u32::max_value(), 0, 0 ],
+            vec! [0, 0, u32::max_value(), 0 ],
+            vec! [0, 0, 0, u32::max_value() ], 
+            vec! [u32::max_value(), 0, 0, 0 ],
+        ];
+        Subtensor::set_stake_from_vector( vec![ initial_stake; 4 ] );
+        Subtensor::set_weights_from_matrix( weights_matrix.clone() );
+        // Check 3.
+        Subtensor::set_blocks_per_step(3);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance(), 1)); // approx
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance(), 1)); // approx
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance(), 1)); // approx
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 3, 1000)); // approx
+        // Check 1
+        Subtensor::set_blocks_per_step(1);
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 4, 1000)); // approx
+        // Check 1 again.
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 5, 1000)); // approx
+        // Check 5.
+        Subtensor::set_blocks_per_step(5);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 10, 1000)); // approx
+        // Check 5 again.
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 15, 1000)); // approx
+        // Check 0 values.
+        Subtensor::set_blocks_per_step(0);
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 16, 1000)); // approx
+        Subtensor::set_blocks_per_step(10);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        step_block (1);
+        // Check Lower step prematurely.
+        Subtensor::set_blocks_per_step(9);
+        step_block (1);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 25, 1000)); // approx
+        // Check 100
+        Subtensor::set_blocks_per_step(100);
+        step_block (100);
+        assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000 * 125, 1000)); // approx
+    });
+}
+
+
 
 #[test]
 fn test_two_steps_with_activity_cuttoff() {

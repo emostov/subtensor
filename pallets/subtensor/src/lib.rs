@@ -571,22 +571,22 @@ pub mod pallet {
 		fn on_initialize( _n: BlockNumberFor<T> ) -> Weight {
 			
 			// Only run the block step every `blocks_per_step`.
-			// Initially `blocks_since_last_step` is 0 but increments until it reaches `blocks_per_step`.
+			// Initially `blocks_since_last_step + 1` is 0 but increments until it reaches `blocks_per_step`.
 			// We use the >= here in the event that we lower get_blocks per step and these qualities never meet.
-			if Self::get_blocks_since_last_step() >= Self::get_blocks_per_step() {
+			if Self::get_blocks_since_last_step() + 1 >= Self::get_blocks_per_step() {
 
 				// Compute the amount of emission we perform this step.
 				// Note that we use blocks_since_last_step here instead of block_per_step incase this is lowered
 				// This would mint more tao than is allowed.
-				let emission_this_step:u64 = Self::get_blocks_since_last_step() * Self::get_block_emission();
+				let emission_this_step:u64 = ( Self::get_blocks_since_last_step() + 1 ) * Self::get_block_emission();
 
 				// Apply emission step based on mechanism and updates values.
 				Self::mechanism_step( emission_this_step );
 
-				// Reset counter down to 1, this ensures that if `blocks_per_step=1` we will do an emission on the next block.
-				// If `blocks_per_step=2` we will skip the next block, since 1 !>= 2, add one to the counter, and then apply the next
-				// token increment where 2 >= 2.
-				Self::set_blocks_since_last_step( 1 );
+				// Reset counter down to 0, this ensures that if `blocks_per_step=1` we will do an emission on every block.
+				// If `blocks_per_step=2` we will skip the next block, since (0+1) !>= 2, add one to the counter, and then apply the next
+				// token increment where (1+1) >= 2.
+				Self::set_blocks_since_last_step( 0 );
 
 			} else {
 				// Increment counter.
@@ -690,7 +690,7 @@ pub mod pallet {
 		/// 		- When the amount to stake exceeds the amount of balance in the
 		/// 		associated colkey account.
 		///
-		#[pallet::weight((0, DispatchClass::Normal, Pays::Yes))]
+		#[pallet::weight((0, DispatchClass::Normal, Pays::No))]
 		pub fn add_stake(
 			origin:OriginFor<T>, 
 			hotkey: T::AccountId, 
