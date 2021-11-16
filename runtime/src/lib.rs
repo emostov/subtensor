@@ -96,10 +96,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 104,
-	impl_version: 2,
+	spec_version: 105,
+	impl_version: 3,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 2,
+	transaction_version: 3,
 };
 
 /// This determines the average expected block time that we are targeting.
@@ -265,12 +265,12 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
-/// Configure the pallet-subtensor in pallets/subtensor.
 parameter_types! {
 	pub const SDebug:u64 = 0;
 	pub const StepRho: u64 = 10;
 	pub const StepKappa: u64 = 2;
 	pub const SelfOwnership: u64 = 2;
+	pub const InitialBlocksPerStep: u64 = 100;
 	pub const InitialIssuance: u64 = 548833985028256;
 	pub const InitialDifficulty: u64 = 10000;
 	pub const MinimumDifficulty: u64 = 10000000;
@@ -280,6 +280,7 @@ parameter_types! {
 	pub const InitialMaxRegistrationsPerBlock: u64 = 2;
 	pub const InitialTargetRegistrationsPerInterval: u64 = 2;
 }
+/// Configure the pallet-subtensor in pallets/subtensor.
 impl pallet_subtensor::Config for Runtime {
 	type Currency = Balances;
 	type Event = Event;
@@ -288,6 +289,7 @@ impl pallet_subtensor::Config for Runtime {
 	type StepRho = StepRho;
 	type StepKappa = StepKappa;
 	type SelfOwnership = SelfOwnership;
+	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;
 	type InitialDifficulty = InitialDifficulty;
 	type MinimumDifficulty = MinimumDifficulty;
