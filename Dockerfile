@@ -32,7 +32,7 @@ RUN apt-get update && \
         DEBIAN_FRONTEND=noninteractive apt-get install -y \
                 libssl1.1 \
                 ca-certificates \
-        git \
+                git \
                 curl && \
 # apt cleanup
         apt-get autoremove -y && \
@@ -42,6 +42,11 @@ RUN apt-get update && \
 
 # Clone subtensor latest
 RUN git clone https://github.com/opentensor/subtensor_exodus.git subtensor
+
+# Install cargo and Rust
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN subtensor/scripts/init.sh
 
 COPY subtensor/target/release/node-subtensor /usr/local/bin
 

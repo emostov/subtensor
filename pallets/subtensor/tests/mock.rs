@@ -80,7 +80,7 @@ parameter_types! {
 	pub BlockWeights: limits::BlockWeights = limits::BlockWeights::simple_max(1024);
 	pub const ExistentialDeposit: Balance = 1;
 	pub const TransactionByteFee: Balance = 100;
-	pub const SDebug:u64 = 1;
+	pub const SDebug:u64 = 0;
 	pub const StepRho: u64 = 10;
 	pub const StepKappa: u64 = 2;
 	pub const SelfOwnership: u64 = 2;

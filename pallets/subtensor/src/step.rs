@@ -145,9 +145,11 @@ impl<T: Config> Pallet<T> {
         
         // The amount this mechanism step emits on this block.
         let block_emission: I65F63 = I65F63::from_num( emission_this_step ); 
-        if_std! {
-            println!( "block_emission: {:?}", block_emission );
-        }
+        if Self::debug() { 
+            if_std! {
+                println!( "block_emission: {:?}", block_emission );
+            }
+        }   
 
         // Number of peers.
         let n: usize = Self::get_neuron_count() as usize;
@@ -202,8 +204,10 @@ impl<T: Config> Pallet<T> {
                 }
             }
         } 
-        if_std! {
-            println!( "stake: {:?}", stake );
+        if Self::debug() { 
+            if_std! {
+                println!( "stake: {:?}", stake );
+            }
         }
     
         
@@ -262,10 +266,12 @@ impl<T: Config> Pallet<T> {
                 trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
         }
-        if_std! {
-            println!("ranks: {:?}", ranks );
-            println!("trust: {:?}", trust );
-            println!("bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
+        if Self::debug() { 
+            if_std! {
+                println!("ranks: {:?}", ranks );
+                println!("trust: {:?}", trust );
+                println!("bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
+            }
         }
 
         // Compute consensus, incentive.
@@ -295,9 +301,11 @@ impl<T: Config> Pallet<T> {
                 incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
-        if_std! {
-            println!("incentive: {:?} ", incentive);
-            println!("consensus: {:?} ", consensus);
+        if Self::debug() { 
+            if_std! {
+                println!("incentive: {:?} ", incentive);
+                println!("consensus: {:?} ", consensus);
+            }
         }
 
         // Compute dividends.
@@ -355,9 +363,11 @@ impl<T: Config> Pallet<T> {
                 total_emission += emission_i;
             }
         }
-        if_std! {
-            println!( "dividends: {:?}", dividends );
-            println!( "emission: {:?}", emission );
+        if Self::debug() { 
+            if_std! {
+                println!( "dividends: {:?}", dividends );
+                println!( "emission: {:?}", emission );
+            }
         }
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
