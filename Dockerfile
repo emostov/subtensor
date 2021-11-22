@@ -52,9 +52,9 @@ COPY subtensor/target/release/node-subtensor /usr/local/bin
 
 RUN /usr/local/bin/node-subtensor --version
 
-COPY ${SNAPSHOT_DIR}/${SNAPSHOT_FILE} /subtensor
+COPY ${SNAPSHOT_DIR}/${SNAPSHOT_FILE}.tar.gz /subtensor
 
 RUN mkdir -p /root/.local/share/node-subtensor/chains/nakamoto_mainnet/db
-RUN tar -zxvf /subtensor/${SNAPSHOT_FILE} -C  /root/.local/share/node-subtensor/chains/nakamoto_mainnet/db
+RUN tar -zxvf /subtensor/${SNAPSHOT_FILE}.tar.gz -C  /root/.local/share/node-subtensor/chains/nakamoto_mainnet/db
 
 EXPOSE 30333 9933 9944
