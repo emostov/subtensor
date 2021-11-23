@@ -92,7 +92,7 @@ Start the development chain with detailed logging:
 RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node-subtensor -lruntime=debug --dev
 ```
 
-# run debug with logs.
+### run debug with logs.
 
 SKIP_WASM_BUILD=1 RUST_LOG=runtime=debug -- --nocapture
 
