@@ -95,3 +95,17 @@ RUST_LOG=debug RUST_BACKTRACE=1 ./target/release/node-subtensor -lruntime=debug 
 # run debug with logs.
 
 SKIP_WASM_BUILD=1 RUST_LOG=runtime=debug -- --nocapture
+
+## Run with Docker :whale:
+You can run an up to date Substrate blockchain using
+
+```bash
+docker-compose up
+```
+which will download the hourly blockchain snapshot and compile it into a docker container, then run it locally on your machine. 
+
+You can use 
+```bash
+docker-compose up -d
+```
+to run the blockchain in the background. 
