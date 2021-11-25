@@ -96,11 +96,11 @@ pub mod pallet {
 
 		/// Activity constant
 		#[pallet::constant]
-		type StepRho: Get<u64>;
+		type InitialRho: Get<u64>;
 
 		/// Activity constant
 		#[pallet::constant]
-		type StepKappa: Get<u64>;
+		type InitialKappa: Get<u64>;
 
 		/// Blocks per step.
 		#[pallet::constant]
@@ -259,6 +259,25 @@ pub mod pallet {
 		ValueQuery
 	>;
 
+	#[pallet::type_value] 
+	pub fn DefaultRho<T: Config>() -> u64 { T::InitialRho::get() }
+	#[pallet::storage]
+	pub type Rho<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultRho<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultKappa<T: Config>() -> u64 { T::InitialKappa::get() }
+	#[pallet::storage]
+	pub type Kappa<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultKappa<T>
+	>;
 
 	#[pallet::type_value] 
 	pub fn DefaultTotalIssuance<T: Config>() -> u64 { T::InitialIssuance::get() }
@@ -472,7 +491,13 @@ pub mod pallet {
 		ActivityCuttoffSet(u64),
 
 		/// --- Event created when the target registrations per interval has been set.
-		TargetRegistrationsPerIntervalSet(u64)
+		TargetRegistrationsPerIntervalSet(u64),
+
+		/// --- Event created when mechanism rho has been set.
+		RhoSet(u64),
+
+		/// --- Event created when mechanism kappa has been set.
+		KappaSet(u64),
 	}
 
 	/// ************************************************************
@@ -881,6 +906,28 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_rho ( 
+			origin:OriginFor<T>, 
+			rho: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			Rho::<T>::set( rho );
+			Self::deposit_event( Event::RhoSet( rho ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_kappa ( 
+			origin:OriginFor<T>, 
+			kappa: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			Kappa::<T>::set( kappa );
+			Self::deposit_event( Event::KappaSet( kappa ) );
+			Ok(())
+		}
+
 	}
 	
 	// ---- Subtensor helper functions.
@@ -956,11 +1003,17 @@ pub mod pallet {
 		}
 		// -- Get step consensus temperature (rho)
 		pub fn get_rho( ) -> u64 {
-			return T::StepRho::get();
+			return Rho::<T>::get();
+		}
+		pub fn set_rho( rho: u64 ) {
+			Rho::<T>::put( rho );
 		}
 		// -- Get step consensus shift (1/kappa)
 		pub fn get_kappa( ) -> u64 {
-			return T::StepKappa::get();
+			return Kappa::<T>::get();
+		}
+		pub fn set_kappa( kappa: u64 ) {
+			Kappa::<T>::put( kappa );
 		}
 		// -- Get self ownership proportion denominator
 		pub fn get_self_ownership( ) -> u64 {
