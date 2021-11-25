@@ -81,8 +81,8 @@ parameter_types! {
 	pub const ExistentialDeposit: Balance = 1;
 	pub const TransactionByteFee: Balance = 100;
 	pub const SDebug:u64 = 1;
-	pub const StepRho: u64 = 10;
-	pub const StepKappa: u64 = 2;
+	pub const InitialRho: u64 = 10;
+	pub const InitialKappa: u64 = 2;
 	pub const SelfOwnership: u64 = 2;
 	pub const InitialBlocksPerStep: u64 = 1;
 	pub const InitialIssuance: u64 = 548833985028256;
@@ -159,8 +159,8 @@ impl pallet_subtensor::Config for Test {
 	type Currency = Balances;
 	type TransactionByteFee = TransactionByteFee;
 	type SDebug = SDebug;
-	type StepRho = StepRho;
-	type StepKappa = StepKappa;
+	type InitialRho = InitialRho;
+	type InitialKappa = InitialKappa;
 	type SelfOwnership = SelfOwnership;
 	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;
