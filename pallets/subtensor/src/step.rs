@@ -18,13 +18,13 @@ impl<T: Config> Pallet<T> {
         let adjustment_interval: u64 = Self::get_adjustment_interval(); // Number of blocks average registrations are taken over.
         let current_difficulty: u64 = Self::get_difficulty_as_u64();
         let target_registrations_per_interval: I65F63 = I65F63::from_num( Self::get_target_registrations_per_interval() ); // Target number of registrations on average over interval.
-        if Self::debug() { if_std! {
+        if Self::debug() && false { if_std! {
             println!( "current_difficulty: {:?}, max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}", current_difficulty, max_difficulty, min_difficulty, adjustment_interval, target_registrations_per_interval);
         }}
 
         let current_block:u64 = Self::get_current_block_as_u64();
         let last_adjustment:u64 = LastDifficultyAdjustmentBlock::<T>::get();
-        if Self::debug() { if_std! {
+        if Self::debug() && false { if_std! {
             println!( "current_block: {:?}, last_adjustment: {:?}", current_block, last_adjustment);
         }}
 
@@ -33,7 +33,7 @@ impl<T: Config> Pallet<T> {
 
             // --- Compute average registrations over the adjustment interval.
             let registrations_since_last_adjustment: I65F63 = I65F63::from_num( Self::get_registrations_this_interval() );
-            if Self::debug() { if_std! {
+            if Self::debug() && false { if_std! {
                 println!( " ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ", registrations_since_last_adjustment);
             }}
 
@@ -47,7 +47,7 @@ impl<T: Config> Pallet<T> {
                     next_difficulty = max_difficulty
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
-                if Self::debug() { if_std! {
+                if Self::debug() && false { if_std! {
                     println!( " next_difficulty: {:?}", next_difficulty );
                 }}
 
@@ -59,7 +59,7 @@ impl<T: Config> Pallet<T> {
                     next_difficulty = min_difficulty
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
-                if Self::debug() { if_std! {
+                if Self::debug() && false { if_std! {
                     println!( " next_difficulty: {:?}", next_difficulty );
                 }}
             }
@@ -145,7 +145,7 @@ impl<T: Config> Pallet<T> {
         
         // The amount this mechanism step emits on this block.
         let block_emission: I65F63 = I65F63::from_num( emission_this_step ); 
-        if Self::debug() { 
+        if Self::debug() && false { 
             if_std! {
                 println!( "block_emission: {:?}", block_emission );
             }
@@ -204,7 +204,7 @@ impl<T: Config> Pallet<T> {
                 }
             }
         } 
-        if Self::debug() { 
+        if Self::debug() && false { 
             if_std! {
                 println!( "stake: {:?}", stake );
             }
@@ -266,7 +266,7 @@ impl<T: Config> Pallet<T> {
                 trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
         }
-        if Self::debug() { 
+        if Self::debug() && false { 
             if_std! {
                 println!("ranks: {:?}", ranks );
                 println!("trust: {:?}", trust );
@@ -301,7 +301,7 @@ impl<T: Config> Pallet<T> {
                 incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
-        if Self::debug() { 
+        if Self::debug() && false { 
             if_std! {
                 println!("incentive: {:?} ", incentive);
                 println!("consensus: {:?} ", consensus);
@@ -363,7 +363,7 @@ impl<T: Config> Pallet<T> {
                 total_emission += emission_i;
             }
         }
-        if Self::debug() { 
+        if Self::debug() && false { 
             if_std! {
                 println!( "dividends: {:?}", dividends );
                 println!( "emission: {:?}", emission );
