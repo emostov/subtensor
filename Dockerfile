@@ -1,11 +1,9 @@
 # **NOTE**: This docker file expects to be run in a directory outside of subtensor.
 # It also expects two build arguments, the bittensor snapshot directory, and the bittensor
-# snapshot file name. 
+# snapshot file name.
 
-# This runs typically via the following command: 
+# This runs typically via the following command:
 # $ docker build -t subtensor . --platform linux/x86_64 --build-arg SNAPSHOT_DIR="DIR_NAME" --build-arg SNAPSHOT_FILE="FILENAME.TAR.GZ"  -f subtensor/Dockerfile
-
-
 FROM ubuntu:20.04
 SHELL ["/bin/bash", "-c"]
 
@@ -14,6 +12,9 @@ ARG VCS_REF
 ARG BUILD_DATE
 ARG SNAPSHOT_DIR
 ARG SNAPSHOT_FILE
+
+# This is being set so that no interactive components are allowed when updating.
+ARG DEBIAN_FRONTEND=noninteractive
 
 LABEL ai.opentensor.image.authors="operations@opentensor.ai" \
         ai.opentensor.image.vendor="Opentensor Foundation" \
@@ -47,6 +48,10 @@ RUN git clone https://github.com/opentensor/subtensor_exodus.git subtensor
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN subtensor/scripts/init.sh
+
+# Install subkey
+COPY subkey /subtensor
+#RUN cargo install --force subkey --git https://github.com/paritytech/substrate --version 2.0.1 --locked
 
 COPY subtensor/target/release/node-subtensor /usr/local/bin
 
