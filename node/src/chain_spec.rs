@@ -155,8 +155,8 @@ pub fn akatsuki_testnet_config() -> Result<ChainSpec, String> {
             true,
         ),
         vec![
-            MultiaddrWithPeerId::from_str("/dns4/Peter.akatsuki.bittensor.com/tcp/30333/ws/p2p/12D3KooWJ17iyN1cjGJgyoKmEfurAeu8SkhkbazH8uTmjbZTN8u6").unwrap(),
-            MultiaddrWithPeerId::from_str("/dns4/Thaddeus.akatsuki.bittensor.com/tcp/30333/ws/p2p/12D3KooWLzTauTT5AbEN6xpZYYmwudfrLtLeZLTJokHNt9Qix5AA").unwrap()
+            MultiaddrWithPeerId::from_str("/dns4/peter.akatsuki.opentensor.ai/tcp/30333/ws/p2p/12D3KooWJ17iyN1cjGJgyoKmEfurAeu8SkhkbazH8uTmjbZTN8u6").unwrap(),
+            MultiaddrWithPeerId::from_str("/dns4/thaddeus.akatsuki.opentensor.ai/tcp/30333/ws/p2p/12D3KooWLzTauTT5AbEN6xpZYYmwudfrLtLeZLTJokHNt9Qix5AA").unwrap()
         ],
         None,
         None,
