@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/sh
 # This script is meant to be run on Unix/Linux based systems
 set -e
 
