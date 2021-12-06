@@ -96,10 +96,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 106,
-	impl_version: 4,
+	spec_version: 107,
+	impl_version: 5,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 4,
+	transaction_version: 5,
 };
 
 /// This determines the average expected block time that we are targeting.
@@ -270,7 +270,9 @@ parameter_types! {
 	pub const InitialRho: u64 = 10;
 	pub const InitialKappa: u64 = 2;
 	pub const SelfOwnership: u64 = 2;
+	pub const InitialImmunityPeriod: u64 = 200;
 	pub const InitialBlocksPerStep: u64 = 100;
+	pub const InitialMaxAllowedUids: u64 = 2000;
 	pub const InitialIssuance: u64 = 548833985028256;
 	pub const InitialDifficulty: u64 = 10000;
 	pub const MinimumDifficulty: u64 = 10000000;
@@ -289,6 +291,8 @@ impl pallet_subtensor::Config for Runtime {
 	type InitialRho = InitialRho;
 	type InitialKappa = InitialKappa;
 	type SelfOwnership = SelfOwnership;
+	type InitialImmunityPeriod = InitialImmunityPeriod;
+	type InitialMaxAllowedUids = InitialMaxAllowedUids;
 	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;
 	type InitialDifficulty = InitialDifficulty;

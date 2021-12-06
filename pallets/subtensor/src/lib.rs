@@ -94,19 +94,27 @@ pub mod pallet {
 		#[pallet::constant]
 		type SDebug: Get<u64>;
 
-		/// Activity constant
+		/// Rho constant
 		#[pallet::constant]
 		type InitialRho: Get<u64>;
 
-		/// Activity constant
+		/// Kappa constant
 		#[pallet::constant]
 		type InitialKappa: Get<u64>;
+
+		/// Max UID constant
+		#[pallet::constant]
+		type InitialMaxAllowedUids: Get<u64>;
+
+		/// Immunity Period Constant.
+		#[pallet::constant]
+		type InitialImmunityPeriod: Get<u64>;
 
 		/// Blocks per step.
 		#[pallet::constant]
 		type InitialBlocksPerStep: Get<u64>;
 
-		/// Activity constant
+		/// SelfOwnership constant
 		#[pallet::constant]
 		type SelfOwnership: Get<u64>;
 
@@ -280,6 +288,26 @@ pub mod pallet {
 	>;
 
 	#[pallet::type_value] 
+	pub fn DefaultMaxAllowedUids<T: Config>() -> u64 { T::InitialMaxAllowedUids::get() }
+	#[pallet::storage]
+	pub type MaxAllowedUids<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultMaxAllowedUids<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultImmunityPeriod<T: Config>() -> u64 { T::InitialImmunityPeriod::get() }
+	#[pallet::storage]
+	pub type ImmunityPeriod<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultImmunityPeriod<T>
+	>;
+
+	#[pallet::type_value] 
 	pub fn DefaultTotalIssuance<T: Config>() -> u64 { T::InitialIssuance::get() }
 	#[pallet::storage]
 	pub type TotalIssuance<T> = StorageValue<
@@ -366,6 +394,12 @@ pub mod pallet {
 		ValueQuery
 	>;
 
+	#[pallet::storage]
+	pub type LastMechansimStepBlock<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery
+	>;
 
 	#[pallet::storage]
 	pub type RegistrationsThisInterval<T> = StorageValue<
@@ -403,6 +437,31 @@ pub mod pallet {
 		NeuronMetadataOf<T>, 
 		ValueQuery
 	>;
+
+	/// ---- Maps from uid to uid as a set which we use to record uids to prune at next epoch.
+	#[pallet::storage]
+	#[pallet::getter(fn uid_to_prune)]
+    pub(super) type NeuronsToPruneAtNextEpoch<T:Config> = StorageMap<
+		_, 
+		Identity, 
+		u32, 
+		u32, 
+		ValueQuery,
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultBlockAtRegistration<T: Config>() -> u64 { 0 }
+	#[pallet::storage]
+	#[pallet::getter(fn block_at_registration)]
+    pub(super) type BlockAtRegistration<T:Config> = StorageMap<
+		_, 
+		Identity, 
+		u32, 
+		u64, 
+		ValueQuery,
+		DefaultBlockAtRegistration<T>
+	>;
+
 
 	/// ************************************************************
 	///	-Genesis-Configuration
@@ -498,6 +557,12 @@ pub mod pallet {
 
 		/// --- Event created when mechanism kappa has been set.
 		KappaSet(u64),
+
+		/// --- Event created when max allowed uids has been set.
+		MaxAllowedUidsSet(u64),
+
+		/// --- Event created when the immunity period has been set.
+		ImmunityPeriodSet(u64),
 	}
 
 	/// ************************************************************
@@ -928,6 +993,28 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_max_allowed_uids ( 
+			origin:OriginFor<T>, 
+			max_allowed_uids: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			MaxAllowedUids::<T>::set( max_allowed_uids );
+			Self::deposit_event( Event::MaxAllowedUidsSet( max_allowed_uids ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_immunity_period ( 
+			origin:OriginFor<T>, 
+			immunity_period: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			ImmunityPeriod::<T>::set( immunity_period );
+			Self::deposit_event( Event::ImmunityPeriodSet( immunity_period ) );
+			Ok(())
+		}
+
 	}
 	
 	// ---- Subtensor helper functions.
@@ -1018,6 +1105,21 @@ pub mod pallet {
 		// -- Get self ownership proportion denominator
 		pub fn get_self_ownership( ) -> u64 {
 			return T::SelfOwnership::get();
+		}
+		pub fn get_last_mechanism_step_block( ) -> u64 {
+			return LastMechansimStepBlock::<T>::get();
+		}
+		pub fn get_max_allowed_uids( ) -> u64 {
+			return MaxAllowedUids::<T>::get();
+		}
+		pub fn set_max_allowed_uids( max_allowed_uids: u64 ) {
+			MaxAllowedUids::<T>::put( max_allowed_uids );
+		}
+		pub fn get_immunity_period( ) -> u64 {
+			return ImmunityPeriod::<T>::get();
+		}
+		pub fn set_immunity_period( immunity_period: u64 ) {
+			ImmunityPeriod::<T>::put( immunity_period );
 		}
 
 		// Variable Parameters
@@ -1185,6 +1287,12 @@ pub mod pallet {
 		// account on chain.
 		pub fn is_not_active(hotkey_id: &T::AccountId) -> bool {
 			return !Self::is_hotkey_active(hotkey_id);
+		}
+
+		// --- Returns false if the account-id has an active
+		// account on chain.
+		pub fn will_be_prunned ( uid:u32 ) -> bool {
+			return NeuronsToPruneAtNextEpoch::<T>::contains_key( uid );
 		}
 
 		// --- Returns true if the uid is active, i.e. there

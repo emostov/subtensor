@@ -179,6 +179,82 @@ fn test_difficulty_adjustment() {
 }
 
 #[test]
+fn test_immunity_period() {
+	new_test_ext().execute_with(|| {
+		Subtensor::set_max_allowed_uids ( 2 );
+		Subtensor::set_immunity_period ( 2 );
+		assert_eq!( Subtensor::get_max_allowed_uids(), 2 );
+		assert_eq!( Subtensor::get_immunity_period(), 2 );
+
+		// Register two neurons into the first two slots.
+		let neuron0 = register_ok_neuron( 0, 0 );
+		assert_eq!( neuron0.uid, 0 );
+		let neuron1 = register_ok_neuron( 1, 1 );
+		assert_eq!( neuron1.uid, 1 );
+		assert!( !Subtensor::will_be_prunned(0) );
+		assert!( !Subtensor::will_be_prunned(1) );
+
+		// Step to the next block.
+		step_block ( 1 );
+
+		// Register the next neuron, this causes the overflow over top of the max allowed.
+		// Because both previous are immune, we will take the first uid to be prunned.
+		let neuron2 = register_ok_neuron( 2, 2 );
+		assert_eq!( neuron2.uid, 0 );
+
+		// Register the next neuron, this causes the overflow over top of the max allowed.
+		// Because uid0 is owned by a uid with a larger registration block number the uid to
+		// prune is now 0. All uids are immune at this stage.
+		let neuron3 = register_ok_neuron( 3, 3 );
+		assert_eq!( neuron3.uid, 1 );
+		assert!( Subtensor::will_be_prunned(0) );
+		assert!( Subtensor::will_be_prunned(1) );
+
+		// Step to the next block.
+		Subtensor::set_stake_from_vector( vec![ 1, 0 ] );
+		assert_eq!( Subtensor::get_stake(), vec![ 1, 0 ] );
+		step_block ( 1 );
+
+		// Register the next neuron, the previous neurons have immunity however the first has stake.
+		let neuron4 = register_ok_neuron( 4, 4 );
+		assert_eq!( neuron4.uid, 1 );
+
+		// Register the next neuron, the first neuron still has stake but he was registed a block earlier. 
+		// than neuron4, we go into slot 0
+		let neuron5 = register_ok_neuron( 5, 5 );
+		assert_eq!( neuron5.uid, 0 );
+		assert!( Subtensor::will_be_prunned(0) );
+		assert!( Subtensor::will_be_prunned(1) );
+
+		Subtensor::set_stake_from_vector( vec![ 1, 0 ] );
+		step_block ( 1 );
+		step_block ( 1 );
+		step_block ( 1 );
+
+		// Register the next neuron, the first slot has stake go into slot 1
+		let neuron6 = register_ok_neuron( 6, 6 );
+		assert_eq!( neuron6.uid, 1 );
+		assert!( !Subtensor::will_be_prunned(0) );
+		assert!( Subtensor::will_be_prunned(1) );
+
+		step_block ( 1 );
+		// Prunned set is dropped.
+		assert!( !Subtensor::will_be_prunned(0) );
+		assert!( !Subtensor::will_be_prunned(1) );
+		step_block ( 1 );
+		step_block ( 1 );
+
+		// Register the next neuron, the first slot has stake and both are no longer immune
+		// so this goes into slot 1 again.
+		let neuron7 = register_ok_neuron( 7, 7 );
+		assert_eq!( neuron7.uid, 1 );
+		assert!( !Subtensor::will_be_prunned(0) );
+		assert!( Subtensor::will_be_prunned(1) );
+
+	});
+}
+
+#[test]
 fn test_already_active_hotkey() {
 	new_test_ext().execute_with(|| {
 
