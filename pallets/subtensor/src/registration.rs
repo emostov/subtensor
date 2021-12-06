@@ -87,11 +87,12 @@ impl<T: Config> Pallet<T> {
                 }
                 // Neurons that have registered within an immunity period should not be counted in this pruning
                 // unless there are no other peers to prune. This allows new neurons the ability to gain incentive before they are cut. 
-                // We add 1 which sets there prunning score above any possible stake or incentive based score.
+                // We use block_at_registration which sets the prunning score above any possible value for stake or incentive.
+                // This also preferences later registering peers if we need to tie break.
                 let block_at_registration = BlockAtRegistration::<T>::get( uid_i );  // Default value is 0.
-                if current_block - block_at_registration < immunity_period { 
+                if current_block - block_at_registration < immunity_period { // Check for immunity.
                     // Note that adding block_at_registration to the pruning score give peers who have registered later a better score.
-                    prunning_score = prunning_score + I65F63::from_num( block_at_registration ); // Prunning score now on range (0, u64::Max)
+                    prunning_score = prunning_score + I65F63::from_num( block_at_registration ); // Prunning score now on range (0, current_block)
                 } 
                 // Find the min purnning score. We will remove this peer first. 
                 if prunning_score < min_prunning_score {
@@ -109,10 +110,9 @@ impl<T: Config> Pallet<T> {
             // However there are other peers with bonds in this peer, these need to be cleared as well.
             // NOTE(const): In further iterations it will be beneficial to build bonds as a double
             // iterable set so that deletions become easier. 
-            NeuronsToPruneAtNextEpoch::<T>::insert( uid_to_set_in_metagraph, uid_to_set_in_metagraph );
+            NeuronsToPruneAtNextEpoch::<T>::insert( uid_to_set_in_metagraph, uid_to_set_in_metagraph ); // Subtrate does not contain a set storage item.
             // Finally, we need to unstake all the funds that this peer had staked. 
-            // These funds are deposited back into the coldkey account so that no funds are 
-            // destroyed. 
+            // These funds are deposited back into the coldkey account so that no funds are destroyed. 
             let stake_to_be_added_on_coldkey = Self::u64_to_balance( neuron_to_prune.stake );
             Self::add_balance_to_coldkey_account( &neuron_to_prune.coldkey, stake_to_be_added_on_coldkey.unwrap() );
             Self::decrease_total_stake( neuron_to_prune.stake );

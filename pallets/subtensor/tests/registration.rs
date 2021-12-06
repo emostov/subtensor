@@ -251,6 +251,49 @@ fn test_immunity_period() {
 		assert!( !Subtensor::will_be_prunned(0) );
 		assert!( Subtensor::will_be_prunned(1) );
 
+		step_block ( 1 );
+
+		// Set stake of neuron7 to 2.
+		Subtensor::set_stake_from_vector( vec![ 1, 2 ] );
+
+		// Register another this time going into slot 0.
+		let neuron8 = register_ok_neuron( 8, 8 );
+		assert_eq!( neuron8.uid, 0 );
+		assert!( Subtensor::will_be_prunned(0) );
+		assert!( !Subtensor::will_be_prunned(1) );
+
+		// Check that the stake in slot 0 has decremented.
+		// Note that the stake has been decremented.
+		assert_eq!( Subtensor::get_stake(), vec![0, 2 ] );
+		assert_eq!( Subtensor::get_total_stake(), 2 ); // Total stake has been decremented.
+		assert_eq!(Subtensor::get_coldkey_balance( &5 ), 1); // The unstaked funds have been added to the neuron 5 coldkey account.
+
+		// Step blocks, nobody is immune anymore.
+		step_block ( 1 );
+		step_block ( 1 );
+		step_block ( 1 );
+		step_block ( 1 );
+
+		// Set weight matrix so that slot 1 has an incentive.
+		Subtensor::set_stake_from_vector( vec![ 2, 1 ] );
+		let weights_matrix: Vec<Vec<u32>> = vec! [
+            vec! [0, u32::max_value()],
+            vec! [0, u32::max_value()]
+        ];
+        Subtensor::set_weights_from_matrix( weights_matrix.clone() );
+		step_block ( 1 ); // Run epoch step to populate incentives.
+
+		// Check that incentive match expected.
+		let u64m: u64 = 18446744073709551615;
+		assert_eq!( Subtensor::get_incentive(), vec![0, u64m] );
+
+		// Register another, this time we are comparing stake proportion to incentive proportion.
+		// Slot 1 has incentive proportion 1, slot0 has stake proportion 2/3. So this goes into slot 0.
+		let neuron9 = register_ok_neuron( 9, 9 );
+		assert_eq!( neuron9.uid, 0 );
+		assert!( Subtensor::will_be_prunned(0) );
+		assert!( !Subtensor::will_be_prunned(1) );
+
 	});
 }
 
