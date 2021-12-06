@@ -47,7 +47,6 @@ impl<T: Config> Pallet<T> {
         // --- registration does not exceed limit.
         // --- registration meets difficulty.
         // --- registration is not a duplicate.
-        // --- We get the next available subscription uid.
         // Next we will check to see if the uid limit has been reached.
         // If we have reached our limit we need to find a replacement. 
         // The replacement peer is the peer with the lowest replacement score.

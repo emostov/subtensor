@@ -1289,8 +1289,7 @@ pub mod pallet {
 			return !Self::is_hotkey_active(hotkey_id);
 		}
 
-		// --- Returns false if the account-id has an active
-		// account on chain.
+		// --- Returns true if the uid is to be prunned at the next epoch.
 		pub fn will_be_prunned ( uid:u32 ) -> bool {
 			return NeuronsToPruneAtNextEpoch::<T>::contains_key( uid );
 		}
