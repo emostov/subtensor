@@ -48,12 +48,12 @@ fn test_add_stake_transaction_fee_ends_up_in_transaction_fee_pool() {
 		assert_eq!(start_balance, 1_000_000_000);
 		assert_eq!(start_stake, 0);
 
-		let call = Call::Subtensor(SubtensorCall::add_stake(test_neuron_hot_key, 500_000_000));
-		let xt = TestXt::new(call, mock::sign_extra(test_neuron_cold_key, 0));
+		let call = Call::Subtensor( SubtensorCall::add_stake(test_neuron_hot_key, 500_000_000) );
+		let xt = TestXt::new( call, mock::sign_extra(test_neuron_cold_key, 0) );
 		let result = mock::Executive::apply_extrinsic( xt );
 		assert_ok!(result);
 
-		let end_balance = Subtensor::get_coldkey_balance(&test_neuron_cold_key);
+		let end_balance = Subtensor::get_coldkey_balance( &test_neuron_cold_key );
 		assert_eq!(end_balance, 500_000_000);
 	});
 }
@@ -68,10 +68,10 @@ fn test_add_stake_ok_no_emission() {
 		let neuron = register_ok_neuron( hotkey_account_id, coldkey_account_id);
 
 		// Give it some $$$ in his coldkey balance
-		Subtensor::add_balance_to_coldkey_account(&coldkey_account_id, 10000);
+		Subtensor::add_balance_to_coldkey_account( &coldkey_account_id, 10000 );
 
 		// Check we have zero staked before transfer
-		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), 0);
+		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid( neuron.uid ), 0);
 
 		// Also total stake should be zero
 		assert_eq!(Subtensor::get_total_stake(), 0);

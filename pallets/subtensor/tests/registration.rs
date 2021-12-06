@@ -179,6 +179,125 @@ fn test_difficulty_adjustment() {
 }
 
 #[test]
+fn test_immunity_period() {
+	new_test_ext().execute_with(|| {
+		Subtensor::set_max_allowed_uids ( 2 );
+		Subtensor::set_immunity_period ( 2 );
+		assert_eq!( Subtensor::get_max_allowed_uids(), 2 );
+		assert_eq!( Subtensor::get_immunity_period(), 2 );
+
+		// Register two neurons into the first two slots.
+		let neuron0 = register_ok_neuron( 0, 0 );
+		assert_eq!( neuron0.uid, 0 );
+		let neuron1 = register_ok_neuron( 1, 1 );
+		assert_eq!( neuron1.uid, 1 );
+		assert!( !Subtensor::will_be_prunned(0) );
+		assert!( !Subtensor::will_be_prunned(1) );
+
+		// Step to the next block.
+		step_block ( 1 );
+
+		// Register the next neuron, this causes the overflow over top of the max allowed.
+		// Because both previous are immune, we will take the first uid to be prunned.
+		let neuron2 = register_ok_neuron( 2, 2 );
+		assert_eq!( neuron2.uid, 0 );
+
+		// Register the next neuron, this causes the overflow over top of the max allowed.
+		// Because uid0 is owned by a uid with a larger registration block number the uid to
+		// prune is now 0. All uids are immune at this stage.
+		let neuron3 = register_ok_neuron( 3, 3 );
+		assert_eq!( neuron3.uid, 1 );
+		assert!( Subtensor::will_be_prunned(0) );
+		assert!( Subtensor::will_be_prunned(1) );
+
+		// Step to the next block.
+		Subtensor::set_stake_from_vector( vec![ 1, 0 ] );
+		assert_eq!( Subtensor::get_stake(), vec![ 1, 0 ] );
+		step_block ( 1 );
+
+		// Register the next neuron, the previous neurons have immunity however the first has stake.
+		let neuron4 = register_ok_neuron( 4, 4 );
+		assert_eq!( neuron4.uid, 1 );
+
+		// Register the next neuron, the first neuron still has stake but he was registed a block earlier. 
+		// than neuron4, we go into slot 0
+		let neuron5 = register_ok_neuron( 5, 5 );
+		assert_eq!( neuron5.uid, 0 );
+		assert!( Subtensor::will_be_prunned(0) );
+		assert!( Subtensor::will_be_prunned(1) );
+
+		Subtensor::set_stake_from_vector( vec![ 1, 0 ] );
+		step_block ( 1 );
+		step_block ( 1 );
+		step_block ( 1 );
+
+		// Register the next neuron, the first slot has stake go into slot 1
+		let neuron6 = register_ok_neuron( 6, 6 );
+		assert_eq!( neuron6.uid, 1 );
+		assert!( !Subtensor::will_be_prunned(0) );
+		assert!( Subtensor::will_be_prunned(1) );
+
+		step_block ( 1 );
+		// Prunned set is dropped.
+		assert!( !Subtensor::will_be_prunned(0) );
+		assert!( !Subtensor::will_be_prunned(1) );
+		step_block ( 1 );
+		step_block ( 1 );
+
+		// Register the next neuron, the first slot has stake and both are no longer immune
+		// so this goes into slot 1 again.
+		let neuron7 = register_ok_neuron( 7, 7 );
+		assert_eq!( neuron7.uid, 1 );
+		assert!( !Subtensor::will_be_prunned(0) );
+		assert!( Subtensor::will_be_prunned(1) );
+
+		step_block ( 1 );
+
+		// Set stake of neuron7 to 2.
+		Subtensor::set_stake_from_vector( vec![ 1, 2 ] );
+
+		// Register another this time going into slot 0.
+		let neuron8 = register_ok_neuron( 8, 8 );
+		assert_eq!( neuron8.uid, 0 );
+		assert!( Subtensor::will_be_prunned(0) );
+		assert!( !Subtensor::will_be_prunned(1) );
+
+		// Check that the stake in slot 0 has decremented.
+		// Note that the stake has been decremented.
+		assert_eq!( Subtensor::get_stake(), vec![0, 2 ] );
+		assert_eq!( Subtensor::get_total_stake(), 2 ); // Total stake has been decremented.
+		assert_eq!(Subtensor::get_coldkey_balance( &5 ), 1); // The unstaked funds have been added to the neuron 5 coldkey account.
+
+		// Step blocks, nobody is immune anymore.
+		step_block ( 1 );
+		step_block ( 1 );
+		step_block ( 1 );
+		step_block ( 1 );
+
+		// Set weight matrix so that slot 1 has an incentive.
+		Subtensor::set_stake_from_vector( vec![ 2, 1 ] );
+		let weights_matrix: Vec<Vec<u32>> = vec! [
+            vec! [0, u32::max_value()],
+            vec! [0, u32::max_value()]
+        ];
+        Subtensor::set_weights_from_matrix( weights_matrix.clone() );
+		step_block ( 1 ); // Run epoch step to populate incentives.
+
+		// Check that incentive match expected.
+		let u64m: u64 = 18446744073709551615;
+		assert_eq!( Subtensor::get_incentive(), vec![0, u64m] );
+
+		// Register another, this time we are comparing stake proportion to incentive proportion.
+		// Slot 1 has incentive proportion 1, slot0 has stake proportion 2/3. So this goes into slot 0.
+		let neuron9 = register_ok_neuron( 9, 9 );
+		assert_eq!( neuron9.uid, 0 );
+		assert!( Subtensor::will_be_prunned(0) );
+		assert!( !Subtensor::will_be_prunned(1) );
+
+	});
+}
+
+#[test]
 fn test_already_active_hotkey() {
 	new_test_ext().execute_with(|| {
 

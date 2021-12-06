@@ -300,6 +300,7 @@ fn test_two_steps_with_many_outward_weights() {
             vec! [250000000, 0, 0, 0 ],
         ];
         assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 10) );
+        assert_eq!( Subtensor::get_last_mechanism_step_block(), 1 );
 
         step_block (1);
 
@@ -320,7 +321,8 @@ fn test_two_steps_with_many_outward_weights() {
             vec! [500000000, 0, 0, 0 ],
         ];
         assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
-        
+        assert_eq!( Subtensor::get_last_mechanism_step_block(), 2 );
+
         step_block ( 8 );
 
         assert_eq!( Subtensor::get_neuron_count(), 4 );

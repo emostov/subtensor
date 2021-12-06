@@ -1,5 +1,7 @@
 use super::*;
 use sp_std::if_std; 
+use substrate_fixed::types::I65F63;
+use frame_support::IterableStorageMap;
 use sp_std::convert::TryInto;
 use sp_core::{H256, U256};
 use sp_io::hashing::sha2_256;
@@ -41,21 +43,93 @@ impl<T: Config> Pallet<T> {
         // Check that the hotkey has not already been registered.
         ensure!( !Hotkeys::<T>::contains_key(&hotkey), Error::<T>::AlreadyRegistered );
         
-        // --- We get the next available subscription uid.
-        let uid: u32 = Self::get_next_uid();
+        // Above this line all relevant checks that the registration is legitimate have been met. 
+        // --- registration does not exceed limit.
+        // --- registration meets difficulty.
+        // --- registration is not a duplicate.
+        // Next we will check to see if the uid limit has been reached.
+        // If we have reached our limit we need to find a replacement. 
+        // The replacement peer is the peer with the lowest replacement score.
+        let uid_to_set_in_metagraph: u32; // To be filled, we either are prunning or setting with get_next_uid.
+        let max_allowed_uids: u64 = Self::get_max_allowed_uids(); // Get uid limit.
+        let neuron_count: u64 = Self::get_neuron_count() as u64; // Current number of uids.
+        let current_block: u64 = Self::get_current_block_as_u64();
+        let immunity_period: u64 = Self::get_immunity_period(); // Num blocks uid cannot be pruned since registration.
+        if neuron_count < max_allowed_uids {
+            // --- The metagraph is not full and we simply increment the uid.
+            uid_to_set_in_metagraph = Self::get_next_uid();
+        } else {
+            // TODO( const ): this should be a function and we should be able to purge peers down to a set number.
+            // We iterate over neurons in memory and find min score.
+            // Pruning score values have already been computed at the previous mechanism step.
+            let mut uid_to_prune: u32 = 0; // To be filled. Default to zero but will certainly be filled.
+            let mut min_prunning_score: I65F63 = I65F63::from_num( u64::MAX ); // Start min score as max.
+            for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+                // Compute the neuron prunning score.
+                // The prunning score is given by max( stake_proportion, incentive_proportion )
+                // This allows users to buy their way into the network by holding more stake than 
+                // the min incentive proportion. 
+                // Calculate stake proportion with zero check.        
+                let stake_proportion: I65F63;
+                if Self::get_total_stake() == 0 {
+                    stake_proportion = I65F63::from_num( 0 );
+                } else {
+                    stake_proportion = I65F63::from_num( neuron_i.stake ) / I65F63::from_num( Self::get_total_stake() ); // Stake proportion (0, 1)
+                }
+                // Calculate incentive proportion.
+                let incentive_proportion: I65F63 = I65F63::from_num( neuron_i.incentive ) / I65F63::from_num( u64::MAX ); // Incentive proportion (0, 1)
+                // Take max(stake_proportion, incentive_proportion).
+                let mut prunning_score;
+                if incentive_proportion > stake_proportion {
+                    prunning_score = incentive_proportion;
+                } else {
+                    prunning_score = stake_proportion;
+                }
+                // Neurons that have registered within an immunity period should not be counted in this pruning
+                // unless there are no other peers to prune. This allows new neurons the ability to gain incentive before they are cut. 
+                // We use block_at_registration which sets the prunning score above any possible value for stake or incentive.
+                // This also preferences later registering peers if we need to tie break.
+                let block_at_registration = BlockAtRegistration::<T>::get( uid_i );  // Default value is 0.
+                if current_block - block_at_registration < immunity_period { // Check for immunity.
+                    // Note that adding block_at_registration to the pruning score give peers who have registered later a better score.
+                    prunning_score = prunning_score + I65F63::from_num( block_at_registration ); // Prunning score now on range (0, current_block)
+                } 
+                // Find the min purnning score. We will remove this peer first. 
+                if prunning_score < min_prunning_score {
+                    // Update the min
+                    uid_to_prune = neuron_i.uid;
+                    min_prunning_score = prunning_score;
+                }
+            }
+            // Remember which uid is min so we can replace it in the graph.
+            let neuron_to_prune: NeuronMetadataOf<T> = Neurons::<T>::get( uid_to_prune );
+            uid_to_set_in_metagraph = neuron_to_prune.uid;
+            // Next we will add this prunned peer to NeuronsToPruneAtNextEpoch.
+            // We record this set because we need to remove all bonds owned in this uid.
+            // neuron.bonds records all bonds this peer owns which will be removed by default. 
+            // However there are other peers with bonds in this peer, these need to be cleared as well.
+            // NOTE(const): In further iterations it will be beneficial to build bonds as a double
+            // iterable set so that deletions become easier. 
+            NeuronsToPruneAtNextEpoch::<T>::insert( uid_to_set_in_metagraph, uid_to_set_in_metagraph ); // Subtrate does not contain a set storage item.
+            // Finally, we need to unstake all the funds that this peer had staked. 
+            // These funds are deposited back into the coldkey account so that no funds are destroyed. 
+            let stake_to_be_added_on_coldkey = Self::u64_to_balance( neuron_to_prune.stake );
+            Self::add_balance_to_coldkey_account( &neuron_to_prune.coldkey, stake_to_be_added_on_coldkey.unwrap() );
+            Self::decrease_total_stake( neuron_to_prune.stake );
+        }
 
-        // --- Wee create a new entry in the table with the new metadata.
+        // --- Next we create a new entry in the table with the new metadata.
         let neuron = NeuronMetadataOf::<T> {
             version: 0,
             ip: 0,
             port: 0,
             ip_type: 0,
-            uid: uid,
+            uid: uid_to_set_in_metagraph,
             modality: 0,
             hotkey: hotkey.clone(),
             coldkey: coldkey.clone(),
             active: 1,
-            last_update: Self::get_current_block_as_u64(),
+            last_update: current_block, 
             priority: 0,
             stake: 0,
             rank: 0,
@@ -65,7 +139,7 @@ impl<T: Config> Pallet<T> {
             emission: 0,
             dividends: 0,
             bonds: vec![],
-            weights: vec![(uid, u32::MAX)], // self weight set to 1.
+            weights: vec![(uid_to_set_in_metagraph, u32::MAX)], // self weight set to 1.
         };
 
         // --- Update avg registrations per 1000 block.
@@ -73,9 +147,10 @@ impl<T: Config> Pallet<T> {
         RegistrationsThisBlock::<T>::mutate( |val| *val += 1 );
         
         // --- We deposit the neuron registered event.
-        Neurons::<T>::insert(uid, neuron); // Insert neuron info under uid.
-        Hotkeys::<T>::insert(&hotkey, uid); // Add hotkey into hotkey set.
-        Self::deposit_event(Event::NeuronRegistered(uid));
+        BlockAtRegistration::<T>::insert( uid_to_set_in_metagraph, current_block ); // Set immunity momment.
+        Neurons::<T>::insert( uid_to_set_in_metagraph, neuron ); // Insert neuron info under uid.
+        Hotkeys::<T>::insert( &hotkey, uid_to_set_in_metagraph ); // Add hotkey into hotkey set.
+        Self::deposit_event(Event::NeuronRegistered( uid_to_set_in_metagraph ));
 
         Ok(())
     }

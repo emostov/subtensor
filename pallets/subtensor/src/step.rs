@@ -189,8 +189,15 @@ impl<T: Config> Pallet<T> {
              weights [ uid_i as usize ] = neuron_i.weights;             
              let mut bonds_row: Vec<u64> = vec![0; n];
              for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
-                 bonds_row [ *uid_j as usize ] = *bonds_ij;
-                 bond_totals [ *uid_j as usize ] += *bonds_ij;
+                
+                // Prunning occurs here. We simply to do fill this bonds matrix 
+                // with entries that contain the uids to prune. 
+                if !NeuronsToPruneAtNextEpoch::<T>::contains_key(uid_j) {
+                    // Otherwise, we add the entry into the stack based bonds array.
+                    bonds_row [ *uid_j as usize ] = *bonds_ij;
+                    bond_totals [ *uid_j as usize ] += *bonds_ij;
+                }
+
              }
              bonds[ uid_i as usize ] = bonds_row;
         }
@@ -383,6 +390,11 @@ impl<T: Config> Pallet<T> {
             neuron_i.dividends = (dividends[ uid_i as usize ] * u64_max).to_num::<u64>();
             neuron_i.bonds = sparse_bonds[ uid_i as usize ].clone();
             Neurons::<T>::insert( neuron_i.uid, neuron_i );
+
+            // This where we remove the neurons to prune (clearing the table.)
+            if NeuronsToPruneAtNextEpoch::<T>::contains_key( uid_i ) {
+                NeuronsToPruneAtNextEpoch::<T>::remove ( uid_i );
+            } 
         }
 
         // Update totals.
@@ -390,6 +402,7 @@ impl<T: Config> Pallet<T> {
         TotalBondsPurchased::<T>::set( total_bonds_purchased );
         TotalIssuance::<T>::mutate( |val| *val += total_emission );
         TotalStake::<T>::mutate( |val| *val += total_emission );
+        LastMechansimStepBlock::<T>::set( block );
     }
     
     pub fn get_current_block_as_u64( ) -> u64 {
