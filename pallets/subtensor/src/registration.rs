@@ -104,7 +104,7 @@ impl<T: Config> Pallet<T> {
             // Remember which uid is min so we can replace it in the graph.
             let neuron_to_prune: NeuronMetadataOf<T> = Neurons::<T>::get( uid_to_prune );
             uid_to_set_in_metagraph = neuron_to_prune.uid;
-            let hotkey_to_prune = Hotkeys::<T>::get ( neuron_to_prune.hotkey )
+            let hotkey_to_prune = neuron_to_prune.hotkey
 
             // Next we will add this prunned peer to NeuronsToPruneAtNextEpoch.
             // We record this set because we need to remove all bonds owned in this uid.
