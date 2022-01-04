@@ -104,6 +104,8 @@ impl<T: Config> Pallet<T> {
             // Remember which uid is min so we can replace it in the graph.
             let neuron_to_prune: NeuronMetadataOf<T> = Neurons::<T>::get( uid_to_prune );
             uid_to_set_in_metagraph = neuron_to_prune.uid;
+            let hotkey_to_prune = Hotkeys::<T>::get ( neuron_to_prune.hotkey )
+
             // Next we will add this prunned peer to NeuronsToPruneAtNextEpoch.
             // We record this set because we need to remove all bonds owned in this uid.
             // neuron.bonds records all bonds this peer owns which will be removed by default. 
@@ -116,6 +118,12 @@ impl<T: Config> Pallet<T> {
             let stake_to_be_added_on_coldkey = Self::u64_to_balance( neuron_to_prune.stake );
             Self::add_balance_to_coldkey_account( &neuron_to_prune.coldkey, stake_to_be_added_on_coldkey.unwrap() );
             Self::decrease_total_stake( neuron_to_prune.stake );
+
+            // Remove hotkey from hotkeys set, 
+            // and to clean up and prune whatever extra hotkeys there are on top of the existing max_allowed_uids
+            if Hotkeys::<T>::contains_key(&hotkey_to_prune) {
+                Hotkeys::<T>::remove( hotkey_to_prune );
+            }
         }
 
         // --- Next we create a new entry in the table with the new metadata.
