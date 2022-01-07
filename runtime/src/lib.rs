@@ -127,17 +127,26 @@ pub fn native_version() -> NativeVersion {
 		can_author_with: Default::default(),
 	}
 }
+/// 1 / 1000 or 0.1% of the block size, the remainder is only here for operational calls like chain upgrades.
+/// const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_perthousand( 1 ); 
 
-const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+/// 2 / 100 or 2% of the block size, the remainder is only here for operational calls like chain upgrades.
+const NORMAL_DISPATCH_RATIO_WEIGHT: Perbill = Perbill::from_percent( 75 ); 
+const NORMAL_DISPATCH_RATIO_LENGTH: Perbill = Perbill::from_percent( 2 ); 
 
 parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 	pub const BlockHashCount: BlockNumber = 2400;
 	/// We allow for 2 seconds of compute with a 6 second average block time.
 	pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
-		::with_sensible_defaults(5 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
+		::with_sensible_defaults(5 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO_WEIGHT);
+
+	/// With the dispatch ratio of 2% blocks can have max size 0.02 * 1024 * 1024 = 0.02Mb
+	/// An average validator sets weights every 100 blocks each of size ~= 500 * 8 = 0.004 Mb. 
+	/// We could sustain ~5 transactions per block and 500 per epoch.
 	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
-		::max_with_normal_ratio(1 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+		::max_with_normal_ratio(1 * 1024 * 1024, NORMAL_DISPATCH_RATIO_LENGTH); 
+
 	pub const SS58Prefix: u8 = 42;
 }
 
@@ -332,14 +341,13 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// The SignedExtension to the basic transaction logic.
 pub type SignedExtra = (
 	frame_system::CheckSpecVersion<Runtime>,
-
 	frame_system::CheckTxVersion<Runtime>,
 	frame_system::CheckGenesis<Runtime>,
 	frame_system::CheckEra<Runtime>,
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
-	pallet_transaction_payment::ChargeTransactionPayment<Runtime>
-	// pallet_subtensor::ChargeTransactionPayment<Runtime>
+	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+	pallet_subtensor::SubtensorSignedExtension<Runtime>
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
