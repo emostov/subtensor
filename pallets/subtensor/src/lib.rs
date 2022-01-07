@@ -1385,7 +1385,7 @@ impl<T: Config + Send + Sync> SubtensorSignedExtension<T> where
         Self(Default::default())
 	}
     pub fn get_priority_vanilla() -> u64 {
-        // Just return a rediculously high priority. This means that all extrinsics execpt
+        // Just return a rediculously high priority. This means that all extrinsics except
         // the set_weights function will have a priority over the set_weights calls.
         return u64::max_value();
     }
