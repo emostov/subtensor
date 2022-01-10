@@ -559,15 +559,15 @@ fn test_two_steps_with_partial_activity() {
 
         assert_eq!( Subtensor::get_neuron_count(), 4 );
         assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000, 100)); // approx
-        assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![initial_stake + 500000000, initial_stake + 500000000, initial_stake, initial_stake], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_ranks(), &vec![0, u64m, 0, 0], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_trust(), &vec![0, u64m, 0, 0], 100) );
         assert_eq!( Subtensor::get_active(), vec![1, 0, 0, 0] );
         assert!( vec_approx_equals ( &Subtensor::get_incentive(), &vec![0, u64m, 0, 0], 100) );
-        assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![u64m/2, u64m/2, 0, 0], 100) );
-        assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![500000000, 500000000, 0, 0], 10) );
+        assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![0, u64m, 0, 0], 100) );
+        assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![0, 1000000000, 0, 0], 10) );
+        assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![initial_stake, initial_stake + 1000000000, initial_stake, initial_stake], 100) );
         let expected_bonds: Vec<Vec<u64>> = vec! [
-            vec! [0, 1000000000, 0, 0 ],
+            vec! [0, 0, 0, 0 ],
             vec! [0, 0, 0, 0 ],
             vec! [0, 0, 0, 0 ], 
             vec! [0, 0, 0, 0 ],
