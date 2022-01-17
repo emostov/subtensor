@@ -19,21 +19,14 @@ use frame_support::{dispatch, ensure, traits::{
 		}
 	}, weights::{
 		DispatchInfo, 
-		PostDispatchInfo, 
-		Pays
+		PostDispatchInfo
 	}
 };
-
-use frame_support::sp_runtime::FixedPointOperand;
-use frame_support::dispatch::GetDispatchInfo;
 use frame_support::sp_runtime::transaction_validity::ValidTransaction;
 use frame_system::{
 	self as system, 
 	ensure_signed
 };
-
-
-use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
 use substrate_fixed::types::U64F64;
 use sp_runtime::{
 	traits::{
@@ -44,8 +37,7 @@ use sp_runtime::{
 	},
 	transaction_validity::{
         TransactionValidityError, 
-		TransactionValidity, 
-		InvalidTransaction,
+		TransactionValidity
     }
 };
 use sp_std::vec::Vec;
@@ -1344,7 +1336,14 @@ pub mod pallet {
 			if Hotkeys::<T>::contains_key( hotkey ) {
 				let uid = Hotkeys::<T>::get( hotkey );
 				let neuron = Neurons::<T>::get( uid );
-				return neuron.priority / len;
+				// Multiply here by 1_000_000 since len may divide all log values to zero.
+				// a peer with 1 tao will have priority 29 000 000 000 after 1 epoch.
+				// with 10 tao 33 000 000 000
+				// with 100 tao 36 000 000 000
+				// with 1000 tao 39 000 000 000
+				// with 10000 tao 43 000 000 000
+				// division by len will always return a non zero value with which to differentiate. 
+				return neuron.priority * 1_000_000 / len;
 			} else{
 				return 0;
 			}
@@ -1352,7 +1351,6 @@ pub mod pallet {
 
 	}
 }
-
 
 /************************************************************
 	CallType definition
@@ -1372,119 +1370,43 @@ impl Default for CallType {
     }
 }
 
-
-type TransactionFee = u64;
-impl<T: Config> Pallet<T> where BalanceOf<T>: FixedPointOperand
-{
-	/// Query the data that we know about the fee of a given `call`.
-	///
-	/// This module is not and cannot be aware of the internals of a signed extension, for example
-	/// a tip. It only interprets the extrinsic as some encoded value and accounts for its weight
-	/// and length, the runtime's extrinsic base weight, and the current fee multiplier.
-	///
-	/// All dispatchables must be annotated with weight and will have some fee info. This function
-	/// always returns.
-	pub fn query_info<Extrinsic: GetDispatchInfo>(
-		unchecked_extrinsic: Extrinsic,
-		_len: u32,
-	) -> RuntimeDispatchInfo<BalanceOf<T>>
-	where
-		T: Send + Sync,
-		BalanceOf<T>: Send + Sync,
-		T::Call: Dispatchable<Info=DispatchInfo>,
-	{
-		// NOTE: we can actually make it understand `ChargeTransactionPayment`, but would be some
-		// hassle for sure. We have to make it aware of the index of `ChargeTransactionPayment` in
-		// `Extra`. Alternatively, we could actually execute the tx's per-dispatch and record the
-		// balance of the sender before and after the pipeline.. but this is way too much hassle for
-		// a very very little potential gain in the future.
-		let dispatch_info = <Extrinsic as GetDispatchInfo>::get_dispatch_info(&unchecked_extrinsic);
-	    let partial_fee = <BalanceOf<T>>::from(0u32);
-		let DispatchInfo { weight, class, .. } = dispatch_info;
-		RuntimeDispatchInfo { weight, class, partial_fee }
-	}
-}
-
-
-
 /************************************************************
-	ChargeTransactionPayment definition
+	SubtensorSignedExtension definition
 ************************************************************/
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
-pub struct ChargeTransactionPayment<T: Config + Send + Sync>(pub PhantomData<T>);
+pub struct SubtensorSignedExtension<T: Config + Send + Sync>(pub PhantomData<T>);
 
-impl<T: Config + Send + Sync> ChargeTransactionPayment<T> where
+impl<T: Config + Send + Sync> SubtensorSignedExtension<T> where
     T::Call: Dispatchable<Info=DispatchInfo, PostInfo=PostDispatchInfo>,
     <T as frame_system::Config>::Call: IsSubType<Call<T>>,
 {
     pub fn new() -> Self {
         Self(Default::default())
 	}
-
-    pub fn can_pay_add_stake(who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
-        let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
-        let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee);
-
-        if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance.unwrap()) {
-            Ok(transaction_fee)
-        } else {
-            Err(InvalidTransaction::Payment.into())
-        }
-    }
-
-    pub fn can_pay_remove_stake(who: &T::AccountId, hotkey_id: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
-        let neuron = Pallet::<T>::get_neuron_for_hotkey(&hotkey_id);
-        let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
-        let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee).unwrap();
-
-        if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance) ||
-            Pallet::<T>::has_enough_stake(&neuron, transaction_fee) {
-            Ok(transaction_fee)
-        } else {
-            Err(InvalidTransaction::Payment.into())
-        }
-    }
-
-    pub fn can_pay_other(info: &DispatchInfoOf<T::Call>, who: &T::AccountId, len: u64) -> Result<TransactionFee, TransactionValidityError> {
-        let transaction_fee = Pallet::<T>::calculate_transaction_fee(len as u64);
-
-        if info.pays_fee == Pays::No {
-            return Ok(transaction_fee);
-        }
-
-        let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee);
-        if Pallet::<T>::can_remove_balance_from_coldkey_account(&who, transaction_fee_as_balance.unwrap()) {
-            Ok(transaction_fee)
-        } else {
-            Err(InvalidTransaction::Payment.into())
-        }
-    }
-
     pub fn get_priority_vanilla() -> u64 {
-        // Just return a rediculously high priority. This means that all extrinsics exept
+        // Just return a rediculously high priority. This means that all extrinsics except
         // the set_weights function will have a priority over the set_weights calls.
-        // This should probably be refined in the future.
         return u64::max_value();
     }
-
 	pub fn get_priority_set_weights( who: &T::AccountId, len: u64 ) -> u64 {
+		// Return the non vanilla priority for a set weights call.
         return Pallet::<T>::get_priority_set_weights( who, len );
     }
 }
 
-impl<T: Config + Send + Sync> sp_std::fmt::Debug for ChargeTransactionPayment<T> {
+impl<T: Config + Send + Sync> sp_std::fmt::Debug for SubtensorSignedExtension<T> {
     fn fmt(&self, f: &mut sp_std::fmt::Formatter) -> sp_std::fmt::Result {
-        write!(f, "ChargeTransactionPayment")
+        write!(f, "SubtensorSignedExtension")
     }
 }
 
-impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
+impl<T: Config + Send + Sync> SignedExtension for SubtensorSignedExtension<T>
     where
         T::Call: Dispatchable<Info=DispatchInfo, PostInfo=PostDispatchInfo>,
         <T as frame_system::Config>::Call: IsSubType<Call<T>>,
 {
-	const IDENTIFIER: &'static str = "ChargeTransactionPayment";
+	const IDENTIFIER: &'static str = "SubtensorSignedExtension";
 
     type AccountId = T::AccountId;
     type Call = T::Call;
@@ -1497,7 +1419,7 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
         &self,
         who: &Self::AccountId,
         call: &Self::Call,
-        info: &DispatchInfoOf<Self::Call>,
+        _info: &DispatchInfoOf<Self::Call>,
         len: usize,
     ) -> TransactionValidity {
         match call.is_sub_type() {
@@ -1510,7 +1432,6 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
                 })
             }
             Some(Call::add_stake(..)) => {
-                // let _transaction_fee = Self::can_pay_add_stake(who, len as u64)?;
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()
@@ -1523,14 +1444,12 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
                 })
             }
             Some(Call::register(..)) => {
-                // let _transaction_fee = Self::can_pay_subscribe()?;
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()
                 })
             }
             _ => {
-                let _transaction_fee = Self::can_pay_other(info, who, len as u64)?;
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
                     ..Default::default()
@@ -1544,8 +1463,8 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
         self,
         who: &Self::AccountId,
         call: &Self::Call,
-        info: &DispatchInfoOf<Self::Call>,
-        len: usize,
+        _info: &DispatchInfoOf<Self::Call>,
+        _len: usize,
     ) -> Result<Self::Pre, TransactionValidityError> {
 
         match call.is_sub_type() {
@@ -1559,18 +1478,18 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
             }
 			Some(Call::set_weights(..)) => {
 				let transaction_fee = 0;
-                Ok((CallType::SetWeights, transaction_fee, who.clone())) // 0 indicates that post_dispatch should use the self-weight to pay for the transaction
+                Ok((CallType::SetWeights, transaction_fee, who.clone())) 
             }
 			Some(Call::register(..)) => {
                 let transaction_fee = 0;
-                Ok((CallType::Serve, transaction_fee, who.clone()))
+                Ok((CallType::Register, transaction_fee, who.clone()))
             }
             Some(Call::serve_axon(..)) => {
                 let transaction_fee = 0;
                 Ok((CallType::Serve, transaction_fee, who.clone()))
             }
             _ => {
-                let transaction_fee = Self::can_pay_other(info, who, len as u64)?;
+				let transaction_fee = 0;
                 Ok((CallType::Other, transaction_fee, who.clone()))
             }
         }
@@ -1578,16 +1497,12 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
 
     fn post_dispatch(
         pre: Self::Pre,
-        info: &DispatchInfoOf<Self::Call>,
+        _info: &DispatchInfoOf<Self::Call>,
         _post_info: &PostDispatchInfoOf<Self::Call>,
         _len: usize,
         result: &dispatch::DispatchResult,
     ) -> Result<(), TransactionValidityError> {
-        let call_type = pre.0;
-        let transaction_fee = pre.1;
-        let account_id = pre.2;
-        let transaction_fee_as_balance = Pallet::<T>::u64_to_balance(transaction_fee).unwrap();
-
+		let call_type = pre.0;
         match result {
             Ok(_) => {
                 match call_type {
@@ -1604,15 +1519,7 @@ impl<T: Config + Send + Sync> SignedExtension for ChargeTransactionPayment<T>
                         Ok(Default::default())
                     }
                     _ => {
-                        // Default behaviour for calls not otherwise specified
-                        match info.pays_fee {
-                            Pays::No => Ok(Default::default()),
-                            Pays::Yes => {
-                                Pallet::<T>::remove_balance_from_coldkey_account(&account_id, transaction_fee_as_balance);
-                                // Pallet::<T>::update_transaction_fee_pool(transaction_fee); // uid 0 == Adam
-                                Ok(Default::default())
-                            }
-                        }
+						Ok(Default::default())
                     }
                 }
             }
