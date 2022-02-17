@@ -1,7 +1,17 @@
 version: "3.2"
 
 services:
+  reverseproxy:
+    build:
+      context: .
+      dockerfile: nginx/nginx.Dockerfile
+    ports:
+      - "443:443" 
+      - "80:80" 
+    restart: always
   node-subtensor:
+    depends_on:
+      - reverseproxy 
     container_name: node-subtensor
     image: opentensorfdn/subtensor:latest
     cpu_count: 2
