@@ -4,7 +4,7 @@ services:
   reverseproxy:
     build:
       context: .
-      dockerfile: nginx/nginx.Dockerfile
+      dockerfile: nginx.Dockerfile
     ports:
       - "443:443" 
       - "80:80" 
