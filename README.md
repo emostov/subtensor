@@ -109,3 +109,26 @@ You can use
 docker-compose up -d
 ```
 to run the blockchain in the background. 
+
+
+### Run with WSS
+
+Use openssl to create cer and key files.
+
+Be sure to replace YOUR_PASS_HERE to a secure password
+
+```bash
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout subtensor.key -out subtensor.crt -config subtensor.conf -passin pass:YOUR_PASS_HERE
+```
+
+Export a pfx that you can import / trust
+
+```bash
+sudo openssl pkcs12 -export -out subtensor.pfx -inkey subtensor.key -in subtensor.crt 
+```
+
+then finally start the node
+
+```bash
+docker-compose up
+```
