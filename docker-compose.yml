@@ -1,14 +1,6 @@
 version: "3.2"
 
 services:
-  reverseproxy:
-    build:
-      context: .
-      dockerfile: nginx.Dockerfile
-    ports:
-      - "443:443" 
-      - "80:80" 
-    restart: always
   node-subtensor:
     depends_on:
       - reverseproxy 
@@ -23,4 +15,12 @@ services:
       - "9933:9933"
     environment:
       - CARGO_HOME=/var/www/node-subtensor/.cargo
-    command: bash -c "/usr/local/bin/node-subtensor --base-path /root/.local/share/node-subtensor/ --chain /subtensor/specs/nakamotoSpecRaw.json --rpc-external --ws-external --rpc-cors all --no-mdns --ws-max-connections 1000 --in-peers 500 --out-peers 500"
+    command: bash -c "/usr/local/bin/node-subtensor --base-path /root/.local/share/node-subtensor/ --chain /subtensor/specs/nakamotoSpecRaw.json --rpc-external --wss-external --rpc-cors all --no-mdns --ws-max-connections 1000 --in-peers 500 --out-peers 500"
+  reverseproxy:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    ports:
+      - "443:443" 
+      - "80:80" 
+    restart: always
