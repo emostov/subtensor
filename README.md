@@ -113,21 +113,80 @@ to run the blockchain in the background.
 
 ### Run with WSS
 
-Use openssl to create cer and key files.
+In order to run your subtensor using https or wss, you must do some extra work!
 
-Be sure to replace YOUR_PASS_HERE to a secure password
+REQUIREMENTS:
 
-```bash
-sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout subtensor.key -out subtensor.crt -config subtensor.conf -passin pass:YOUR_PASS_HERE
+```
+nGINx
+a domain name e.g. subtensor.noburu.app
+certbot
 ```
 
-Export a pfx that you can import / trust
+First, update apt and install nginx
 
 ```bash
-sudo openssl pkcs12 -export -out subtensor.pfx -inkey subtensor.key -in subtensor.crt 
+sudo apt update
+sudo apt install nginx
 ```
 
-then finally start the node
+After nginx installs, make sure to start it by using 
+
+```bash
+sudo service nginx start
+```
+
+now after this, make sure to point you domain or subdomain to the IP address of your VPS. Each domain registrar is different, but its not too difficult to debug by using google!
+
+Use an A record, and if you are using a subdomain, just put it in the box, otherwise, use *
+
+Now it is time to install certbot!
+
+IF YOU DO NOT POINT YOUR DOMAIN TO YOUR IP ADDRESS, THIS WILL NOT WORK!
+
+Ensure that your version of snapd is up to date
+Execute the following instructions on the command line on the machine to ensure that you have the latest version of snapd.
+
+```bash
+sudo snap install core; sudo snap refresh core
+```
+
+Install Certbot
+Run this command on the command line on the machine to install Certbot.
+
+```bash
+sudo snap install --classic certbot
+```
+
+Prepare the Certbot command
+Execute the following instruction on the command line on the machine to ensure that the certbot command can be run.
+
+
+```bash
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+```
+
+Choose how you'd like to run Certbot
+Either get and install your certificates...
+Run this command to get a certificate and have Certbot edit your nginx configuration automatically to serve it, turning on HTTPS access in a single step.
+
+```bash
+sudo certbot --nginx
+```
+
+Follow the steps in the prompt, and when successful, it should be successfully installed!
+
+now you need to edit the configs in this repo to make it all work together!
+
+in the nginx.conf file, change the websocket.noburu.app to your domain name that was registered in certbot
+
+```conf
+ssl_certificate /etc/letsencrypt/live/websocket.noburu.app/fullchain.pem; # managed by Certbot
+ssl_certificate_key /etc/letsencrypt/live/websocket.noburu.app/privkey.pem; # managed by Certbot
+```
+
+
+finally, set it all up by starting docker!
 
 ```bash
 docker-compose up
