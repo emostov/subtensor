@@ -111,17 +111,19 @@ docker-compose up -d
 to run the blockchain in the background. 
 
 
-### Run with WSS
+## Run with WSS ⚡️
 
 In order to run your subtensor using https or wss, you must do some extra work!
 
-REQUIREMENTS:
+### REQUIREMENTS:
 
 ```
 nGINx
 a domain name e.g. subtensor.noburu.app
 certbot
 ```
+
+### Install and Run
 
 First, update apt and install nginx
 
