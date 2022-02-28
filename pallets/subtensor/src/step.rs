@@ -158,8 +158,6 @@ impl<T: Config> Pallet<T> {
         
         // Constants.
         let activity_cutoff: u64 = Self::get_activity_cutoff();
-        let min_allowed_weights: u64 = Self::get_min_allowed_weights();
-
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
@@ -211,7 +209,6 @@ impl<T: Config> Pallet<T> {
             bonds[ uid_i as usize ] = bonds_row;
         }
         // Here we are removing all the 'unused stake' i.e. stake which is no being counted in the mechanism.
-        // Here we are also removing the stake from peers with less than the minimum number of weights.
         // self-weight (i -> i edges) by definition are disregarded. Below we loop through each of the uids and subtract 
         // the unused stake from the total.
         // TODO(const): We could be clever and add this all back into the network through inflation.
@@ -225,10 +222,6 @@ impl<T: Config> Pallet<T> {
                     stake[ *uid_i as usize ] = I65F63::from_num( 0 );
                     total_active_stake = total_active_stake - stake_i;
                 }
-            }
-            else if weights_i.len() < min_allowed_weights as usize {
-                stake[ *uid_i as usize ] = I65F63::from_num( 0 );
-                total_active_stake = total_active_stake - stake_i;
             }
         }
         // Normalize stake based on activity.

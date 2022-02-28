@@ -102,6 +102,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialMinAllowedWeights: Get<u64>;
 
+		/// Initial allowed max min weight ratio
+		#[pallet::constant]
+		type InitialMaxAllowedMaxMinRatio: Get<u64>;
+
 		/// Immunity Period Constant.
 		#[pallet::constant]
 		type InitialImmunityPeriod: Get<u64>;
@@ -302,6 +306,16 @@ pub mod pallet {
 		u64, 
 		ValueQuery,
 		DefaultMinAllowedWeights<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultMaxAllowedMaxMinRatio<T: Config>() -> u64 { T::InitialMaxAllowedMaxMinRatio::get() }
+	#[pallet::storage]
+	pub type MaxAllowedMaxMinRatio<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultMaxAllowedMaxMinRatio<T>
 	>;
 
 	#[pallet::type_value] 
@@ -571,6 +585,9 @@ pub mod pallet {
 		/// --- Event created when min allowed weights has been set.
 		MinAllowedWeightsSet(u64),
 
+		/// --- Event created when the max allowed max min ration has been set.
+		MaxAllowedMaxMinRatioSet(u64),
+
 		/// --- Event created when the immunity period has been set.
 		ImmunityPeriodSet(u64),
 	}
@@ -643,7 +660,15 @@ pub mod pallet {
 
 		/// ---- Thrown when the dispatch attempts to convert between a u64 and T::balance 
 		/// but the call fails.
-		CouldNotConvertToBalance
+		CouldNotConvertToBalance,
+
+		/// ---- Thrown when the dispatch attempts to set weights on chain with fewer elememts 
+		/// than are allowed.
+		NotSettingEnoughWeights,
+
+		/// ---- Thrown when the dispatch attempts to set weights on chain with where the normalized
+		/// max value is more than MaxAllowedMaxMinRatio.
+		MaxAllowedMaxMinRatioExceeded,
 	}
     impl<T: Config> Printable for Error<T> {
         fn print(&self) {
@@ -1026,6 +1051,17 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_max_allowed_max_min_ratio ( 
+			origin:OriginFor<T>, 
+			max_allowed_max_min_ratio: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			MaxAllowedMaxMinRatio::<T>::set( max_allowed_max_min_ratio );
+			Self::deposit_event( Event::MaxAllowedMaxMinRatioSet( max_allowed_max_min_ratio ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_immunity_period ( 
 			origin:OriginFor<T>, 
 			immunity_period: u64 
@@ -1141,6 +1177,12 @@ pub mod pallet {
 		}
 		pub fn set_min_allowed_weights( min_allowed_weights: u64 ) {
 			MinAllowedWeights::<T>::put( min_allowed_weights );
+		}
+		pub fn get_max_allowed_max_min_ratio( ) -> u64 {
+			return MaxAllowedMaxMinRatio::<T>::get();
+		}
+		pub fn set_max_allowed_max_min_ratio( max_allowed_max_min_ratio: u64 ) {
+			MaxAllowedMaxMinRatio::<T>::put( max_allowed_max_min_ratio );
 		}
 		pub fn get_immunity_period( ) -> u64 {
 			return ImmunityPeriod::<T>::get();

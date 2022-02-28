@@ -19,8 +19,14 @@ impl<T: Config> Pallet<T> {
         // --- We check if the weight uids are valid
         ensure!(!Self::contains_invalid_uids(&uids), Error::<T>::InvalidUid);
 
+        // --- We check if the weight uids are valid
+        ensure!(values.len() >= Self::get_min_allowed_weights() as usize, Error::<T>::NotSettingEnoughWeights);
+
         // Normalize weights.
         let normalized_values = normalize(values);
+
+        // --- We check if the weight uids are valid
+        ensure!( Self::min_is_allowed_multiple_of_max(&normalized_values), Error::<T>::MaxAllowedMaxMinRatioExceeded );
 
         // Zip weights.
         let mut zipped_weights: Vec<(u32,u32)> = vec![];
@@ -54,6 +60,29 @@ impl<T: Config> Pallet<T> {
         }
         return false;
     }
+
+    pub fn min_is_allowed_multiple_of_max( weights: &Vec<u32>) -> bool {
+
+        // We allow the 0 value multiple to be cardinal -> We always return true.
+        let max_allowed_max_min_ratio: u32 = Self::get_max_allowed_max_min_ratio() as u32;
+        if max_allowed_max_min_ratio == 0 {
+            return true;
+        }
+    
+        let min: u32 = *weights.iter().min().unwrap();
+        let max: u32 = *weights.iter().max().unwrap();
+        if min == 0 { 
+            return false
+        } else {
+            // Check that the min is a allowed multiple of the max.
+            if max / min > max_allowed_max_min_ratio {
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+    }
 }
 
 fn uids_match_values(uids: &Vec<u32>, values: &Vec<u32>) -> bool {
@@ -77,15 +106,12 @@ fn has_duplicate_uids(items: &Vec<u32>) -> bool {
 
 fn normalize(mut weights: Vec<u32>) -> Vec<u32> {
     let sum: u64 = weights.iter().map(|x| *x as u64).sum();
-
     if sum == 0 {
         return weights;
     }
-
     weights.iter_mut().for_each(|x| {
         *x = (*x as u64 * u32::max_value() as u64 / sum) as u32;
     });
-
     return weights;
 }
 

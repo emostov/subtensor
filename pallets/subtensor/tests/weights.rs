@@ -159,5 +159,62 @@ fn test_set_weights_err_invalid_uid() {
 	});
 }
 
+#[test]
+fn test_set_weight_not_enough_values() {
+	new_test_ext().execute_with(|| {
+        let _neuron = register_ok_neuron(1, 2);
+		let weight_keys : Vec<u32> = vec![0]; // self weight. 
+		let weight_values : Vec<u32> = vec![88]; // random value.
+		Subtensor::set_min_allowed_weights(2);
+
+		// Should fail because we are only setting a single value.
+		let result = Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values);
+		assert_eq!(result, Err(Error::<Test>::NotSettingEnoughWeights.into()));
+
+		// Now lower the min and should be ok.
+		let weight_keys : Vec<u32> = vec![0]; // self weight. 
+		let weight_values : Vec<u32> = vec![88]; // random value.
+		Subtensor::set_min_allowed_weights(1);
+		assert_ok!( Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values)) ;
+	});
+}
+
+#[test]
+fn test_set_weight_max_min_ratio_to_high() {
+	new_test_ext().execute_with(|| {
+
+        let _neuron = register_ok_neuron(1, 11);
+		let _neuron = register_ok_neuron(2, 22);
+
+		// max allowed ratio is ok.
+		let weight_keys : Vec<u32> = vec![0, 1];
+		let weight_values : Vec<u32> = vec![10, 40];		
+		assert_ok!( Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values)) ;
+		
+		// Ratio is to high.
+		let weight_keys : Vec<u32> = vec![0, 1];
+		let weight_values : Vec<u32> = vec![10, 40];		
+		Subtensor::set_max_allowed_max_min_ratio(2);
+		let result = Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values);
+		assert_eq!(result, Err(Error::<Test>::MaxAllowedMaxMinRatioExceeded.into()));
+
+		// Meet ratio.
+		let weight_keys : Vec<u32> = vec![0, 1];
+		let weight_values : Vec<u32> = vec![10, 20];		
+		assert_ok!( Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values)) ;
+
+		// Ratio limit is lowered
+		let weight_keys : Vec<u32> = vec![0, 1];
+		let weight_values : Vec<u32> = vec![10, 40];		
+		Subtensor::set_max_allowed_max_min_ratio(4);
+		assert_ok!( Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values) );
+
+	});
+}
+
+
+
+
+
 
 
