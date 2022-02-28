@@ -219,9 +219,9 @@ impl<T: Config> Pallet<T> {
             let stake_i: I65F63 = stake[ *uid_i as usize ];
             let weights_i: &Vec<(u32, u32)> = &weights[ *uid_i as usize ];
             if weights_i.len() == 1 {
-                let uid_j: u64 == weights_i[0];
+                let uid_j: u32 = weights_i[0].0.into();
                 // Check if this is a self weight.
-                if uid_j == uid_i {
+                if uid_j == *uid_i {
                     stake[ *uid_i as usize ] = I65F63::from_num( 0 );
                     total_active_stake = total_active_stake - stake_i;
                 }
