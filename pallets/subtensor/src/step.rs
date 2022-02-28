@@ -219,8 +219,12 @@ impl<T: Config> Pallet<T> {
             let stake_i: I65F63 = stake[ *uid_i as usize ];
             let weights_i: &Vec<(u32, u32)> = &weights[ *uid_i as usize ];
             if weights_i.len() == 1 {
-                stake[ *uid_i as usize ] = I65F63::from_num( 0 );
-                total_active_stake = total_active_stake - stake_i;
+                let uid_j: u64 == weights_i[0];
+                // Check if this is a self weight.
+                if uid_j == uid_i {
+                    stake[ *uid_i as usize ] = I65F63::from_num( 0 );
+                    total_active_stake = total_active_stake - stake_i;
+                }
             }
             else if weights_i.len() < min_allowed_weights as usize {
                 stake[ *uid_i as usize ] = I65F63::from_num( 0 );
@@ -269,7 +273,6 @@ impl<T: Config> Pallet<T> {
                 //     println!( "-----: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}", weight_ij, stake_i, rank_increment_ij, trust_increment_ij, bond_increment_ij, bond_increment_ij.to_num::<u64>());
                 // }
 
-                // Distribute self weights as priority
                 if *uid_i != *uid_j {
                     // Only distribute ranks and trust from active stake.
                     if active[ *uid_i as usize ] == 1 {
