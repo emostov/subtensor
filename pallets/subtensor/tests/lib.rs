@@ -1,4 +1,4 @@
-use pallet_subtensor::{ChargeTransactionPayment, CallType};
+use pallet_subtensor::{SubtensorSignedExtension, CallType};
 use frame_support::{assert_ok};
 
 mod mock;
@@ -18,7 +18,7 @@ fn fee_from_emission_works() {
         let call = SubtensorCall::set_weights(vec![0], vec![0]).into();
         let info = DispatchInfo::default();
         let len = 10;
-        assert!(ChargeTransactionPayment::<Test>(PhantomData).validate(&1, &call, &info, len).is_ok());
+        assert!(SubtensorSignedExtension::<Test>(PhantomData).validate(&1, &call, &info, len).is_ok());
     });
 }
 
@@ -28,7 +28,7 @@ fn fee_from_emission_priority_no_neuron() {
         let call = SubtensorCall::set_weights(vec![0], vec![0]).into();
         let info = DispatchInfo::default();
         let len = 10;
-        assert_eq!(ChargeTransactionPayment::<Test>(PhantomData).validate(&1, &call, &info, len).unwrap().priority, 0);
+        assert_eq!(SubtensorSignedExtension::<Test>(PhantomData).validate(&1, &call, &info, len).unwrap().priority, 0);
     });
 }
 
@@ -46,7 +46,7 @@ fn fee_from_emission_priority_with_neuron() {
         let call = SubtensorCall::set_weights(vec![0], vec![0]).into();
         let info = DispatchInfo::default();
         let len = 10;
-        assert_eq!(ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 0);
+        assert_eq!(SubtensorSignedExtension::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 0);
 
         step_block (1);
 
@@ -54,7 +54,7 @@ fn fee_from_emission_priority_with_neuron() {
         let call = SubtensorCall::set_weights(vec![0], vec![0]).into();
         let info = DispatchInfo::default();
         let len = 10;
-        assert_eq!(ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 0);
+        assert_eq!(SubtensorSignedExtension::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 0);
     });
 }
 
@@ -67,38 +67,42 @@ fn fee_from_emission_priority_with_neuron_and_weights_and_stake() {
 		let hotkey_account_id = 1;
 		let coldkey_account_id = 667; // Neighbour of the beast, har har
 		assert_ok!(Subtensor::register(<<Test as Config>::Origin>::signed(hotkey_account_id), block_number, nonce, work, hotkey_account_id, coldkey_account_id));
-        Subtensor::add_stake_to_neuron_hotkey_account(0, 1_000_000_000); // Add the stake.
+        Subtensor::add_stake_to_neuron_hotkey_account(0, 32); // Add the stake.
 
         // Registered neuron has zero priority because they have no stake.
         let call = SubtensorCall::set_weights(vec![0], vec![0]).into();
         let info = DispatchInfo::default();
         let len = 10;
-        assert_eq!(ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 0);
+        assert_eq!(SubtensorSignedExtension::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 0);
 
+        assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(0), 32);
+		assert_eq!(Subtensor::get_neuron_for_uid( 0 ).priority, 0);
         step_block (1);
+        assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(0), 32);
+		assert_eq!(Subtensor::get_neuron_for_uid( 0 ).priority, 5);
 
         // Priority has not accumulates based on self-emission. But has no stake, thus still zero.
         let call = SubtensorCall::set_weights(vec![0], vec![0]).into();
         let info = DispatchInfo::default();
         let len = 10;
-        assert_eq!(ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 100000000);
+        assert_eq!( SubtensorSignedExtension::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, len).unwrap().priority, 500000 );
     });
 }
 
 /************************************************************
-	ChargeTransactionPayment::get_priority_vanilla() tests
+	SubtensorSignedExtension::get_priority_vanilla() tests
 ************************************************************/
 
 #[test]
 fn test_charge_transaction_payment_get_priority_vanilla() {
     new_test_ext().execute_with(|| {
-        assert_eq!(ChargeTransactionPayment::<Test>::get_priority_vanilla(), u64::max_value());
+        assert_eq!(SubtensorSignedExtension::<Test>::get_priority_vanilla(), u64::max_value());
     });
 }
 
 
 /************************************************************
-	ChargeTransactionPayment::validate() tests
+	SubtensorSignedExtension::validate() tests
 ************************************************************/
 
 #[test]
@@ -114,7 +118,7 @@ fn test_charge_transaction_payment_validate_set_weights_ok() {
         let call: mock::Call = SubtensorCall::set_weights(vec![0], vec![0]).into();
         let info = call.get_dispatch_info();
 
-        let result = ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, 10);
+        let result = SubtensorSignedExtension::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, 10);
         assert_eq!(result, Ok(ValidTransaction {
             priority: 0,
             longevity: 1,
@@ -136,7 +140,7 @@ fn test_charge_transaction_payment_validate_add_stake_ok() {
         let call: mock::Call = SubtensorCall::add_stake(hotkey_account_id, 5_000).into();
         let info = call.get_dispatch_info();
 
-        let result = ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, 10);
+        let result = SubtensorSignedExtension::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, 10);
         assert_eq!(result, Ok(ValidTransaction {
             priority: 18446744073709551615,
             longevity: 18446744073709551615,
@@ -158,7 +162,7 @@ fn test_charge_transaction_payment_validate_remove_stake_ok() {
         let call: mock::Call = SubtensorCall::add_stake(hotkey_account_id, 5_000).into();
         let info = call.get_dispatch_info();
 
-        let result = ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, 10);
+        let result = SubtensorSignedExtension::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, 10);
         assert_eq!(result, Ok(ValidTransaction {
             priority: 18446744073709551615,
             longevity: 18446744073709551615,
@@ -184,7 +188,7 @@ fn test_charge_transaction_payment_validate_serve_axon_ok() {
         let call: mock::Call = SubtensorCall::serve_axon(version, ip, port, ip_type, modality).into();
         let info = call.get_dispatch_info();
 
-        let result = ChargeTransactionPayment::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, 10);
+        let result = SubtensorSignedExtension::<Test>(PhantomData).validate(&hotkey_account_id, &call, &info, 10);
         assert_eq!(result, Ok(ValidTransaction {
             priority: 18446744073709551615,
             longevity: 18446744073709551615,
@@ -203,7 +207,7 @@ fn test_charge_transaction_payment_validate_other_ok() {
         let call: mock::Call = BalanceCall::transfer(dest_id, 5_000).into();
         let info = call.get_dispatch_info();
 
-        let result = ChargeTransactionPayment::<Test>(PhantomData).validate(&coldkey_id, &call, &info, len);
+        let result = SubtensorSignedExtension::<Test>(PhantomData).validate(&coldkey_id, &call, &info, len);
         assert_eq!(result, Ok(ValidTransaction {
             priority: u64::max_value(),
             longevity: u64::max_value(), // Forevah
@@ -228,14 +232,14 @@ fn pre_dispatch_works() {
         let len = 10;
 
 
-        let mut result = ChargeTransactionPayment::<Test>(PhantomData).pre_dispatch(&hotkey_account_id, &call, &info, len).unwrap();
+        let mut result = SubtensorSignedExtension::<Test>(PhantomData).pre_dispatch(&hotkey_account_id, &call, &info, len).unwrap();
         assert_eq!(result.0, CallType::SetWeights);
         assert_eq!(result.1, 0);
         assert_eq!(result.2, hotkey_account_id);
 
         run_to_block(1);
 
-        result = ChargeTransactionPayment::<Test>(PhantomData).pre_dispatch(&hotkey_account_id, &call, &info, len).unwrap();
+        result = SubtensorSignedExtension::<Test>(PhantomData).pre_dispatch(&hotkey_account_id, &call, &info, len).unwrap();
         assert_eq!(result.0, CallType::SetWeights);
         assert_eq!(result.1, 0);
         assert_eq!(result.2, hotkey_account_id);
@@ -259,11 +263,11 @@ fn post_dispatch_works() {
         let len = 10;
         run_to_block(1);
 
-        let result = ChargeTransactionPayment::<Test>(PhantomData).pre_dispatch(&hotkey_account_id, &call, &info, len);
+        let result = SubtensorSignedExtension::<Test>(PhantomData).pre_dispatch(&hotkey_account_id, &call, &info, len);
         assert_ok!(result);
 
-        let pre = ChargeTransactionPayment::<Test>(PhantomData).pre_dispatch(&hotkey_account_id, &call, &info, len).unwrap();
-        assert!(ChargeTransactionPayment::<Test>::post_dispatch(pre, &info, &PostDispatchInfo {actual_weight: Some(0), pays_fee: Default::default()}, len, &Ok(())).is_ok());
+        let pre = SubtensorSignedExtension::<Test>(PhantomData).pre_dispatch(&hotkey_account_id, &call, &info, len).unwrap();
+        assert!(SubtensorSignedExtension::<Test>::post_dispatch(pre, &info, &PostDispatchInfo {actual_weight: Some(0), pays_fee: Default::default()}, len, &Ok(())).is_ok());
     });
 }
 

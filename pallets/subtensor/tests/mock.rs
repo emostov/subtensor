@@ -203,8 +203,8 @@ impl frame_support::traits::Get<sp_version::RuntimeVersion> for RuntimeVersion {
 type SignedExtra = (
 	frame_system::CheckEra<Test>,
 	frame_system::CheckNonce<Test>,
-	frame_system::CheckWeight<Test>
-	// pallet_subtensor::ChargeTransactionPayment<Test>,
+	frame_system::CheckWeight<Test>,
+	pallet_subtensor::SubtensorSignedExtension<Test>,
 	//pallet_transaction_payment::ChargeTransactionPaymentOld<Test>
 );
 
@@ -240,8 +240,8 @@ fn extra(nonce: u64) -> SignedExtra {
 	(
 		frame_system::CheckEra::from(Era::Immortal),
 		frame_system::CheckNonce::from(nonce),
-		frame_system::CheckWeight::new()
-		// pallet_subtensor::ChargeTransactionPayment::new(),
+		frame_system::CheckWeight::new(),
+		pallet_subtensor::SubtensorSignedExtension::new(),
 		// pallet_transaction_payment::ChargeTransactionPayment::from(0)
 	)
 }

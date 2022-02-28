@@ -2,6 +2,7 @@ use super::*;
 use sp_std::convert::TryInto;
 use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
+use substrate_fixed::transcendental::log2;
 use frame_support::IterableStorageMap;
 use sp_std::if_std; // Import into scope the if_std! macro.
 
@@ -178,18 +179,26 @@ impl<T: Config> Pallet<T> {
         let mut total_normalized_active_stake: I65F63 = I65F63::from_num( 0.0 );
         let mut stake: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
         for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+
+            // Append a set of uids.
             uids.push( uid_i );
             if block - neuron_i.last_update >= activity_cutoff {
                 active [ uid_i as usize ] = 0;
             } else {
                 active [ uid_i as usize ] = 1;
+                total_active_stake += I65F63::from_num( neuron_i.stake );
             }
             total_stake += I65F63::from_num( neuron_i.stake );
             stake [ uid_i as usize ] = I65F63::from_num( neuron_i.stake );
-            priority [ uid_i as usize ] = neuron_i.priority;
+
+            // Priority increments by the log of the stake and is drained everytime the account sets weights. 
+            let log_stake:I65F63 = log2( I65F63::from_num( neuron_i.stake + 1 ) ).expect( "stake + 1 is positive and greater than 1.");
+            priority [ uid_i as usize ] = neuron_i.priority + log_stake.to_num::<u64>();
+
             weights [ uid_i as usize ] = neuron_i.weights;             
             let mut bonds_row: Vec<u64> = vec![0; n];
             for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
+                
                 // Prunning occurs here. We simply to do fill this bonds matrix 
                 // with entries that contain the uids to prune. 
                 if !NeuronsToPruneAtNextEpoch::<T>::contains_key(uid_j) {
@@ -198,8 +207,8 @@ impl<T: Config> Pallet<T> {
                     bond_totals [ *uid_j as usize ] += *bonds_ij;
                 }
 
-             }
-             bonds[ uid_i as usize ] = bonds_row;
+            }
+            bonds[ uid_i as usize ] = bonds_row;
         }
         // Here we are removing all the 'unused stake' i.e. stake which is no being counted in the mechanism.
         // Here we are also removing the stake from peers with less than the minimum number of weights.
@@ -233,7 +242,8 @@ impl<T: Config> Pallet<T> {
                 println!( "stake: {:?}", stake );
             }
         }
-    
+
+        // Computational aspect starts here.
         
         // Compute ranks and trust.
         let mut total_bonds_purchased: u64 = 0;
@@ -260,10 +270,7 @@ impl<T: Config> Pallet<T> {
                 // }
 
                 // Distribute self weights as priority
-                if *uid_i == *uid_j {
-                    priority[ *uid_i as usize ] += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
-
-                } else {
+                if *uid_i != *uid_j {
                     // Only distribute ranks and trust from active stake.
                     if active[ *uid_i as usize ] == 1 {
                         // Increment neuron scores.

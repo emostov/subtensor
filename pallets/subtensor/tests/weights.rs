@@ -54,10 +54,42 @@ fn set_weights_ok_no_weights() {
 		Subtensor::add_stake_to_neuron_hotkey_account(neuron.uid, initial_stake);
 
 		// Dispatch a signed extrinsic, setting weights.
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 0);
 		assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), weights_keys, weight_values));
 		assert_eq!(Subtensor::get_weights_for_neuron(&neuron), vec![u32::max_value()]);
 		assert_eq!(Subtensor::get_stake_of_neuron_hotkey_account_by_uid(neuron.uid), expect_stake);
 		assert_eq!(Subtensor::get_total_stake(), expect_total_stake);
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 0);
+
+	});
+}
+
+#[test]
+fn test_priority_increments() {
+	new_test_ext().execute_with(|| {
+		let hotkey_account_id:u64 = 55; // Arbitrary number
+		let neuron = register_ok_neuron( hotkey_account_id, hotkey_account_id );
+		Subtensor::add_stake_to_neuron_hotkey_account( neuron.uid, 2 );
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 0);
+		assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), vec![], vec![]));
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 0);
+        step_block (1);
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 1);
+        step_block (1);
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 2);
+		assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), vec![], vec![]));
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 0);
+        step_block (1);
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 1);
+		Subtensor::add_stake_to_neuron_hotkey_account( neuron.uid, 32 );
+        step_block (1);
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 6);
+        step_block (1);
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 11);
+		assert_ok!(Subtensor::set_weights(Origin::signed(hotkey_account_id), vec![], vec![]));
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 0);
+        step_block (1);
+		assert_eq!(Subtensor::get_neuron_for_uid( neuron.uid ).priority, 5);
 	});
 }
 
