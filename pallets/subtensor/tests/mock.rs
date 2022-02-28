@@ -86,6 +86,7 @@ parameter_types! {
 	pub const SelfOwnership: u64 = 2;
 	pub const InitialImmunityPeriod: u64 = 2;
 	pub const InitialMaxAllowedUids: u64 = 100;
+	pub const InitialMinAllowedWeights: u64 = 0;
 	pub const InitialBlocksPerStep: u64 = 1;
 	pub const InitialIssuance: u64 = 548833985028256;
 	pub const InitialDifficulty: u64 = 10000;
@@ -166,6 +167,7 @@ impl pallet_subtensor::Config for Test {
 	type SelfOwnership = SelfOwnership;
 	type InitialImmunityPeriod = InitialImmunityPeriod;
 	type InitialMaxAllowedUids = InitialMaxAllowedUids;
+	type InitialMinAllowedWeights = InitialMinAllowedWeights;
 	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;
 	type InitialDifficulty = InitialDifficulty;

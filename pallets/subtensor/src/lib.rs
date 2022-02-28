@@ -106,6 +106,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialMaxAllowedUids: Get<u64>;
 
+		/// Initial min allowed weights.
+		#[pallet::constant]
+		type InitialMinAllowedWeights: Get<u64>;
+
 		/// Immunity Period Constant.
 		#[pallet::constant]
 		type InitialImmunityPeriod: Get<u64>;
@@ -295,6 +299,17 @@ pub mod pallet {
 		u64, 
 		ValueQuery,
 		DefaultMaxAllowedUids<T>
+	>;
+
+
+	#[pallet::type_value] 
+	pub fn DefaultMinAllowedWeights<T: Config>() -> u64 { T::InitialMinAllowedWeights::get() }
+	#[pallet::storage]
+	pub type MinAllowedWeights<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultMinAllowedWeights<T>
 	>;
 
 	#[pallet::type_value] 
@@ -560,6 +575,9 @@ pub mod pallet {
 
 		/// --- Event created when max allowed uids has been set.
 		MaxAllowedUidsSet(u64),
+
+		/// --- Event created when min allowed weights has been set.
+		MinAllowedWeightsSet(u64),
 
 		/// --- Event created when the immunity period has been set.
 		ImmunityPeriodSet(u64),
@@ -1005,6 +1023,17 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_min_allowed_weights ( 
+			origin:OriginFor<T>, 
+			min_allowed_weights: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			MinAllowedWeights::<T>::set( min_allowed_weights );
+			Self::deposit_event( Event::MinAllowedWeightsSet( min_allowed_weights ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_immunity_period ( 
 			origin:OriginFor<T>, 
 			immunity_period: u64 
@@ -1114,6 +1143,12 @@ pub mod pallet {
 		}
 		pub fn set_max_allowed_uids( max_allowed_uids: u64 ) {
 			MaxAllowedUids::<T>::put( max_allowed_uids );
+		}
+		pub fn get_min_allowed_weights( ) -> u64 {
+			return MinAllowedWeights::<T>::get();
+		}
+		pub fn set_min_allowed_weights( min_allowed_weights: u64 ) {
+			MinAllowedWeights::<T>::put( min_allowed_weights );
 		}
 		pub fn get_immunity_period( ) -> u64 {
 			return ImmunityPeriod::<T>::get();

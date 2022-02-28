@@ -157,6 +157,8 @@ impl<T: Config> Pallet<T> {
         
         // Constants.
         let activity_cutoff: u64 = Self::get_activity_cutoff();
+        let min_allowed_weights: u64 = Self::get_min_allowed_weights();
+
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
@@ -176,20 +178,18 @@ impl<T: Config> Pallet<T> {
         let mut total_normalized_active_stake: I65F63 = I65F63::from_num( 0.0 );
         let mut stake: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
         for ( uid_i, neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
-             uids.push( uid_i );
-             if block - neuron_i.last_update >= activity_cutoff {
+            uids.push( uid_i );
+            if block - neuron_i.last_update >= activity_cutoff {
                 active [ uid_i as usize ] = 0;
-             } else {
+            } else {
                 active [ uid_i as usize ] = 1;
-                total_active_stake += I65F63::from_num( neuron_i.stake );
-             }
-             total_stake += I65F63::from_num( neuron_i.stake );
-             stake [ uid_i as usize ] = I65F63::from_num( neuron_i.stake );
-             priority [ uid_i as usize ] = neuron_i.priority;
-             weights [ uid_i as usize ] = neuron_i.weights;             
-             let mut bonds_row: Vec<u64> = vec![0; n];
-             for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
-                
+            }
+            total_stake += I65F63::from_num( neuron_i.stake );
+            stake [ uid_i as usize ] = I65F63::from_num( neuron_i.stake );
+            priority [ uid_i as usize ] = neuron_i.priority;
+            weights [ uid_i as usize ] = neuron_i.weights;             
+            let mut bonds_row: Vec<u64> = vec![0; n];
+            for (uid_j, bonds_ij) in neuron_i.bonds.iter() {
                 // Prunning occurs here. We simply to do fill this bonds matrix 
                 // with entries that contain the uids to prune. 
                 if !NeuronsToPruneAtNextEpoch::<T>::contains_key(uid_j) {
@@ -200,6 +200,23 @@ impl<T: Config> Pallet<T> {
 
              }
              bonds[ uid_i as usize ] = bonds_row;
+        }
+        // Here we are removing all the 'unused stake' i.e. stake which is no being counted in the mechanism.
+        // Here we are also removing the stake from peers with less than the minimum number of weights.
+        // self-weight (i -> i edges) by definition are disregarded. Below we loop through each of the uids and subtract 
+        // the unused stake from the total.
+        // TODO(const): We could be clever and add this all back into the network through inflation.
+        for uid_i in uids.iter() {
+            let stake_i: I65F63 = stake[ *uid_i as usize ];
+            let weights_i: &Vec<(u32, u32)> = &weights[ *uid_i as usize ];
+            if weights_i.len() == 1 {
+                stake[ *uid_i as usize ] = I65F63::from_num( 0 );
+                total_active_stake = total_active_stake - stake_i;
+            }
+            else if weights_i.len() < min_allowed_weights as usize {
+                stake[ *uid_i as usize ] = I65F63::from_num( 0 );
+                total_active_stake = total_active_stake - stake_i;
+            }
         }
         // Normalize stake based on activity.
         if total_active_stake != 0 {

@@ -83,6 +83,15 @@ fn test_sudo_max_allowed_uids() {
 }
 
 #[test]
+fn test_sudo_min_allowed_weights() {
+	new_test_ext().execute_with(|| {
+        let min_allowed_weights: u64 = 1;
+		assert_ok!(Subtensor::sudo_set_min_allowed_weights(<<Test as Config>::Origin>::root(), min_allowed_weights));
+        assert_eq!(Subtensor::get_min_allowed_weights(), min_allowed_weights);
+    });
+}
+
+#[test]
 fn test_sudo_immunity_period() {
 	new_test_ext().execute_with(|| {
         let immunity_period: u64 = 10;
@@ -171,5 +180,15 @@ fn test_fails_sudo_target_registrations_per_interval() {
         let init_target_registrations_per_interval: u64 = Subtensor::get_target_registrations_per_interval();
 		assert_eq!(Subtensor::sudo_target_registrations_per_interval(<<Test as Config>::Origin>::signed(0), target_registrations_per_interval),  Err(DispatchError::BadOrigin.into()));
         assert_eq!(Subtensor::get_target_registrations_per_interval(), init_target_registrations_per_interval);
+    });
+}
+
+#[test]
+fn test_fails_sudo_set_min_allowed_weights() {
+	new_test_ext().execute_with(|| {
+        let min_allowed_weights: u64 = 10;
+        let init_min_allowed_weights: u64 = Subtensor::get_min_allowed_weights();
+		assert_eq!(Subtensor::sudo_set_min_allowed_weights(<<Test as Config>::Origin>::signed(0), min_allowed_weights),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_min_allowed_weights(), init_min_allowed_weights);
     });
 }
