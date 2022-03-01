@@ -284,8 +284,8 @@ parameter_types! {
 	pub const InitialImmunityPeriod: u64 = 200;
 	pub const InitialBlocksPerStep: u64 = 100;
 	pub const InitialMaxAllowedUids: u64 = 2000;
-	pub const InitialMinAllowedWeights: u64 = 1;
-	pub const InitialMaxAllowedMaxMinRatio: u64 = 0;
+	pub const InitialMinAllowedWeights: u64 = 250;
+	pub const InitialMaxAllowedMaxMinRatio: u64 = 10;
 	pub const InitialIssuance: u64 = 548833985028256;
 	pub const InitialDifficulty: u64 = 10000;
 	pub const MinimumDifficulty: u64 = 10000000;
