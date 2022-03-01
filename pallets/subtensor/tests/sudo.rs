@@ -101,6 +101,24 @@ fn test_sudo_immunity_period() {
 }
 
 #[test]
+fn test_sudo_batch_size() {
+	new_test_ext().execute_with(|| {
+        let batch_size: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_batch_size(<<Test as Config>::Origin>::root(), batch_size));
+        assert_eq!(Subtensor::get_batch_size(), batch_size);
+    });
+}
+
+#[test]
+fn test_sudo_sequence_length() {
+	new_test_ext().execute_with(|| {
+        let sequence_length: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_sequence_length(<<Test as Config>::Origin>::root(), sequence_length));
+        assert_eq!(Subtensor::get_sequence_length(), sequence_length);
+    });
+}
+
+#[test]
 fn test_fails_sudo_immunity_period () {
 	new_test_ext().execute_with(|| {
         let immunity_period: u64 = 10;
@@ -190,5 +208,26 @@ fn test_fails_sudo_set_min_allowed_weights() {
         let init_min_allowed_weights: u64 = Subtensor::get_min_allowed_weights();
 		assert_eq!(Subtensor::sudo_set_min_allowed_weights(<<Test as Config>::Origin>::signed(0), min_allowed_weights),  Err(DispatchError::BadOrigin.into()));
         assert_eq!(Subtensor::get_min_allowed_weights(), init_min_allowed_weights);
+    });
+}
+
+#[test]
+fn test_fails_sudo_set_batch_size() {
+	new_test_ext().execute_with(|| {
+        let batch_size: u64 = 10;
+        let init_batch_size: u64 = Subtensor::get_batch_size();
+		assert_eq!(Subtensor::sudo_set_batch_size(<<Test as Config>::Origin>::signed(0), batch_size),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_batch_size(), init_batch_size);
+    });
+}
+
+
+#[test]
+fn test_fails_sudo_set_sequence_length() {
+	new_test_ext().execute_with(|| {
+        let sequence_length: u64 = 10;
+        let init_sequence_length: u64 = Subtensor::get_sequence_length();
+		assert_eq!(Subtensor::sudo_set_sequence_length(<<Test as Config>::Origin>::signed(0), sequence_length),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_sequence_length(), init_sequence_length);
     });
 }

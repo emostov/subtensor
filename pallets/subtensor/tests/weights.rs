@@ -163,17 +163,23 @@ fn test_set_weights_err_invalid_uid() {
 fn test_set_weight_not_enough_values() {
 	new_test_ext().execute_with(|| {
         let _neuron = register_ok_neuron(1, 2);
-		let weight_keys : Vec<u32> = vec![0]; // self weight. 
-		let weight_values : Vec<u32> = vec![88]; // random value.
+		let _neuron = register_ok_neuron(3, 4);
 		Subtensor::set_min_allowed_weights(2);
 
-		// Should fail because we are only setting a single value.
+		// Should fail because we are only setting a single value and its not the self weight.
+		let weight_keys : Vec<u32> = vec![1]; // not weight. 
+		let weight_values : Vec<u32> = vec![88]; // random value.
 		let result = Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values);
 		assert_eq!(result, Err(Error::<Test>::NotSettingEnoughWeights.into()));
 
-		// Now lower the min and should be ok.
-		let weight_keys : Vec<u32> = vec![0]; // self weight. 
+		// Shouldnt fail because we setting a single value but it is the self weight.
+		let weight_keys : Vec<u32> = vec![0]; // self weight.
 		let weight_values : Vec<u32> = vec![88]; // random value.
+		assert_ok!( Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values)) ;
+
+		// Should pass because we are setting enough values.
+		let weight_keys : Vec<u32> = vec![0, 1]; // self weight. 
+		let weight_values : Vec<u32> = vec![10, 10]; // random value.
 		Subtensor::set_min_allowed_weights(1);
 		assert_ok!( Subtensor::set_weights(Origin::signed(1), weight_keys, weight_values)) ;
 	});

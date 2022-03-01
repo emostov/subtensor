@@ -86,6 +86,8 @@ parameter_types! {
 	pub const SelfOwnership: u64 = 2;
 	pub const InitialImmunityPeriod: u64 = 2;
 	pub const InitialMaxAllowedUids: u64 = 100;
+	pub const InitialBatchSize: u64 = 10;
+	pub const InitialSequenceLen: u64 = 10;
 	pub const InitialMinAllowedWeights: u64 = 0;
 	pub const InitialMaxAllowedMaxMinRatio: u64 = 0;
 	pub const InitialBlocksPerStep: u64 = 1;
@@ -166,6 +168,8 @@ impl pallet_subtensor::Config for Test {
 	type InitialRho = InitialRho;
 	type InitialKappa = InitialKappa;
 	type SelfOwnership = SelfOwnership;
+	type InitialBatchSize = InitialBatchSize;
+	type InitialSequenceLen = InitialSequenceLen;
 	type InitialImmunityPeriod = InitialImmunityPeriod;
 	type InitialMaxAllowedUids = InitialMaxAllowedUids;
 	type InitialMinAllowedWeights = InitialMinAllowedWeights;

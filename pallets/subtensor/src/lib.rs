@@ -94,6 +94,14 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialKappa: Get<u64>;
 
+		/// Default Batch size.
+		#[pallet::constant]
+		type InitialBatchSize: Get<u64>;
+
+		/// Default Batch size.
+		#[pallet::constant]
+		type InitialSequenceLen: Get<u64>;
+
 		/// Max UID constant
 		#[pallet::constant]
 		type InitialMaxAllowedUids: Get<u64>;
@@ -285,6 +293,26 @@ pub mod pallet {
 		u64, 
 		ValueQuery,
 		DefaultKappa<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultBatchSize<T: Config>() -> u64 { T::InitialBatchSize::get() }
+	#[pallet::storage]
+	pub type BatchSize<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultBatchSize<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultSequenceLen<T: Config>() -> u64 { T::InitialSequenceLen::get() }
+	#[pallet::storage]
+	pub type SequenceLength<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultSequenceLen<T>
 	>;
 
 	#[pallet::type_value] 
@@ -587,6 +615,12 @@ pub mod pallet {
 
 		/// --- Event created when the max allowed max min ration has been set.
 		MaxAllowedMaxMinRatioSet(u64),
+
+		/// --- Event created when the batch size has been set.
+		BatchSizeSet(u64),
+
+		/// --- Event created when the sequence length has been set.
+		SequenceLengthSet(u64),
 
 		/// --- Event created when the immunity period has been set.
 		ImmunityPeriodSet(u64),
@@ -1062,6 +1096,30 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_batch_size ( 
+			origin:OriginFor<T>, 
+			batch_size: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			BatchSize::<T>::set( batch_size );
+			Self::deposit_event( Event::BatchSizeSet( batch_size ) );
+			Ok(())
+		}
+
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_sequence_length ( 
+			origin:OriginFor<T>, 
+			sequence_length: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			SequenceLength::<T>::set( sequence_length );
+			Self::deposit_event( Event::SequenceLengthSet( sequence_length ) );
+			Ok(())
+		}
+
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_immunity_period ( 
 			origin:OriginFor<T>, 
 			immunity_period: u64 
@@ -1151,6 +1209,18 @@ pub mod pallet {
 		}
 		pub fn set_rho( rho: u64 ) {
 			Rho::<T>::put( rho );
+		}
+		pub fn get_sequence_length( ) -> u64 {
+			return SequenceLength::<T>::get();
+		}
+		pub fn set_sequence_length( sequence_length: u64 ) {
+			SequenceLength::<T>::put( sequence_length );
+		}
+		pub fn get_batch_size( ) -> u64 {
+			return BatchSize::<T>::get();
+		}
+		pub fn set_batch_size( batch_size: u64 ) {
+			BatchSize::<T>::put( batch_size );
 		}
 		// -- Get step consensus shift (1/kappa)
 		pub fn get_kappa( ) -> u64 {
