@@ -35,6 +35,15 @@ fn test_sudo_set_blocks_per_step() {
 }
 
 #[test]
+fn test_sudo_set_bonds_moving_average() {
+	new_test_ext().execute_with(|| {
+        let bonds_moving_average: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_bonds_moving_average(<<Test as Config>::Origin>::root(), bonds_moving_average));
+        assert_eq!(Subtensor::get_bonds_moving_average(), bonds_moving_average);
+    });
+}
+
+#[test]
 fn test_sudo_set_difficulty() {
 	new_test_ext().execute_with(|| {
         let difficulty: u64 = 10;
@@ -155,6 +164,17 @@ fn test_fails_sudo_set_blocks_per_step() {
         let init_blocks_per_step: u64 = Subtensor::get_blocks_per_step();
 		assert_eq!(Subtensor::sudo_set_blocks_per_step(<<Test as Config>::Origin>::signed(0), blocks_per_step), Err(DispatchError::BadOrigin.into()));
         assert_eq!(Subtensor::get_blocks_per_step(), init_blocks_per_step);
+    });
+}
+
+
+#[test]
+fn test_fails_sudo_set_bonds_moving_average() {
+	new_test_ext().execute_with(|| {
+        let bonds_moving_average: u64 = 10;
+        let init_bonds_moving_average: u64 = Subtensor::get_bonds_moving_average();
+		assert_eq!(Subtensor::sudo_set_bonds_moving_average(<<Test as Config>::Origin>::signed(0), bonds_moving_average), Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_bonds_moving_average(), init_bonds_moving_average);
     });
 }
 

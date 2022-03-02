@@ -287,6 +287,7 @@ parameter_types! {
 	pub const InitialMinAllowedWeights: u64 = 250;
 	pub const InitialMaxAllowedMaxMinRatio: u64 = 10;
 	pub const InitialIssuance: u64 = 548833985028256;
+	pub const InitialBondsMovingAverage: u64 = 900_000;
 	pub const InitialDifficulty: u64 = 10000;
 	pub const MinimumDifficulty: u64 = 10000000;
 	pub const InitialActivityCutoff: u64 = 5000;
@@ -309,6 +310,7 @@ impl pallet_subtensor::Config for Runtime {
 	type InitialImmunityPeriod = InitialImmunityPeriod;
 	type InitialMaxAllowedUids = InitialMaxAllowedUids;
 	type InitialMinAllowedWeights = InitialMinAllowedWeights;
+	type InitialBondsMovingAverage = InitialBondsMovingAverage;
 	type InitialMaxAllowedMaxMinRatio = InitialMaxAllowedMaxMinRatio;
 	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;

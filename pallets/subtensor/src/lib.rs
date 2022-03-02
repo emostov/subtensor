@@ -122,6 +122,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialBlocksPerStep: Get<u64>;
 
+		/// Blocks per era.
+		#[pallet::constant]
+		type InitialBondsMovingAverage: Get<u64>;
+		
 		/// SelfOwnership constant
 		#[pallet::constant]
 		type SelfOwnership: Get<u64>;
@@ -387,6 +391,16 @@ pub mod pallet {
 	>;
 
 	#[pallet::type_value] 
+	pub fn DefaultBondsMovingAverage<T: Config>() -> u64 { T::InitialBondsMovingAverage::get() }
+	#[pallet::storage]
+	pub type BondsMovingAverage<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultBondsMovingAverage<T>
+	>;
+
+	#[pallet::type_value] 
 	pub fn DefaultDifficulty<T: Config>() -> u64 { T::InitialDifficulty::get() }
 	#[pallet::storage]
 	pub type Difficulty<T> = StorageValue<
@@ -591,6 +605,9 @@ pub mod pallet {
 
 		/// --- Event created when default blocks per step has been set.
 		BlocksPerStepSet(u64),
+
+		/// --- Event created when bonds moving average set.
+		BondsMovingAverageSet(u64),
 
 		/// --- Event created when the difficulty adjustment interval has been set.
 		AdjustmentIntervalSet(u64),
@@ -997,6 +1014,17 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_bonds_moving_average ( 
+			origin:OriginFor<T>, 
+			bonds_moving_average: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			BondsMovingAverage::<T>::set( bonds_moving_average );
+			Self::deposit_event( Event::BondsMovingAverageSet( bonds_moving_average ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_difficulty ( 
 			origin:OriginFor<T>, 
 			difficulty: u64 
@@ -1153,6 +1181,12 @@ pub mod pallet {
 		}
 		pub fn set_blocks_per_step( blocks_per_step: u64 ) {
 			BlocksPerStep::<T>::set( blocks_per_step );
+		}
+		pub fn get_bonds_moving_average( ) -> u64 {
+			BondsMovingAverage::<T>::get()
+		}
+		pub fn set_bonds_moving_average( bonds_moving_average: u64 ) {
+			BondsMovingAverage::<T>::set( bonds_moving_average );
 		}
 		// -- Difficulty.
 		pub fn get_difficulty( ) -> U256 {

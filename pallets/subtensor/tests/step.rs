@@ -294,11 +294,12 @@ fn test_two_steps_with_many_outward_weights() {
         assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![250000000, 250000000, 250000000, 250000000], 10) );
         let expected_bonds: Vec<Vec<u64>> = vec! [
-            vec! [0, 250000000, 0, 0 ],
-            vec! [0, 0, 250000000, 0 ],
-            vec! [0, 0, 0, 250000000 ], 
-            vec! [250000000, 0, 0, 0 ],
-        ];
+            vec! [0, 125000000, 0, 0 ],
+            vec! [0, 0, 125000000, 0 ],
+            vec! [0, 0, 0, 125000000 ], 
+            vec! [125000000, 0, 0, 0 ],
+        ]; // 250,000,000 * 1/2
+        println!(  "{:?} {:?}", expected_bonds, Subtensor::get_bonds() );
         assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 10) );
         assert_eq!( Subtensor::get_last_mechanism_step_block(), 1 );
 
@@ -315,11 +316,11 @@ fn test_two_steps_with_many_outward_weights() {
         assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![250000000, 250000000, 250000000, 250000000], 10) );
         let expected_bonds: Vec<Vec<u64>> = vec! [
-            vec! [0, 500000000, 0, 0 ],
-            vec! [0, 0, 500000000, 0 ],
-            vec! [0, 0, 0, 500000000 ], 
-            vec! [500000000, 0, 0, 0 ],
-        ];
+            vec! [0, 187_500_000, 0, 0 ],
+            vec! [0, 0, 187_500_000, 0 ],
+            vec! [0, 0, 0, 187_500_000 ], 
+            vec! [187_500_000, 0, 0, 0 ],
+        ]; // 125000000 * 1/2 + 250,000,000 * 1/2
         assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
         assert_eq!( Subtensor::get_last_mechanism_step_block(), 2 );
 
@@ -336,10 +337,10 @@ fn test_two_steps_with_many_outward_weights() {
         assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
         assert!( vec_approx_equals (  &Subtensor::get_emission(), &vec![250000000, 250000000, 250000000, 250000000], 10) );
         let expected_bonds: Vec<Vec<u64>> = vec! [
-            vec! [0, 250000000 * 10, 0, 0 ],
-            vec! [0, 0, 250000000 * 10, 0 ],
-            vec! [0, 0, 0, 250000000 * 10 ], 
-            vec! [250000000 * 10, 0, 0, 0 ],
+            vec! [0, 249_755_859, 0, 0 ],
+            vec! [0, 0, 249_755_859, 0 ],
+            vec! [0, 0, 0, 249_755_859 ], 
+            vec! [ 249_755_859, 0, 0, 0],
         ];
         assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
 
@@ -456,10 +457,10 @@ fn test_two_steps_with_activity_cuttoff() {
         assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![u64m/4, u64m/4, u64m/4, u64m/4], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![250000000, 250000000, 250000000, 250000000], 10) );
         let expected_bonds: Vec<Vec<u64>> = vec! [
-            vec! [0, 250000000, 0, 0 ],
-            vec! [0, 0, 250000000, 0 ],
-            vec! [0, 0, 0, 250000000 ], 
-            vec! [250000000, 0, 0, 0 ],
+            vec! [0, 125000000, 0, 0 ],
+            vec! [0, 0, 125000000, 0 ],
+            vec! [0, 0, 0, 125000000 ], 
+            vec! [125000000, 0, 0, 0 ],
         ];
         assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 10) );
 
@@ -476,10 +477,10 @@ fn test_two_steps_with_activity_cuttoff() {
         assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![0, 0, 0, 0], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![0, 0, 0, 0], 10) );
         let expected_bonds: Vec<Vec<u64>> = vec! [
-            vec! [0, 250000000, 0, 0 ],
-            vec! [0, 0, 250000000, 0 ],
-            vec! [0, 0, 0, 250000000 ], 
-            vec! [250000000, 0, 0, 0 ],
+            vec! [0, 125000000, 0, 0 ],
+            vec! [0, 0, 125000000, 0 ],
+            vec! [0, 0, 0, 125000000 ], 
+            vec! [125000000, 0, 0, 0 ],
         ];
         assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
         
@@ -496,10 +497,10 @@ fn test_two_steps_with_activity_cuttoff() {
         assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![0, 0, 0, 0], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![0, 0, 0, 0], 10) );
         let expected_bonds: Vec<Vec<u64>> = vec! [
-            vec! [0, 250000000, 0, 0 ],
-            vec! [0, 0, 250000000, 0 ],
-            vec! [0, 0, 0, 250000000 ], 
-            vec! [250000000, 0, 0, 0 ],
+            vec! [0, 125000000, 0, 0 ],
+            vec! [0, 0, 125000000, 0 ],
+            vec! [0, 0, 0, 125000000 ], 
+            vec! [125000000, 0, 0, 0 ],
         ];
         assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 100) );
 
@@ -567,7 +568,7 @@ fn test_two_steps_with_partial_activity() {
         assert!( vec_approx_equals ( &Subtensor::get_dividends(), &vec![u64m/2, u64m/2, 0, 0], 100) );
         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![500000000, 500000000, 0, 0], 10) );
         let expected_bonds: Vec<Vec<u64>> = vec! [
-            vec! [0, 1000000000, 0, 0 ],
+            vec! [0, 500000000, 0, 0 ],
             vec! [0, 0, 0, 0 ],
             vec! [0, 0, 0, 0 ], 
             vec! [0, 0, 0, 0 ],
