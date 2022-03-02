@@ -97,9 +97,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
 	spec_version: 111,
-	impl_version: 7,
+	impl_version: 6,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 7,
+	transaction_version: 6,
 };
 
 /// This determines the average expected block time that we are targeting.
