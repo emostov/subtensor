@@ -208,22 +208,6 @@ impl<T: Config> Pallet<T> {
             }
             bonds[ uid_i as usize ] = bonds_row;
         }
-        // Here we are removing all the 'unused stake' i.e. stake which is no being counted in the mechanism.
-        // self-weight (i -> i edges) by definition are disregarded. Below we loop through each of the uids and subtract 
-        // the unused stake from the total.
-        // TODO(const): We could be clever and add this all back into the network through inflation.
-        for uid_i in uids.iter() {
-            let stake_i: I65F63 = stake[ *uid_i as usize ];
-            let weights_i: &Vec<(u32, u32)> = &weights[ *uid_i as usize ];
-            if weights_i.len() == 1 {
-                let uid_j: u32 = weights_i[0].0.into();
-                // Check if this is a self weight.
-                if uid_j == *uid_i {
-                    stake[ *uid_i as usize ] = I65F63::from_num( 0 );
-                    total_active_stake = total_active_stake - stake_i;
-                }
-            }
-        }
         // Normalize stake based on activity.
         if total_active_stake != 0 {
             for uid_i in uids.iter() {
@@ -266,6 +250,7 @@ impl<T: Config> Pallet<T> {
                 //     println!( "-----: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}", weight_ij, stake_i, rank_increment_ij, trust_increment_ij, bond_increment_ij, bond_increment_ij.to_num::<u64>());
                 // }
 
+                // Distribute self weights as priority
                 if *uid_i != *uid_j {
                     // Only distribute ranks and trust from active stake.
                     if active[ *uid_i as usize ] == 1 {

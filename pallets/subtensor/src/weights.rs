@@ -62,12 +62,12 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn check_length( uid: u32, uids: &Vec<u32>, weights: &Vec<u32>) -> bool {
-        let min_allowed: usize = Self::get_min_allowed_weights() as usize;
+        let min_allowed_length: usize = Self::get_min_allowed_weights() as usize;
 
         // Check the self weight.
         if weights.len() == 1 {
             if uid == uids[0] {
-                // Allows the seld weight.
+                // Allows the self weight.
                 return true;
             } else {
                 // Always fails when setting just a single weight.
@@ -75,7 +75,7 @@ impl<T: Config> Pallet<T> {
             }
 
         // Otherwise we check to ensure we passed the weigh limit.
-        } else if weights.len() >= min_allowed {
+        } else if weights.len() >= min_allowed_length {
             return true
         } else {
             return false
