@@ -122,7 +122,7 @@ pub fn nobunaga_stagenet_config() -> Result<ChainSpec, String> {
             true,
         ),
         vec![
-            MultiaddrWithPeerId::from_str("/dns4/soult.akatsuki.opentensor.ai/tcp/30333/ws/p2p/12D3KooWS2CcPSkKKguw5vvzKHMroh33h523H88aAgNos7UCEyjh").unwrap(),
+            MultiaddrWithPeerId::from_str("/dns4/soult.nobunaga.opentensor.ai/tcp/30333/ws/p2p/12D3KooWS2CcPSkKKguw5vvzKHMroh33h523H88aAgNos7UCEyjh").unwrap(),
         ],
         None,
         None,
