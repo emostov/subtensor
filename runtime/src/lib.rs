@@ -96,7 +96,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 109,
+	spec_version: 114,
 	impl_version: 6,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 6,
@@ -279,11 +279,21 @@ parameter_types! {
 	pub const InitialRho: u64 = 10;
 	pub const InitialKappa: u64 = 2;
 	pub const SelfOwnership: u64 = 2;
+	pub const InitialValidatorBatchSize: u64 = 10;
+	pub const InitialValidatorSequenceLen: u64 = 10;
+	pub const InitialValidatorEpochLen: u64 = 1000;
+	pub const InitialValidatorEpochsPerReset: u64 = 10;
 	pub const InitialImmunityPeriod: u64 = 200;
 	pub const InitialBlocksPerStep: u64 = 100;
 	pub const InitialMaxAllowedUids: u64 = 2000;
+	pub const InitialMinAllowedWeights: u64 = 1;
+	pub const InitialMaxAllowedMaxMinRatio: u64 = 10;
 	pub const InitialIssuance: u64 = 548833985028256;
-	pub const InitialDifficulty: u64 = 10000;
+	pub const InitialBondsMovingAverage: u64 = 900_000;
+	pub const InitialIncentivePruningDenominator: u64 = 1;
+	pub const InitialStakePruningDenominator: u64 = 1;
+	pub const InitialFoundationDistribution: u64 = 0;
+	pub const InitialDifficulty: u64 = 10000000;
 	pub const MinimumDifficulty: u64 = 10000000;
 	pub const InitialActivityCutoff: u64 = 5000;
 	pub const MaximumDifficulty: u64 = u64::MAX/4;
@@ -300,8 +310,18 @@ impl pallet_subtensor::Config for Runtime {
 	type InitialRho = InitialRho;
 	type InitialKappa = InitialKappa;
 	type SelfOwnership = SelfOwnership;
+	type InitialValidatorBatchSize = InitialValidatorBatchSize;
+	type InitialValidatorSequenceLen = InitialValidatorSequenceLen;
+	type InitialValidatorEpochLen = InitialValidatorEpochLen;
+	type InitialValidatorEpochsPerReset = InitialValidatorEpochsPerReset;
 	type InitialImmunityPeriod = InitialImmunityPeriod;
 	type InitialMaxAllowedUids = InitialMaxAllowedUids;
+	type InitialMinAllowedWeights = InitialMinAllowedWeights;
+	type InitialBondsMovingAverage = InitialBondsMovingAverage;
+	type InitialMaxAllowedMaxMinRatio = InitialMaxAllowedMaxMinRatio;
+	type InitialStakePruningDenominator = InitialStakePruningDenominator;
+	type InitialIncentivePruningDenominator = InitialIncentivePruningDenominator;
+	type InitialFoundationDistribution = InitialFoundationDistribution;
 	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialIssuance = InitialIssuance;
 	type InitialDifficulty = InitialDifficulty;

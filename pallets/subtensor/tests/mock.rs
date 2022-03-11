@@ -86,6 +86,18 @@ parameter_types! {
 	pub const SelfOwnership: u64 = 2;
 	pub const InitialImmunityPeriod: u64 = 2;
 	pub const InitialMaxAllowedUids: u64 = 100;
+	pub const InitialBondsMovingAverage: u64 = 500_000;
+	pub const InitialIncentivePruningDenominator: u64 = 1;
+	pub const InitialStakePruningDenominator: u64 = 1;
+	pub const InitialFoundationDistribution: u64 = 0;
+
+	pub const InitialValidatorBatchSize: u64 = 10;
+	pub const InitialValidatorSequenceLen: u64 = 10;
+	pub const InitialValidatorEpochLen: u64 = 10;
+	pub const InitialValidatorEpochsPerReset: u64 = 10;
+
+	pub const InitialMinAllowedWeights: u64 = 0;
+	pub const InitialMaxAllowedMaxMinRatio: u64 = 0;
 	pub const InitialBlocksPerStep: u64 = 1;
 	pub const InitialIssuance: u64 = 548833985028256;
 	pub const InitialDifficulty: u64 = 10000;
@@ -164,13 +176,25 @@ impl pallet_subtensor::Config for Test {
 	type InitialRho = InitialRho;
 	type InitialKappa = InitialKappa;
 	type SelfOwnership = SelfOwnership;
+	
+	type InitialValidatorBatchSize = InitialValidatorBatchSize;
+	type InitialValidatorSequenceLen = InitialValidatorSequenceLen;
+	type InitialValidatorEpochLen = InitialValidatorEpochLen;
+	type InitialValidatorEpochsPerReset = InitialValidatorEpochsPerReset;
+
 	type InitialImmunityPeriod = InitialImmunityPeriod;
 	type InitialMaxAllowedUids = InitialMaxAllowedUids;
-	type InitialBlocksPerStep = InitialBlocksPerStep;
+	type InitialMinAllowedWeights = InitialMinAllowedWeights;
+	type InitialBondsMovingAverage = InitialBondsMovingAverage;
+	type InitialMaxAllowedMaxMinRatio = InitialMaxAllowedMaxMinRatio;
+	type InitialStakePruningDenominator = InitialStakePruningDenominator;
+	type InitialIncentivePruningDenominator = InitialIncentivePruningDenominator;
+	type InitialFoundationDistribution = InitialFoundationDistribution;
 	type InitialIssuance = InitialIssuance;
 	type InitialDifficulty = InitialDifficulty;
 	type MinimumDifficulty = MinimumDifficulty;
 	type MaximumDifficulty = MaximumDifficulty;
+	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialActivityCutoff = InitialActivityCutoff;
 	type InitialAdjustmentInterval = InitialAdjustmentInterval;
 	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;

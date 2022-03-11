@@ -143,24 +143,38 @@ impl<T: Config> Pallet<T> {
     /// Note, operations 1 and 2 are computed together. 
     ////
     pub fn mechanism_step ( emission_this_step: u64 ) {
-        
-        // The amount this mechanism step emits on this block.
-        let block_emission: I65F63 = I65F63::from_num( emission_this_step ); 
-        if Self::debug() && false { 
-            if_std! {
-                println!( "block_emission: {:?}", block_emission );
-            }
-        }   
 
+        // The amount this mechanism step emits on this block.
+        let block_emission: I65F63 = I65F63::from_num( emission_this_step );
+        if_std! {
+            println!( "step" );
+        } 
+
+        // === Complete foundation distribution ===
+        //let foundation_distribution_per_hundred: u64 = Self::get_foundation_distribution();
+        //let foundation_distribution_percent: I65F63 = I65F63::from_num( foundation_distribution_per_hundred ) / I65F63::from_num( 100 );
+        //let foundation_distribution_as_float: I65F63 = block_emission_total * foundation_distribution_percent;
+
+        // Sink distribution into account.
+        //let foundation_account: T::AccountId = Self::get_foundation_account();
+        //let foundation_distribution_as_u64: u64 = foundation_distribution_as_float.to_num::<u64>();
+        //let foundation_distribution_as_balance: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance = Self::u64_to_balance( foundation_distribution_as_u64 ).unwrap();
+        //T::Currency::deposit_creating( &foundation_account, foundation_distribution_as_balance );
+        
+        // The amount this mechanism step emits with the foundation amount removed.
+        //let block_emission: I65F63 = block_emission_total - foundation_distribution_as_float;
+      
         // Number of peers.
         let n: usize = Self::get_neuron_count() as usize;
         let block: u64 = Self::get_current_block_as_u64();
         
         // Constants.
         let activity_cutoff: u64 = Self::get_activity_cutoff();
+        let bonds_moving_average:I65F63 = I65F63::from_num( Self::get_bonds_moving_average() ) / I65F63::from_num( 1_000_000 );
         let u64_max: I65F63 = I65F63::from_num( u64::MAX );
         let u32_max: I65F63 = I65F63::from_num( u32::MAX );
         let one: I65F63 = I65F63::from_num( 1.0 );
+        let zero: I65F63 = I65F63::from_num( 0.0 );
         let rho: I65F63 = I65F63::from_num( Self::get_rho() );
         let kappa: I65F63 = one / I65F63::from_num( Self::get_kappa() );
         let self_ownership: I65F63 = one / I65F63::from_num( Self::get_self_ownership()  );
@@ -234,46 +248,47 @@ impl<T: Config> Pallet<T> {
         let mut trust: Vec<I65F63> = vec![ I65F63::from_num( 0.0 ) ; n];
         for uid_i in uids.iter() {
 
-            // Get vars for i.uids
+            // === Get vars for uid_i ===
             let stake_i: I65F63 = stake[ *uid_i as usize ];
             let weights_i: &Vec<(u32, u32)> = &weights[ *uid_i as usize ];
+            if stake_i == zero { continue } // Skip zeros stake.
 
-            // Iterate over weights.
+            // === Iterate over weights ===
             for ( uid_j, weight_ij ) in weights_i.iter() {
 
-                // Normalize weight_ij
+                if active[ *uid_i as usize ] != 1 { continue } // Skip non active.
+                if *uid_i == *uid_j { continue } // Skip self-weight.
+
+                // === Compute score increments ===
                 let weight_ij: I65F63 = I65F63::from_num( *weight_ij ) / u32_max; // Range( 0, 1 )
                 let trust_increment_ij: I65F63 = stake_i; // Range( 0, 1 )                
                 let rank_increment_ij: I65F63 = stake_i * weight_ij; // Range( 0, total_active_stake )
                 let bond_increment_ij: I65F63 = rank_increment_ij * block_emission; // Range( 0, block_emission )
-                // if_std! {
-                //     println!( "-----: {:?}, {:?}, {:?}, {:?}, {:?}, {:?}", weight_ij, stake_i, rank_increment_ij, trust_increment_ij, bond_increment_ij, bond_increment_ij.to_num::<u64>());
-                // }
+            
+                // === Increment neuron scores ===
+                ranks[ *uid_j as usize ] += rank_increment_ij;  // Range( 0, total_active_stake )
+                trust[ *uid_j as usize ] += trust_increment_ij;  // Range( 0, total_active_stake )
+                total_ranks += rank_increment_ij;  // Range( 0, total_active_stake )
+                total_trust += trust_increment_ij;  // Range( 0, total_active_stake )
+                
+                // === Compute bonding moving averages ===
+                let prev_bonds_ij: I65F63 = I65F63::from_num( bonds[ *uid_i as usize  ][ *uid_j as usize ] );
+                let moving_average_bonds_ij = bonds_moving_average * prev_bonds_ij + ( one - bonds_moving_average ) * bond_increment_ij;
+                bonds [ *uid_i as usize  ][ *uid_j as usize ] = moving_average_bonds_ij.to_num::<u64>(); // Range( 0, block_emission )
 
-                // Distribute self weights as priority
-                if *uid_i != *uid_j {
-                    // Only distribute ranks and trust from active stake.
-                    if active[ *uid_i as usize ] == 1 {
-                        // Increment neuron scores.
-                        ranks[ *uid_j as usize ] += rank_increment_ij;  // Range( 0, total_active_stake )
-                        trust[ *uid_j as usize ] += trust_increment_ij;  // Range( 0, total_active_stake )
-                        total_ranks += rank_increment_ij;  // Range( 0, total_active_stake )
-                        total_trust += trust_increment_ij;  // Range( 0, total_active_stake )
-                        
-                        // Distribute bonds.
-                        bond_totals [ *uid_j as usize ] += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
-                        bonds [ *uid_i as usize  ][ *uid_j as usize ] += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
-                        total_bonds_purchased += bond_increment_ij.to_num::<u64>(); // Range( 0, block_emission )
-                    }
+                // === Update bond totals ===
+                if prev_bonds_ij >= moving_average_bonds_ij {
+                    bond_totals [ *uid_j as usize ] -= ( prev_bonds_ij - moving_average_bonds_ij ).to_num::<u64>(); // Range( 0, block_emission )
+                    total_bonds_purchased = ( prev_bonds_ij - moving_average_bonds_ij ).to_num::<u64>(); // Range( 0, block_emission )
+                } else {
+                    bond_totals [ *uid_j as usize ] += ( moving_average_bonds_ij - prev_bonds_ij ).to_num::<u64>(); // Range( 0, block_emission )
+                    total_bonds_purchased = ( moving_average_bonds_ij - prev_bonds_ij ).to_num::<u64>(); // Range( 0, block_emission )
                 }
             }
         }
-        // Normalize ranks + trust.
+        // === Normalize ranks + trust ===
         if total_trust > 0 && total_ranks > 0 {
             for uid_i in uids.iter() {
-                // if_std! {
-                //     println!( "trust-: {:?} / {:?}", trust[ *uid_i as usize ], total_normalized_active_stake);
-                // }
                 ranks[ *uid_i as usize ] = ranks[ *uid_i as usize ] / total_ranks; // Vector will sum to u64_max
                 trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
@@ -402,10 +417,13 @@ impl<T: Config> Pallet<T> {
             } 
         }
 
+        // Amount distributed through mechanism in conjunction with amount distributed to foudation.
+        let total_new_issuance:u64 = total_emission; // + foundation_distribution_as_float.to_num::<u64>();
+
         // Update totals.
         TotalEmission::<T>::set( total_emission );
         TotalBondsPurchased::<T>::set( total_bonds_purchased );
-        TotalIssuance::<T>::mutate( |val| *val += total_emission );
+        TotalIssuance::<T>::mutate( |val| *val += total_new_issuance );
         TotalStake::<T>::mutate( |val| *val += total_emission );
         LastMechansimStepBlock::<T>::set( block );
     }

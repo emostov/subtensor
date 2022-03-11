@@ -94,9 +94,45 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialKappa: Get<u64>;
 
-		/// Max UID constant
+		/// Default Batch size.
+		#[pallet::constant]
+		type InitialValidatorBatchSize: Get<u64>;
+
+		/// Default Batch size.
+		#[pallet::constant]
+		type InitialValidatorSequenceLen: Get<u64>;
+
+		/// Default Epoch length.
+		#[pallet::constant]
+		type InitialValidatorEpochLen: Get<u64>;
+
+		/// Default Reset length.
+		#[pallet::constant]
+		type InitialValidatorEpochsPerReset: Get<u64>;
+
+		/// Max UID constant.
 		#[pallet::constant]
 		type InitialMaxAllowedUids: Get<u64>;
+
+		/// Initial min allowed weights.
+		#[pallet::constant]
+		type InitialMinAllowedWeights: Get<u64>;
+
+		/// Initial allowed max min weight ratio
+		#[pallet::constant]
+		type InitialMaxAllowedMaxMinRatio: Get<u64>;
+
+		/// Initial stake pruning denominator
+		#[pallet::constant]
+		type InitialStakePruningDenominator: Get<u64>;
+
+		/// Initial incentive pruning denominator
+		#[pallet::constant]
+		type InitialIncentivePruningDenominator: Get<u64>;
+
+		/// Initial foundation distribution
+		#[pallet::constant]
+		type InitialFoundationDistribution: Get<u64>;
 
 		/// Immunity Period Constant.
 		#[pallet::constant]
@@ -106,6 +142,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type InitialBlocksPerStep: Get<u64>;
 
+		/// Blocks per era.
+		#[pallet::constant]
+		type InitialBondsMovingAverage: Get<u64>;
+		
 		/// SelfOwnership constant
 		#[pallet::constant]
 		type SelfOwnership: Get<u64>;
@@ -280,6 +320,66 @@ pub mod pallet {
 	>;
 
 	#[pallet::type_value] 
+	pub fn DefaultIncentivePruningDenominator<T: Config>() -> u64 { T::InitialIncentivePruningDenominator::get() }
+	#[pallet::storage]
+	pub type IncentivePruningDenominator<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultIncentivePruningDenominator<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultStakePruningDenominator<T: Config>() -> u64 { T::InitialStakePruningDenominator::get() }
+	#[pallet::storage]
+	pub type StakePruningDenominator<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultStakePruningDenominator<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultValidatorEpochLen<T: Config>() -> u64 { T::InitialValidatorEpochLen::get() }
+	#[pallet::storage]
+	pub type ValidatorEpochLen<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultValidatorEpochLen<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultValidatorEpochsPerReset<T: Config>() -> u64 { T::InitialValidatorEpochsPerReset::get() }
+	#[pallet::storage]
+	pub type ValidatorEpochsPerReset<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultValidatorEpochsPerReset<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultValidatorBatchSize<T: Config>() -> u64 { T::InitialValidatorBatchSize::get() }
+	#[pallet::storage]
+	pub type ValidatorBatchSize<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultValidatorBatchSize<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultValidatorSequenceLen<T: Config>() -> u64 { T::InitialValidatorSequenceLen::get() }
+	#[pallet::storage]
+	pub type ValidatorSequenceLength<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultValidatorSequenceLen<T>
+	>;
+
+	#[pallet::type_value] 
 	pub fn DefaultMaxAllowedUids<T: Config>() -> u64 { T::InitialMaxAllowedUids::get() }
 	#[pallet::storage]
 	pub type MaxAllowedUids<T> = StorageValue<
@@ -287,6 +387,27 @@ pub mod pallet {
 		u64, 
 		ValueQuery,
 		DefaultMaxAllowedUids<T>
+	>;
+
+
+	#[pallet::type_value] 
+	pub fn DefaultMinAllowedWeights<T: Config>() -> u64 { T::InitialMinAllowedWeights::get() }
+	#[pallet::storage]
+	pub type MinAllowedWeights<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultMinAllowedWeights<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultMaxAllowedMaxMinRatio<T: Config>() -> u64 { T::InitialMaxAllowedMaxMinRatio::get() }
+	#[pallet::storage]
+	pub type MaxAllowedMaxMinRatio<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultMaxAllowedMaxMinRatio<T>
 	>;
 
 	#[pallet::type_value] 
@@ -327,6 +448,16 @@ pub mod pallet {
 		u64, 
 		ValueQuery,
 		DefaultBlocksPerStep<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultBondsMovingAverage<T: Config>() -> u64 { T::InitialBondsMovingAverage::get() }
+	#[pallet::storage]
+	pub type BondsMovingAverage<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultBondsMovingAverage<T>
 	>;
 
 	#[pallet::type_value] 
@@ -377,6 +508,25 @@ pub mod pallet {
 		u64, 
 		ValueQuery,
 		DefaultMaxRegistrationsPerBlock<T>
+	>;
+
+	#[pallet::type_value] 
+	pub fn DefaultFoundationDistribution<T: Config>() -> u64 { T::InitialFoundationDistribution::get() }
+	#[pallet::storage]
+	pub type FoundationDistribution<T> = StorageValue<
+		_, 
+		u64, 
+		ValueQuery,
+		DefaultFoundationDistribution<T>
+	>;
+
+	/// #[pallet::type_value] 
+	/// pub fn DefaultFoundationAccount<T: Config>() -> u64 { T::InitialFoundationAccount::get() }
+	#[pallet::storage]
+	pub(super) type FoundationAccount<T:Config> = StorageValue<
+		_, 
+		T::AccountId, 
+		ValueQuery
 	>;
 
 	#[pallet::storage]
@@ -535,6 +685,9 @@ pub mod pallet {
 		/// --- Event created when default blocks per step has been set.
 		BlocksPerStepSet(u64),
 
+		/// --- Event created when bonds moving average set.
+		BondsMovingAverageSet(u64),
+
 		/// --- Event created when the difficulty adjustment interval has been set.
 		AdjustmentIntervalSet(u64),
 
@@ -552,6 +705,36 @@ pub mod pallet {
 
 		/// --- Event created when max allowed uids has been set.
 		MaxAllowedUidsSet(u64),
+
+		/// --- Event created when min allowed weights has been set.
+		MinAllowedWeightsSet(u64),
+
+		/// --- Event created when the max allowed max min ration has been set.
+		MaxAllowedMaxMinRatioSet( u64 ),
+
+		/// --- Event created when the incentive pruning denominator has been set.
+		IncentivePruningDenominatorSet( u64 ),
+
+		/// --- Event created when the stake pruning denominator has been set.
+		StakePruningDenominatorSet( u64 ),
+
+		/// --- Event created when the foundation account has been set.
+		FoundationAccountSet( T::AccountId ),
+
+		/// --- Event created when the foundation distribution has been set.
+		FoundationDistributionSet( u64 ),
+
+		/// --- Event created when the validator default epoch length has been set.
+		ValidatorEpochLenSet(u64),
+
+		/// --- Event created when the validator default epoch per reset has been set.
+		ValidatorEpochsPerResetSet(u64),
+
+		/// --- Event created when the batch size has been set.
+		ValidatorBatchSizeSet(u64),
+
+		/// --- Event created when the sequence length has been set.
+		ValidatorSequenceLengthSet(u64),
 
 		/// --- Event created when the immunity period has been set.
 		ImmunityPeriodSet(u64),
@@ -625,7 +808,15 @@ pub mod pallet {
 
 		/// ---- Thrown when the dispatch attempts to convert between a u64 and T::balance 
 		/// but the call fails.
-		CouldNotConvertToBalance
+		CouldNotConvertToBalance,
+
+		/// ---- Thrown when the dispatch attempts to set weights on chain with fewer elememts 
+		/// than are allowed.
+		NotSettingEnoughWeights,
+
+		/// ---- Thrown when the dispatch attempts to set weights on chain with where the normalized
+		/// max value is more than MaxAllowedMaxMinRatio.
+		MaxAllowedMaxMinRatioExceeded,
 	}
     impl<T: Config> Printable for Error<T> {
         fn print(&self) {
@@ -920,6 +1111,17 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_bonds_moving_average ( 
+			origin:OriginFor<T>, 
+			bonds_moving_average: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			BondsMovingAverage::<T>::set( bonds_moving_average );
+			Self::deposit_event( Event::BondsMovingAverageSet( bonds_moving_average ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_difficulty ( 
 			origin:OriginFor<T>, 
 			difficulty: u64 
@@ -997,6 +1199,116 @@ pub mod pallet {
 		}
 
 		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_min_allowed_weights ( 
+			origin:OriginFor<T>, 
+			min_allowed_weights: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			MinAllowedWeights::<T>::set( min_allowed_weights );
+			Self::deposit_event( Event::MinAllowedWeightsSet( min_allowed_weights ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_max_allowed_max_min_ratio ( 
+			origin:OriginFor<T>, 
+			max_allowed_max_min_ratio: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			MaxAllowedMaxMinRatio::<T>::set( max_allowed_max_min_ratio );
+			Self::deposit_event( Event::MaxAllowedMaxMinRatioSet( max_allowed_max_min_ratio ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_validator_batch_size ( 
+			origin:OriginFor<T>, 
+			validator_batch_size: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			ValidatorBatchSize::<T>::set( validator_batch_size );
+			Self::deposit_event( Event::ValidatorBatchSizeSet( validator_batch_size ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_validator_sequence_length ( 
+			origin:OriginFor<T>, 
+			validator_sequence_length: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			ValidatorSequenceLength::<T>::set( validator_sequence_length );
+			Self::deposit_event( Event::ValidatorSequenceLengthSet( validator_sequence_length ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_validator_epoch_len ( 
+			origin:OriginFor<T>, 
+			validator_epoch_len : u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			ValidatorEpochLen::<T>::set( validator_epoch_len );
+			Self::deposit_event( Event::ValidatorEpochLenSet( validator_epoch_len ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_validator_epochs_per_reset ( 
+			origin:OriginFor<T>, 
+			validator_epochs_per_reset : u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			ValidatorEpochsPerReset::<T>::set( validator_epochs_per_reset );
+			Self::deposit_event( Event::ValidatorEpochsPerResetSet( validator_epochs_per_reset ) );
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_incentive_pruning_denominator( 
+			origin:OriginFor<T>, 
+			incentive_pruning_denominator: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			IncentivePruningDenominator::<T>::set( incentive_pruning_denominator );
+			Self::deposit_event( Event::IncentivePruningDenominatorSet( incentive_pruning_denominator ));
+			Ok(())
+		}
+		
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_stake_pruning_denominator( 
+			origin:OriginFor<T>, 
+			stake_pruning_denominator: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			StakePruningDenominator::<T>::set( stake_pruning_denominator );
+			Self::deposit_event( Event::StakePruningDenominatorSet( stake_pruning_denominator ));
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_foundation_account( 
+			origin:OriginFor<T>, 
+			foundation_account: T::AccountId 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			FoundationAccount::<T>::set( foundation_account.clone() );
+			Self::deposit_event( Event::FoundationAccountSet( foundation_account ));
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_set_foundation_distribution ( 
+			origin:OriginFor<T>, 
+			foundation_distribution: u64 
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			FoundationDistribution::<T>::set( foundation_distribution );
+			Self::deposit_event( Event::FoundationDistributionSet( foundation_distribution ));
+			Ok(())
+		}
+
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
 		pub fn sudo_set_immunity_period ( 
 			origin:OriginFor<T>, 
 			immunity_period: u64 
@@ -1030,6 +1342,12 @@ pub mod pallet {
 		}
 		pub fn set_blocks_per_step( blocks_per_step: u64 ) {
 			BlocksPerStep::<T>::set( blocks_per_step );
+		}
+		pub fn get_bonds_moving_average( ) -> u64 {
+			BondsMovingAverage::<T>::get()
+		}
+		pub fn set_bonds_moving_average( bonds_moving_average: u64 ) {
+			BondsMovingAverage::<T>::set( bonds_moving_average );
 		}
 		// -- Difficulty.
 		pub fn get_difficulty( ) -> U256 {
@@ -1087,6 +1405,54 @@ pub mod pallet {
 		pub fn set_rho( rho: u64 ) {
 			Rho::<T>::put( rho );
 		}
+		pub fn get_incentive_pruning_denominator( ) -> u64 {
+			return IncentivePruningDenominator::<T>::get();
+		}
+		pub fn set_incentive_pruning_denominator( incentive_pruning_denominator: u64 ) {
+			IncentivePruningDenominator::<T>::put( incentive_pruning_denominator );
+		}
+		pub fn get_stake_pruning_denominator( ) -> u64 {
+			return StakePruningDenominator::<T>::get();
+		}
+		pub fn set_stake_pruning_denominator( stake_pruning_denominator: u64 ) {
+			StakePruningDenominator::<T>::put( stake_pruning_denominator );
+		}
+		pub fn get_foundation_account( ) -> T::AccountId {
+			return FoundationAccount::<T>::get();
+		}
+		pub fn set_foundation_account( foundation_account: T::AccountId  ) {
+			FoundationAccount::<T>::put( foundation_account );
+		}
+		pub fn get_foundation_distribution( ) -> u64{
+			return FoundationDistribution::<T>::get();
+		}
+		pub fn set_foundation_distribution( foundation_distribution: u64 ) {
+			FoundationDistribution::<T>::put( foundation_distribution );
+		}
+		pub fn get_validator_sequence_length( ) -> u64 {
+			return ValidatorSequenceLength::<T>::get();
+		}
+		pub fn set_validator_sequence_length( validator_sequence_length: u64 ) {
+			ValidatorSequenceLength::<T>::put( validator_sequence_length );
+		}
+		pub fn get_validator_batch_size( ) -> u64 {
+			return ValidatorBatchSize::<T>::get();
+		}
+		pub fn set_validator_batch_size( validator_batch_size: u64 ) {
+			ValidatorBatchSize::<T>::put( validator_batch_size );
+		}
+		pub fn get_validator_epoch_len( ) -> u64 {
+			return ValidatorEpochLen::<T>::get();
+		}
+		pub fn set_validator_epoch_len( validator_epoch_len: u64 ) {
+			ValidatorEpochLen::<T>::put( validator_epoch_len );
+		}
+		pub fn get_validator_epochs_per_reset( ) -> u64 {
+			return ValidatorEpochsPerReset::<T>::get();
+		}
+		pub fn set_validator_epochs_per_reset( validator_epochs_per_reset: u64 ) {
+			ValidatorEpochsPerReset::<T>::put( validator_epochs_per_reset );
+		}
 		// -- Get step consensus shift (1/kappa)
 		pub fn get_kappa( ) -> u64 {
 			return Kappa::<T>::get();
@@ -1106,6 +1472,18 @@ pub mod pallet {
 		}
 		pub fn set_max_allowed_uids( max_allowed_uids: u64 ) {
 			MaxAllowedUids::<T>::put( max_allowed_uids );
+		}
+		pub fn get_min_allowed_weights( ) -> u64 {
+			return MinAllowedWeights::<T>::get();
+		}
+		pub fn set_min_allowed_weights( min_allowed_weights: u64 ) {
+			MinAllowedWeights::<T>::put( min_allowed_weights );
+		}
+		pub fn get_max_allowed_max_min_ratio( ) -> u64 {
+			return MaxAllowedMaxMinRatio::<T>::get();
+		}
+		pub fn set_max_allowed_max_min_ratio( max_allowed_max_min_ratio: u64 ) {
+			MaxAllowedMaxMinRatio::<T>::put( max_allowed_max_min_ratio );
 		}
 		pub fn get_immunity_period( ) -> u64 {
 			return ImmunityPeriod::<T>::get();
