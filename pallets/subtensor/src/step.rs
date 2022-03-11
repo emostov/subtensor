@@ -143,15 +143,27 @@ impl<T: Config> Pallet<T> {
     /// Note, operations 1 and 2 are computed together. 
     ////
     pub fn mechanism_step ( emission_this_step: u64 ) {
-        
-        // The amount this mechanism step emits on this block.
-        let block_emission: I65F63 = I65F63::from_num( emission_this_step ); 
-        if Self::debug() && false { 
-            if_std! {
-                println!( "block_emission: {:?}", block_emission );
-            }
-        }   
 
+        // The amount this mechanism step emits on this block.
+        let block_emission: I65F63 = I65F63::from_num( emission_this_step );
+        if_std! {
+            println!( "step" );
+        } 
+
+        // === Complete foundation distribution ===
+        //let foundation_distribution_per_hundred: u64 = Self::get_foundation_distribution();
+        //let foundation_distribution_percent: I65F63 = I65F63::from_num( foundation_distribution_per_hundred ) / I65F63::from_num( 100 );
+        //let foundation_distribution_as_float: I65F63 = block_emission_total * foundation_distribution_percent;
+
+        // Sink distribution into account.
+        //let foundation_account: T::AccountId = Self::get_foundation_account();
+        //let foundation_distribution_as_u64: u64 = foundation_distribution_as_float.to_num::<u64>();
+        //let foundation_distribution_as_balance: <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance = Self::u64_to_balance( foundation_distribution_as_u64 ).unwrap();
+        //T::Currency::deposit_creating( &foundation_account, foundation_distribution_as_balance );
+        
+        // The amount this mechanism step emits with the foundation amount removed.
+        //let block_emission: I65F63 = block_emission_total - foundation_distribution_as_float;
+      
         // Number of peers.
         let n: usize = Self::get_neuron_count() as usize;
         let block: u64 = Self::get_current_block_as_u64();
@@ -405,10 +417,13 @@ impl<T: Config> Pallet<T> {
             } 
         }
 
+        // Amount distributed through mechanism in conjunction with amount distributed to foudation.
+        let total_new_issuance:u64 = total_emission; // + foundation_distribution_as_float.to_num::<u64>();
+
         // Update totals.
         TotalEmission::<T>::set( total_emission );
         TotalBondsPurchased::<T>::set( total_bonds_purchased );
-        TotalIssuance::<T>::mutate( |val| *val += total_emission );
+        TotalIssuance::<T>::mutate( |val| *val += total_new_issuance );
         TotalStake::<T>::mutate( |val| *val += total_emission );
         LastMechansimStepBlock::<T>::set( block );
     }

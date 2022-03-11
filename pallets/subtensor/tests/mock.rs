@@ -87,8 +87,15 @@ parameter_types! {
 	pub const InitialImmunityPeriod: u64 = 2;
 	pub const InitialMaxAllowedUids: u64 = 100;
 	pub const InitialBondsMovingAverage: u64 = 500_000;
-	pub const InitialBatchSize: u64 = 10;
-	pub const InitialSequenceLen: u64 = 10;
+	pub const InitialIncentivePruningDenominator: u64 = 1;
+	pub const InitialStakePruningDenominator: u64 = 1;
+	pub const InitialFoundationDistribution: u64 = 0;
+
+	pub const InitialValidatorBatchSize: u64 = 10;
+	pub const InitialValidatorSequenceLen: u64 = 10;
+	pub const InitialValidatorEpochLen: u64 = 10;
+	pub const InitialValidatorEpochsPerReset: u64 = 10;
+
 	pub const InitialMinAllowedWeights: u64 = 0;
 	pub const InitialMaxAllowedMaxMinRatio: u64 = 0;
 	pub const InitialBlocksPerStep: u64 = 1;
@@ -169,18 +176,25 @@ impl pallet_subtensor::Config for Test {
 	type InitialRho = InitialRho;
 	type InitialKappa = InitialKappa;
 	type SelfOwnership = SelfOwnership;
-	type InitialBatchSize = InitialBatchSize;
-	type InitialSequenceLen = InitialSequenceLen;
+	
+	type InitialValidatorBatchSize = InitialValidatorBatchSize;
+	type InitialValidatorSequenceLen = InitialValidatorSequenceLen;
+	type InitialValidatorEpochLen = InitialValidatorEpochLen;
+	type InitialValidatorEpochsPerReset = InitialValidatorEpochsPerReset;
+
 	type InitialImmunityPeriod = InitialImmunityPeriod;
 	type InitialMaxAllowedUids = InitialMaxAllowedUids;
 	type InitialMinAllowedWeights = InitialMinAllowedWeights;
 	type InitialBondsMovingAverage = InitialBondsMovingAverage;
 	type InitialMaxAllowedMaxMinRatio = InitialMaxAllowedMaxMinRatio;
-	type InitialBlocksPerStep = InitialBlocksPerStep;
+	type InitialStakePruningDenominator = InitialStakePruningDenominator;
+	type InitialIncentivePruningDenominator = InitialIncentivePruningDenominator;
+	type InitialFoundationDistribution = InitialFoundationDistribution;
 	type InitialIssuance = InitialIssuance;
 	type InitialDifficulty = InitialDifficulty;
 	type MinimumDifficulty = MinimumDifficulty;
 	type MaximumDifficulty = MaximumDifficulty;
+	type InitialBlocksPerStep = InitialBlocksPerStep;
 	type InitialActivityCutoff = InitialActivityCutoff;
 	type InitialAdjustmentInterval = InitialAdjustmentInterval;
 	type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;

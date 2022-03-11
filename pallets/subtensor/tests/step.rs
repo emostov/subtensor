@@ -348,6 +348,57 @@ fn test_two_steps_with_many_outward_weights() {
 }
 
 
+// #[test]
+// fn test_steps_with_foundation_distribution() {
+//     new_test_ext().execute_with( || {
+//         Subtensor::set_max_registratations_per_block( 100 );
+//         let initial_stake:u64 = 1000000000;
+//         for i in 0..4 {
+//             register_ok_neuron(i as u64, i as u64 );
+//         }
+//         let weights_matrix: Vec<Vec<u32>> = vec! [
+//             vec! [0, u32::max_value(), 0, 0 ],
+//             vec! [0, 0, u32::max_value(), 0 ],
+//             vec! [0, 0, 0, u32::max_value() ], 
+//             vec! [u32::max_value(), 0, 0, 0 ],
+//         ];
+//         Subtensor::set_weights_from_matrix( weights_matrix.clone() );
+//         Subtensor::set_stake_from_vector( vec![ initial_stake; 4 ] );
+//         step_block (1);
+//         assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 1000000000, 10)); // approx
+//         assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1250000000, 1250000000, 1250000000, 1250000000], 10) );
+//         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![250000000, 250000000, 250000000, 250000000], 10) );
+//         assert_eq!( Subtensor::get_coldkey_balance( &Subtensor::get_foundation_account() ), 0);
+
+//         Subtensor::set_foundation_distribution( 50 );
+//         step_block (1);
+//         assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 2000000000, 10)); // approx
+//         assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1375000000, 1375000000, 1375000000, 1375000000], 10) );
+//         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![125000000, 125000000, 125000000, 125000000], 10) );
+//         assert_eq!( Subtensor::get_coldkey_balance( &Subtensor::get_foundation_account() ), 500000000);
+
+//         Subtensor::set_foundation_distribution( 0 );
+//         step_block (1);
+//         assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 3000000000, 10)); // approx
+//         assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1625000000, 1625000000, 1625000000, 1625000000], 10) );
+//         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![250000000, 250000000, 250000000, 250000000], 10) );
+//         assert_eq!( Subtensor::get_coldkey_balance( &Subtensor::get_foundation_account() ), 500000000);
+
+//         // Test set foundation account.
+//         Subtensor::set_foundation_distribution( 50 );
+//         let prev_foundation_account: u64 = Subtensor::get_foundation_account();
+//         Subtensor::set_foundation_account( 1 ); 
+//         assert_eq!( Subtensor::get_foundation_account(), 1 );
+//         step_block (1);
+//         assert!( approx_equals( Subtensor::get_total_issuance(), Subtensor::get_initial_total_issuance() + 4000000000, 10)); // approx
+//         assert!( vec_approx_equals ( &Subtensor::get_stake(), &vec![1750000000, 1750000000, 1750000000, 1750000000], 10) );
+//         assert!( vec_approx_equals ( &Subtensor::get_emission(), &vec![125000000, 125000000, 125000000, 125000000], 10) );
+//         assert_eq!( Subtensor::get_coldkey_balance( &prev_foundation_account ), 500000000);
+//         assert_eq!( Subtensor::get_coldkey_balance( &Subtensor::get_foundation_account() ), 500000000);
+//     });
+// }
+
+
 #[test]
 fn test_step_only_every_3_with_many_outward_weights() {
     new_test_ext().execute_with( || {

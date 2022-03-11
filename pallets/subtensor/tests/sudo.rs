@@ -83,6 +83,61 @@ fn test_sudo_target_registrations_per_interval() {
 }
 
 #[test]
+fn test_sudo_set_validator_epoch_len() {
+	new_test_ext().execute_with(|| {
+        let validator_epoch_len: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_validator_epoch_len(<<Test as Config>::Origin>::root(), validator_epoch_len));
+        assert_eq!(Subtensor::get_validator_epoch_len(), validator_epoch_len);
+    });
+}
+
+#[test]
+fn test_sudo_set_validator_epochs_per_reset() {
+	new_test_ext().execute_with(|| {
+        let validator_epochs_per_reset: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_validator_epochs_per_reset(<<Test as Config>::Origin>::root(), validator_epochs_per_reset));
+        assert_eq!(Subtensor::get_validator_epochs_per_reset(), validator_epochs_per_reset);
+    });
+}
+
+#[test]
+fn test_sudo_incentive_pruning_denominator() {
+	new_test_ext().execute_with(|| {
+        let incentive_pruning_denominator: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_incentive_pruning_denominator(<<Test as Config>::Origin>::root(), incentive_pruning_denominator));
+        assert_eq!(Subtensor::get_incentive_pruning_denominator(), incentive_pruning_denominator);
+    });
+}
+
+#[test]
+fn test_sudo_stake_pruning_denominator() {
+	new_test_ext().execute_with(|| {
+        let stake_pruning_denominator: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_stake_pruning_denominator(<<Test as Config>::Origin>::root(), stake_pruning_denominator));
+        assert_eq!(Subtensor::get_stake_pruning_denominator(), stake_pruning_denominator);
+    });
+}
+
+#[test]
+fn test_sudo_set_foundation_account() {
+	new_test_ext().execute_with(|| {
+        let foundation_account: AccountId = 10;
+		assert_ok!(Subtensor::sudo_set_foundation_account(<<Test as Config>::Origin>::root(), foundation_account));
+        assert_eq!(Subtensor::get_foundation_account(), foundation_account);
+    });
+}
+
+#[test]
+fn test_sudo_set_foundation_distribution() {
+	new_test_ext().execute_with(|| {
+        let foundation_distribution: AccountId = 10;
+		assert_ok!(Subtensor::sudo_set_foundation_distribution(<<Test as Config>::Origin>::root(), foundation_distribution));
+        assert_eq!(Subtensor::get_foundation_distribution(), foundation_distribution);
+    });
+}
+
+
+#[test]
 fn test_sudo_max_allowed_uids() {
 	new_test_ext().execute_with(|| {
         let max_allowed_uids: u64 = 10;
@@ -110,20 +165,20 @@ fn test_sudo_immunity_period() {
 }
 
 #[test]
-fn test_sudo_batch_size() {
+fn test_sudo_validator_batch_size() {
 	new_test_ext().execute_with(|| {
-        let batch_size: u64 = 10;
-		assert_ok!(Subtensor::sudo_set_batch_size(<<Test as Config>::Origin>::root(), batch_size));
-        assert_eq!(Subtensor::get_batch_size(), batch_size);
+        let validator_batch_size: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_validator_batch_size(<<Test as Config>::Origin>::root(), validator_batch_size));
+        assert_eq!(Subtensor::get_validator_batch_size(), validator_batch_size);
     });
 }
 
 #[test]
-fn test_sudo_sequence_length() {
+fn test_sudo_validator_sequence_length() {
 	new_test_ext().execute_with(|| {
-        let sequence_length: u64 = 10;
-		assert_ok!(Subtensor::sudo_set_sequence_length(<<Test as Config>::Origin>::root(), sequence_length));
-        assert_eq!(Subtensor::get_sequence_length(), sequence_length);
+        let validator_sequence_length: u64 = 10;
+		assert_ok!(Subtensor::sudo_set_validator_sequence_length(<<Test as Config>::Origin>::root(), validator_sequence_length));
+        assert_eq!(Subtensor::get_validator_sequence_length(), validator_sequence_length);
     });
 }
 
@@ -232,22 +287,82 @@ fn test_fails_sudo_set_min_allowed_weights() {
 }
 
 #[test]
-fn test_fails_sudo_set_batch_size() {
+fn test_fails_sudo_set_validator_batch_size() {
 	new_test_ext().execute_with(|| {
-        let batch_size: u64 = 10;
-        let init_batch_size: u64 = Subtensor::get_batch_size();
-		assert_eq!(Subtensor::sudo_set_batch_size(<<Test as Config>::Origin>::signed(0), batch_size),  Err(DispatchError::BadOrigin.into()));
-        assert_eq!(Subtensor::get_batch_size(), init_batch_size);
+        let validator_batch_size: u64 = 10;
+        let init_validator_batch_size: u64 = Subtensor::get_validator_batch_size();
+		assert_eq!(Subtensor::sudo_set_validator_batch_size(<<Test as Config>::Origin>::signed(0), validator_batch_size),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_validator_batch_size(), init_validator_batch_size);
     });
 }
 
 
 #[test]
-fn test_fails_sudo_set_sequence_length() {
+fn test_fails_sudo_set_validator_sequence_length() {
 	new_test_ext().execute_with(|| {
-        let sequence_length: u64 = 10;
-        let init_sequence_length: u64 = Subtensor::get_sequence_length();
-		assert_eq!(Subtensor::sudo_set_sequence_length(<<Test as Config>::Origin>::signed(0), sequence_length),  Err(DispatchError::BadOrigin.into()));
-        assert_eq!(Subtensor::get_sequence_length(), init_sequence_length);
+        let validator_sequence_length: u64 = 10;
+        let init_validator_sequence_length: u64 = Subtensor::get_validator_sequence_length();
+		assert_eq!(Subtensor::sudo_set_validator_sequence_length(<<Test as Config>::Origin>::signed(0), validator_sequence_length),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_validator_sequence_length(), init_validator_sequence_length);
+    });
+}
+
+#[test]
+fn test_fails_sudo_set_incentive_pruning_denominator() {
+	new_test_ext().execute_with(|| {
+        let incentive_pruning_denominator: u64 = 10;
+        let init_incentive_pruning_denominator: u64 = Subtensor::get_incentive_pruning_denominator();
+		assert_eq!(Subtensor::sudo_set_incentive_pruning_denominator(<<Test as Config>::Origin>::signed(0), incentive_pruning_denominator),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_incentive_pruning_denominator(), init_incentive_pruning_denominator);
+    });
+}
+
+#[test]
+fn test_fails_sudo_set_stake_pruning_denominator() {
+	new_test_ext().execute_with(|| {
+        let stake_pruning_denominator: u64 = 10;
+        let init_stake_pruning_denominator: u64 = Subtensor::get_stake_pruning_denominator();
+		assert_eq!(Subtensor::sudo_set_stake_pruning_denominator(<<Test as Config>::Origin>::signed(0), stake_pruning_denominator),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_stake_pruning_denominator(), init_stake_pruning_denominator);
+    });
+}
+
+#[test]
+fn test_fails_sudo_set_foundation_account() {
+	new_test_ext().execute_with(|| {
+        let foundation_account: AccountId = 10;
+        let init_foundation_account: AccountId = Subtensor::get_foundation_account();
+		assert_eq!(Subtensor::sudo_set_foundation_account(<<Test as Config>::Origin>::signed(0), foundation_account),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_foundation_account(), init_foundation_account);
+    });
+}
+
+#[test]
+fn test_fails_sudo_set_foundation_distribution() {
+	new_test_ext().execute_with(|| {
+        let foundation_distribution: AccountId = 10;
+        let init_foundation_distribution: AccountId = Subtensor::get_foundation_distribution();
+		assert_eq!(Subtensor::sudo_set_foundation_distribution(<<Test as Config>::Origin>::signed(0), foundation_distribution),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_foundation_distribution(), init_foundation_distribution);
+    });
+}
+
+#[test]
+fn test_fails_sudo_set_validator_epoch_len() {
+	new_test_ext().execute_with(|| {
+        let validator_epoch_len: u64 = 10;
+        let init_validator_epoch_len: u64 = Subtensor::get_validator_epoch_len();
+		assert_eq!(Subtensor::sudo_set_validator_epoch_len(<<Test as Config>::Origin>::signed(0), validator_epoch_len),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_validator_epoch_len(), init_validator_epoch_len);
+    });
+}
+
+#[test]
+fn test_fails_sudo_set_validator_epochs_per_reset() {
+	new_test_ext().execute_with(|| {
+        let validator_epochs_per_reset: u64= 10;
+        let init_validator_epochs_per_reset: u64 = Subtensor::get_validator_epochs_per_reset();
+		assert_eq!(Subtensor::sudo_set_validator_epochs_per_reset(<<Test as Config>::Origin>::signed(0), validator_epochs_per_reset),  Err(DispatchError::BadOrigin.into()));
+        assert_eq!(Subtensor::get_validator_epochs_per_reset(), init_validator_epochs_per_reset);
     });
 }
