@@ -1,5 +1,9 @@
 
-use frame_support::{assert_ok, parameter_types, traits::{EnsureInherentsAreFirst, Hooks, OnRuntimeUpgrade, StorageMapShim}, weights::{Weight, IdentityFee, GetDispatchInfo, DispatchInfo}};
+use frame_support::{
+	assert_ok, parameter_types,
+	traits::{EnsureInherentsAreFirst, Hooks, OnRuntimeUpgrade, StorageMapShim},
+	weights::{Weight, IdentityFee, GetDispatchInfo, DispatchInfo}
+};
 
 use pallet_transaction_payment::{CurrencyAdapter};
 use sp_runtime::{
@@ -7,7 +11,7 @@ use sp_runtime::{
 	CryptoTypeId,
 	traits::{
 		self,
-		BlakeTwo256, 
+		BlakeTwo256,
 		IdentityLookup,
 		ValidateUnsigned,
 		OpaqueKeys,
@@ -17,7 +21,7 @@ use sp_runtime::{
 		SignedExtension,
 		PostDispatchInfoOf,
 		DispatchInfoOf
-	}, 
+	},
 	ApplyExtrinsicResultWithInfo,
 	transaction_validity::{TransactionValidity, TransactionSource, TransactionValidityError},
 	testing::Header,
