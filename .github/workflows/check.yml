@@ -37,3 +37,6 @@ jobs:
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release
+
+      - name: Run all tests
+        run: cargo test --all-targets --workspace
