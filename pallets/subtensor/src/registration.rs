@@ -6,7 +6,7 @@ use sp_core::{H256, U256};
 use sp_io::hashing::sha2_256;
 use frame_system::{ensure_signed};
 
-const LOG_TARGET: &'static str = "runtime::subtensor::registration"
+const LOG_TARGET: &'static str = "runtime::subtensor::registration";
 
 impl<T: Config> Pallet<T> {
 
@@ -190,7 +190,7 @@ impl<T: Config> Pallet<T> {
         let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
 
-		 // log::debug!(
+		log::debug!(
 			target: LOG_TARGET,
 			"Difficulty: hash: {:?}, hash_bytes: {:?}, hash_as_num: {:?}, difficulty: {:?}, value: {:?} overflowed: {:?}",
 			hash,
@@ -211,7 +211,7 @@ impl<T: Config> Pallet<T> {
         let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
         let real_hash: H256 = H256::from_slice( deref_vec_hash );
 
-		 // log::debug!(
+		 log::info!(
 			target: LOG_TARGET,
 			"block_number: {:?}, vec_hash: {:?}, real_hash: {:?}",
 			block_number,
@@ -249,7 +249,7 @@ impl<T: Config> Pallet<T> {
         let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
 
-		 // log::debug!(
+		 log::debug!(
 			"\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}",
 			block_number_u64,
 			nonce_u64,
@@ -296,7 +296,7 @@ impl<T: Config> Pallet<T> {
         let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
 
-		 // log::debug!(
+		 log::debug!(
 			target: LOG_TARGET,
 			"\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nblock_hash_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}",
 			block_number,
@@ -313,7 +313,7 @@ impl<T: Config> Pallet<T> {
         let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
 
-		 // log::debug!(
+		 log::debug!(
 			"Difficulty: \nseal_hash:{:?}, \nhash_bytes: {:?}, \nhash_as_num: {:?}, \ndifficulty:{:?}, \nvalue: {:?} \noverflowed: {:?}",
 			seal_hash,
 			bytes,

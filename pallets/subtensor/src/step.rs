@@ -5,7 +5,7 @@ use substrate_fixed::transcendental::exp;
 use substrate_fixed::transcendental::log2;
 use frame_support::IterableStorageMap;
 
-const LOG_TARGET: &'static str = runtime::subtensor::step;
+const LOG_TARGET: &'static str = "runtime::subtensor::step";
 
 impl<T: Config> Pallet<T> {
 
@@ -20,23 +20,23 @@ impl<T: Config> Pallet<T> {
         let adjustment_interval: u64 = Self::get_adjustment_interval(); // Number of blocks average registrations are taken over.
         let current_difficulty: u64 = Self::get_difficulty_as_u64();
         let target_registrations_per_interval: I65F63 = I65F63::from_num( Self::get_target_registrations_per_interval() ); // Target number of registrations on average over interval.
-         // log::debug!(
-			target: LOG_TARGET,
-			"current_difficulty: {:?}, max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}",
-			current_difficulty,
-			max_difficulty,
-			min_difficulty,
-			adjustment_interval,
-			target_registrations_per_interval
-		);
+        log::trace!(
+            target: LOG_TARGET,
+            "current_difficulty: {:?}, max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}",
+            current_difficulty,
+            max_difficulty,
+            min_difficulty,
+            adjustment_interval,
+            target_registrations_per_interval
+        );
 
         let current_block:u64 = Self::get_current_block_as_u64();
         let last_adjustment:u64 = LastDifficultyAdjustmentBlock::<T>::get();
-         // log::debug!(
-			target: LOG_TARGET,
-			 "current_block: {:?}, last_adjustment: {:?}",
-			 current_block, last_adjustment
-		);
+        log::debug!(
+            target: LOG_TARGET,
+            "current_block: {:?}, last_adjustment: {:?}",
+            current_block, last_adjustment
+        );
 
         // --- Check if we have reached out adjustment interval.
         if current_block - last_adjustment >= adjustment_interval {
@@ -44,11 +44,11 @@ impl<T: Config> Pallet<T> {
             // --- Compute average registrations over the adjustment interval.
             let registrations_since_last_adjustment: I65F63 = I65F63::from_num( Self::get_registrations_this_interval() );
 
-			 // log::debug!(
-				target: TARGET,
-				"ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ",
-				registrations_since_last_adjustment
-			);
+            log::debug!(
+                target: LOG_TARGET,
+                "ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ",
+                registrations_since_last_adjustment
+            );
 
             // --- Compare average against target.
             if registrations_since_last_adjustment > target_registrations_per_interval {
@@ -61,11 +61,11 @@ impl<T: Config> Pallet<T> {
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
 
-                 // log::debug!(
-					target: TARGET,
+                log::debug!(
+                    target: LOG_TARGET,
                     "next_difficulty: {:?}",
-					next_difficulty,
-				);
+                    next_difficulty,
+                );
 
             } else {
                 // --- Halve difficulty.
@@ -76,11 +76,11 @@ impl<T: Config> Pallet<T> {
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
 
-				 // log::debug!(
-					target: TARGET,
+                log::debug!(
+                    target: LOG_TARGET,
                     "next_difficulty: {:?}",
-					next_difficulty,
-				);
+                    next_difficulty,
+                );
             }
 
             // --- Update last adjustment to current block and zero the registrations since last difficulty.
@@ -164,10 +164,10 @@ impl<T: Config> Pallet<T> {
 
         // The amount this mechanism step emits on this block.
         let block_emission: I65F63 = I65F63::from_num( emission_this_step );
-		 // log::info!(
-			target: TARGET,
-			"step"
-		);
+        log::info!(
+            target: LOG_TARGET,
+            "step"
+        );
 
         // === Complete foundation distribution ===
         //let foundation_distribution_per_hundred: u64 = Self::get_foundation_distribution();
@@ -251,8 +251,8 @@ impl<T: Config> Pallet<T> {
                 }
             }
         }
-		 // log::info!(
-			target: TARGET,
+		log::info!(
+			target: LOG_TARGET,
 			"stake: {:?}",
 			stake
 		);
@@ -312,9 +312,9 @@ impl<T: Config> Pallet<T> {
                 trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
         }
-		 // log::debug!(target: TARGET, "ranks: {:?}", ranks);
-		 // log::debug!(target: TARGET, "trust: {:?}", trust);
-		 // log::debug!(target: TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
+		 log::debug!(target: LOG_TARGET, "ranks: {:?}", ranks);
+		 log::debug!(target: LOG_TARGET, "trust: {:?}", trust);
+		 log::debug!(target: LOG_TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
 
         // Compute consensus, incentive.
         let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
@@ -343,8 +343,7 @@ impl<T: Config> Pallet<T> {
                 incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
-		 // log::debug!(target: TARGET, "incentive: {:?} ", incentive);
-		 // log::debug!(target: TARGET, "consensus: {:?} ", consensus);
+        log::debug!(target: LOG_TARGET, "incentive: {:?}, consensus: {:?}", incentive, consensus);
 
         // Compute dividends.
         let mut total_dividends: I65F63 = I65F63::from_num( 0.0 );
@@ -402,8 +401,7 @@ impl<T: Config> Pallet<T> {
             }
         }
 
-		 // log::debug!(target: LOG_TARGET, "dividends: {:?}", dividends);
-		 // log::debug!(target: LOG_TARGET, "emission: {:?}", emission);
+		 log::debug!(target: LOG_TARGET, "dividends: {:?}, emission: {:?}", dividends, emission);
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.

@@ -32,6 +32,7 @@ substrate-fixed = { git = 'https://github.com/encointer/substrate-fixed.git', ta
 
 # Third party (non-parity)
 fixed = { default-features = false, version = '1.5' }
+log = { version = "0.4.14", default-features = false }
 
 [dev-dependencies]
 sp-version = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-07' }
@@ -43,6 +44,7 @@ sp-application-crypto = { version = '3.0.0', git = 'https://github.com/paritytec
 pallet-balances = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-07' }
 pallet-transaction-payment = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-07' }
 serde = { version = "1.0.119" }
+sp-tracing = { version = '3.0.0', git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-07'  }
 
 # This is using the latest version
 pallet-sudo = { version = "3.0.0", git = 'https://github.com/paritytech/substrate.git', tag = 'monthly-2021-07' }
