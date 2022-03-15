@@ -1,11 +1,12 @@
 use super::*;
-use sp_std::if_std; 
 use substrate_fixed::types::I65F63;
 use frame_support::IterableStorageMap;
 use sp_std::convert::TryInto;
 use sp_core::{H256, U256};
 use sp_io::hashing::sha2_256;
 use frame_system::{ensure_signed};
+
+const LOG_TARGET: &'static str = "runtime::subtensor::registration"
 
 impl<T: Config> Pallet<T> {
 
@@ -188,9 +189,18 @@ impl<T: Config> Pallet<T> {
         let bytes: &[u8] = &hash.as_bytes();
         let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
-        if Self::debug() && false { if_std! {
-            println!("Difficulty: hash:{:?}, hash_bytes: {:?}, hash_as_num: {:?}, difficulty:{:?}, value: {:?} overflowed: {:?}", hash, bytes, num_hash, difficulty, value, overflowed);
-        }}
+
+		 // log::debug!(
+			target: LOG_TARGET,
+			"Difficulty: hash: {:?}, hash_bytes: {:?}, hash_as_num: {:?}, difficulty: {:?}, value: {:?} overflowed: {:?}",
+			hash,
+			bytes,
+			num_hash,
+			difficulty,
+			value,
+			overflowed
+		);
+
         !overflowed
     }
 
@@ -200,9 +210,15 @@ impl<T: Config> Pallet<T> {
         let vec_hash: Vec<u8> = block_hash_at_number.as_ref().into_iter().cloned().collect();
         let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
         let real_hash: H256 = H256::from_slice( deref_vec_hash );
-        if Self::debug() && false  { if_std! {
-            println!("block_number: {:?}, vec_hash: {:?}, real_hash: {:?}", block_number, vec_hash, real_hash);
-        }}
+
+		 // log::debug!(
+			target: LOG_TARGET,
+			"block_number: {:?}, vec_hash: {:?}, real_hash: {:?}",
+			block_number,
+			vec_hash,
+			real_hash
+		);
+
         return real_hash;
     }
 
@@ -217,7 +233,7 @@ impl<T: Config> Pallet<T> {
         let block_hash_at_number: H256 = Self::get_block_hash_from_u64( block_number_u64 );
         let block_hash_bytes: &[u8] = block_hash_at_number.as_bytes();
         let full_bytes: &[u8; 40] = &[
-            nonce.byte(0),  nonce.byte(1),  nonce.byte(2),  nonce.byte(3), 
+            nonce.byte(0),  nonce.byte(1),  nonce.byte(2),  nonce.byte(3),
             nonce.byte(4),  nonce.byte(5),  nonce.byte(6),  nonce.byte(7),
 
             block_hash_bytes[0], block_hash_bytes[1], block_hash_bytes[2], block_hash_bytes[3],
@@ -232,9 +248,17 @@ impl<T: Config> Pallet<T> {
         ];
         let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
-        if Self::debug() && false { if_std! {
-            println!("\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}", block_number_u64, nonce_u64, block_hash_at_number, full_bytes, seal_hash_vec, seal_hash);
-        }}
+
+		 // log::debug!(
+			"\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}",
+			block_number_u64,
+			nonce_u64,
+			block_hash_at_number,
+			full_bytes,
+			seal_hash_vec,
+			seal_hash
+		);
+
         return seal_hash;
     }
 
@@ -245,7 +269,7 @@ impl<T: Config> Pallet<T> {
         let mut work: H256 = Self::create_seal_hash( block_number, nonce );
         while !Self::hash_meets_difficulty(&work, difficulty) {
             nonce = nonce + 1;
-            work = Self::create_seal_hash( block_number, nonce );    
+            work = Self::create_seal_hash( block_number, nonce );
         }
         let vec_work: Vec<u8> = Self::hash_to_vec( work );
         return (nonce, vec_work)
@@ -271,16 +295,32 @@ impl<T: Config> Pallet<T> {
         //let pre_seal: Vec<u8> = &[nonce_bytes, block_hash_bytes].concat();
         let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
-        if Self::debug() && false { if_std! {
-            println!("\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nblock_hash_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}", block_number, nonce_u64, block_hash, full_bytes, block_hash_bytes, seal_hash_vec, seal_hash);
-        }}
+
+		 // log::debug!(
+			target: LOG_TARGET,
+			"\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nblock_hash_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}",
+			block_number,
+			nonce_u64,
+			block_hash,
+			full_bytes,
+			block_hash_bytes,
+			seal_hash_vec,
+			seal_hash,
+		);
 
         let difficulty = U256::from( difficulty );
         let bytes: &[u8] = &seal_hash.as_bytes();
         let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
-        if Self::debug() && false { if_std! {
-            println!("Difficulty: \nseal_hash:{:?}, \nhash_bytes: {:?}, \nhash_as_num: {:?}, \ndifficulty:{:?}, \nvalue: {:?} \noverflowed: {:?}", seal_hash, bytes, num_hash, difficulty, value, overflowed);
-        }}
+
+		 // log::debug!(
+			"Difficulty: \nseal_hash:{:?}, \nhash_bytes: {:?}, \nhash_as_num: {:?}, \ndifficulty:{:?}, \nvalue: {:?} \noverflowed: {:?}",
+			seal_hash,
+			bytes,
+			num_hash,
+			difficulty,
+			value,
+			overflowed,
+		);
     }
 }
