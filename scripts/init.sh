@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
-#!/usr/bin/bash
-=======
 #!/bin/bash
->>>>>>> Stashed changes
 # This script is meant to be run on Unix/Linux based systems
 
 echo "*** Initializing WASM build environment"
