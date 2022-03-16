@@ -7,6 +7,8 @@
 FROM ubuntu:20.04
 SHELL ["/bin/bash", "-c"]
 
+
+
 # metadata
 ARG VCS_REF
 ARG BUILD_DATE
@@ -29,11 +31,9 @@ ENV RUST_BACKTRACE 1
 
 # install tools and dependencies
 RUN apt-get update && \
-        DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
         DEBIAN_FRONTEND=noninteractive apt-get install -y \
                 libssl1.1 \
                 ca-certificates \
-                git \
                 curl && \
 # apt cleanup
         apt-get autoremove -y && \
@@ -41,19 +41,20 @@ RUN apt-get update && \
         find /var/lib/apt/lists/ -type f -not -name lock -delete;
 
 
-# Clone subtensor latest
-RUN git clone https://github.com/opentensor/subtensor_exodus.git subtensor
 
 # Install cargo and Rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN mkdir -p subtensor/scripts
+RUN mkdir -p subtensor/specs
+
+COPY subtensor/scripts/init.sh subtensor/scripts/init.sh
+COPY subtensor/specs/nakamotoSpecRaw.json subtensor/specs/nakamotoSpecRaw.json
+
 RUN subtensor/scripts/init.sh
 
-# Install subkey
-COPY subkey /subtensor
-#RUN cargo install --force subkey --git https://github.com/paritytech/substrate --version 2.0.1 --locked
-
-COPY subtensor/target/release/node-subtensor /usr/local/bin
+COPY ./subtensor/target/release/node-subtensor /usr/local/bin
 
 RUN /usr/local/bin/node-subtensor --version
 
@@ -61,5 +62,8 @@ COPY ${SNAPSHOT_DIR}/${SNAPSHOT_FILE}.tar.gz /subtensor
 
 RUN mkdir -p /root/.local/share/node-subtensor/chains/nakamoto_mainnet/db
 RUN tar -zxvf /subtensor/${SNAPSHOT_FILE}.tar.gz -C  /root/.local/share/node-subtensor/chains/nakamoto_mainnet/db
+
+RUN apt remove -y curl
+RUN rm /subtensor/${SNAPSHOT_FILE}.tar.gz
 
 EXPOSE 30333 9933 9944
