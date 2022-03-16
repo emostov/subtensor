@@ -109,9 +109,9 @@ impl<T: Config> Pallet<T> {
         let total_stake: u64 = TotalStake::<T>::get();
 
         // Sanity check
-        assert!(increment <= u64::MAX - total_stake);
+        debug_assert!(increment <= u64::MAX.saturating_sub(total_stake));
 
-        TotalStake::<T>::put(total_stake + increment);
+        TotalStake::<T>::put(total_stake.saturating_add(increment));
     }
 
     /// Reduces the amount of stake of the entire stake pool by the supplied amount
@@ -121,9 +121,9 @@ impl<T: Config> Pallet<T> {
         let total_stake: u64 = TotalStake::<T>::get();
 
         // Sanity check so that total stake does not underflow past 0
-        assert!(decrement <= total_stake);
+        debug_assert!(decrement <= total_stake);
 
-        TotalStake::<T>::put(total_stake - decrement);
+        TotalStake::<T>::put(total_stake.saturating_sub(decrement));
     }
 
     /// Increases the amount of stake in a neuron's hotkey account by the amount provided
@@ -137,16 +137,16 @@ impl<T: Config> Pallet<T> {
     /// requirement.
     ///
     pub fn add_stake_to_neuron_hotkey_account(uid: u32, amount: u64) {
-        assert!(Self::is_uid_active(uid));
+        debug_assert!(Self::is_uid_active(uid));
 
         let mut neuron: NeuronMetadataOf<T> = Self::get_neuron_for_uid( uid );
         let prev_stake: u64 = neuron.stake;
 
         // This should never happen. If a user has this ridiculous amount of stake,
         // we need to come up with a better solution
-        assert!(u64::MAX - amount > prev_stake);
+        debug_assert!(u64::MAX.saturating_sub(amount) > prev_stake);
 
-        let new_stake = prev_stake + amount;
+        let new_stake = prev_stake.saturating_add(amount);
         neuron.stake = new_stake;
         Neurons::<T>::insert(uid, neuron);
 
@@ -164,14 +164,14 @@ impl<T: Config> Pallet<T> {
     /// Furthermore, a check to see if the uid is active before this method is called is also required
     ///
     pub fn remove_stake_from_neuron_hotkey_account(uid: u32, amount: u64) {
-        assert!(Self::is_uid_active(uid));
+        debug_assert!(Self::is_uid_active(uid));
 
         let mut neuron: NeuronMetadataOf<T> = Self::get_neuron_for_uid( uid );
         let hotkey_stake: u64 = neuron.stake;
 
         // By this point, there should be enough stake in the hotkey account for this to work.
-        assert!(hotkey_stake >= amount);
-        neuron.stake -= amount;
+        debug_assert!(hotkey_stake >= amount);
+        neuron.stake = neuron.stake.hot_key(amount);
 
         Neurons::<T>::insert(uid, neuron);
         Self::decrease_total_stake(amount);
