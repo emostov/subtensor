@@ -32,7 +32,7 @@ impl<T: Config> Pallet<T> {
 
         let current_block:u64 = Self::get_current_block_as_u64();
         let last_adjustment:u64 = LastDifficultyAdjustmentBlock::<T>::get();
-        log::debug!(
+        log::trace!(
             target: LOG_TARGET,
             "current_block: {:?}, last_adjustment: {:?}",
             current_block, last_adjustment
@@ -44,7 +44,7 @@ impl<T: Config> Pallet<T> {
             // --- Compute average registrations over the adjustment interval.
             let registrations_since_last_adjustment: I65F63 = I65F63::from_num( Self::get_registrations_this_interval() );
 
-            log::debug!(
+            log::trace!(
                 target: LOG_TARGET,
                 "ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ",
                 registrations_since_last_adjustment
@@ -61,7 +61,7 @@ impl<T: Config> Pallet<T> {
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
 
-                log::debug!(
+                log::trace!(
                     target: LOG_TARGET,
                     "next_difficulty: {:?}",
                     next_difficulty,
@@ -76,7 +76,7 @@ impl<T: Config> Pallet<T> {
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
 
-                log::debug!(
+                log::trace!(
                     target: LOG_TARGET,
                     "next_difficulty: {:?}",
                     next_difficulty,
@@ -312,9 +312,9 @@ impl<T: Config> Pallet<T> {
                 trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
         }
-		 log::debug!(target: LOG_TARGET, "ranks: {:?}", ranks);
-		 log::debug!(target: LOG_TARGET, "trust: {:?}", trust);
-		 log::debug!(target: LOG_TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
+		 log::trace!(target: LOG_TARGET, "ranks: {:?}", ranks);
+		 log::trace!(target: LOG_TARGET, "trust: {:?}", trust);
+		 log::trace!(target: LOG_TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
 
         // Compute consensus, incentive.
         let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
@@ -343,7 +343,7 @@ impl<T: Config> Pallet<T> {
                 incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
-        log::debug!(target: LOG_TARGET, "incentive: {:?}, consensus: {:?}", incentive, consensus);
+        log::trace!(target: LOG_TARGET, "incentive: {:?}, consensus: {:?}", incentive, consensus);
 
         // Compute dividends.
         let mut total_dividends: I65F63 = I65F63::from_num( 0.0 );
@@ -401,7 +401,7 @@ impl<T: Config> Pallet<T> {
             }
         }
 
-		 log::debug!(target: LOG_TARGET, "dividends: {:?}, emission: {:?}", dividends, emission);
+		 log::trace!(target: LOG_TARGET, "dividends: {:?}, emission: {:?}", dividends, emission);
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.

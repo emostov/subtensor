@@ -159,7 +159,7 @@ impl<T: Config> Pallet<T> {
         // --- Update avg registrations per 1000 block.
         RegistrationsThisInterval::<T>::mutate( |val| *val += 1 );
         RegistrationsThisBlock::<T>::mutate( |val| *val += 1 );
-        
+
         // --- We deposit the neuron registered event.
         BlockAtRegistration::<T>::insert( uid_to_set_in_metagraph, current_block ); // Set immunity momment.
         Neurons::<T>::insert( uid_to_set_in_metagraph, neuron ); // Insert neuron info under uid.
@@ -190,7 +190,7 @@ impl<T: Config> Pallet<T> {
         let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
 
-		log::debug!(
+		log::trace!(
 			target: LOG_TARGET,
 			"Difficulty: hash: {:?}, hash_bytes: {:?}, hash_as_num: {:?}, difficulty: {:?}, value: {:?} overflowed: {:?}",
 			hash,
@@ -211,7 +211,7 @@ impl<T: Config> Pallet<T> {
         let deref_vec_hash: &[u8] = &vec_hash; // c: &[u8]
         let real_hash: H256 = H256::from_slice( deref_vec_hash );
 
-		 log::info!(
+        log::trace!(
 			target: LOG_TARGET,
 			"block_number: {:?}, vec_hash: {:?}, real_hash: {:?}",
 			block_number,
@@ -249,7 +249,7 @@ impl<T: Config> Pallet<T> {
         let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
 
-		 log::debug!(
+		 log::trace!(
 			"\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}",
 			block_number_u64,
 			nonce_u64,
@@ -296,7 +296,7 @@ impl<T: Config> Pallet<T> {
         let seal_hash_vec: [u8; 32] = sha2_256( full_bytes );
         let seal_hash: H256 = H256::from_slice( &seal_hash_vec );
 
-		 log::debug!(
+		 log::trace!(
 			target: LOG_TARGET,
 			"\nblock_number: {:?}, \nnonce_u64: {:?}, \nblock_hash: {:?}, \nfull_bytes: {:?}, \nblock_hash_bytes: {:?}, \nseal_hash_vec: {:?}, \nseal_hash: {:?}",
 			block_number,
@@ -313,7 +313,7 @@ impl<T: Config> Pallet<T> {
         let num_hash: U256 = U256::from( bytes );
         let (value, overflowed) = num_hash.overflowing_mul(difficulty);
 
-		 log::debug!(
+		 log::trace!(
 			"Difficulty: \nseal_hash:{:?}, \nhash_bytes: {:?}, \nhash_as_num: {:?}, \ndifficulty:{:?}, \nvalue: {:?} \noverflowed: {:?}",
 			seal_hash,
 			bytes,
