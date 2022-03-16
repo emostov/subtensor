@@ -283,7 +283,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 #[allow(dead_code)]
 pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExternalities {
-	// TODO, tie this together with `new_test_ext` using a Builder
 	sp_tracing::try_init_simple();
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
