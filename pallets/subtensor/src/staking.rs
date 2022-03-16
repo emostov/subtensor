@@ -171,7 +171,7 @@ impl<T: Config> Pallet<T> {
 
         // By this point, there should be enough stake in the hotkey account for this to work.
         debug_assert!(hotkey_stake >= amount);
-        neuron.stake = neuron.stake.hot_key(amount);
+        neuron.stake = neuron.stake.saturating_sub(amount);
 
         Neurons::<T>::insert(uid, neuron);
         Self::decrease_total_stake(amount);
