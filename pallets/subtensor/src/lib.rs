@@ -738,6 +738,9 @@ pub mod pallet {
 
 		/// --- Event created when the immunity period has been set.
 		ImmunityPeriodSet(u64),
+
+		/// --- Event thrown when bonds have been reset.
+		ResetBonds()
 	}
 
 	/// ************************************************************
@@ -1325,7 +1328,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root( origin )?;
 			Self::reset_bonds();
-			Self::deposit_event( Event::ResetBonds( ) );
+			Self::deposit_event( Event::ResetBonds() );
 			Ok(())
 		}
 
@@ -1639,6 +1642,19 @@ pub mod pallet {
 				}
 				let mut neuron = Neurons::<T>::get(uid_i);
 				neuron.weights = sparse_weights;
+				Neurons::<T>::insert( uid_i, neuron );
+			}
+		}
+
+		pub fn set_bonds_from_matrix( bonds: Vec<Vec<u64>> ) {
+			for uid_i in 0..Self::get_neuron_count() {
+				let mut sparse_bonds: Vec<(u32, u64)> = vec![];
+				for uid_j in 0..Self::get_neuron_count() {
+					let bond_ij: u64 = bonds[uid_i as usize][uid_j as usize];
+					sparse_bonds.push( (uid_j, bond_ij) );
+				}
+				let mut neuron = Neurons::<T>::get(uid_i);
+				neuron.bonds = sparse_bonds;
 				Neurons::<T>::insert( uid_i, neuron );
 			}
 		}

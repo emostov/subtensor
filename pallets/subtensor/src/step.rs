@@ -439,8 +439,8 @@ impl<T: Config> Pallet<T> {
         block_as_u64
     }
 
-    pub fn reset_bonds( ) -> u64 {
-        for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
+    pub fn reset_bonds( ) {
+        for ( _, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             neuron_i.bonds = vec![];
             Neurons::<T>::insert( neuron_i.uid, neuron_i );
         }
