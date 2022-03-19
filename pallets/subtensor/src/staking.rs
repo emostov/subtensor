@@ -4,7 +4,7 @@ impl<T: Config> Pallet<T> {
     /***********************************************************
      * do_add_stake() - main function called from parent module
      ***********************************************************/
-     
+
     pub fn do_add_stake(origin: T::Origin, hotkey: T::AccountId, stake_to_be_added: u64) -> dispatch::DispatchResult
     {
         // ---- We check the transaction is signed by the caller

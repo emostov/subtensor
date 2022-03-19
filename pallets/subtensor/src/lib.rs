@@ -649,8 +649,8 @@ pub mod pallet {
 			<Self as GenesisBuild<T>>::assimilate_storage(self, storage)
 		}
 	}
-	
-	
+
+
 	/// ************************************************************
 	///	-Events
 	/// ************************************************************
@@ -810,7 +810,7 @@ pub mod pallet {
 		/// but the call fails.
 		CouldNotConvertToBalance,
 
-		/// ---- Thrown when the dispatch attempts to set weights on chain with fewer elememts 
+		/// ---- Thrown when the dispatch attempts to set weights on chain with fewer elements 
 		/// than are allowed.
 		NotSettingEnoughWeights,
 
@@ -1023,7 +1023,7 @@ pub mod pallet {
 		///
 		/// 	* 'ip_type' (u8):
 		/// 		- The ip type one of (4,6).
-		/// 
+		///
 		/// 	* 'modality' (u8):
 		/// 		- The neuron modality type.
 		///

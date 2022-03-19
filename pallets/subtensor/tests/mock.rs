@@ -277,12 +277,13 @@ pub fn sign_extra(who: u64, nonce: u64) -> Option<(u64, SignedExtra)> {
 // Build genesis storage according to the mock runtime.
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
+	sp_tracing::try_init_simple();
 	frame_system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 }
 
-
 #[allow(dead_code)]
 pub fn test_ext_with_balances(balances : Vec<(u64, u128)>) -> sp_io::TestExternalities {
+	sp_tracing::try_init_simple();
 	let mut t = frame_system::GenesisConfig::default()
 		.build_storage::<Test>()
 		.unwrap();

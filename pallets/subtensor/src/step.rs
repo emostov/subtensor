@@ -4,7 +4,8 @@ use substrate_fixed::types::I65F63;
 use substrate_fixed::transcendental::exp;
 use substrate_fixed::transcendental::log2;
 use frame_support::IterableStorageMap;
-use sp_std::if_std; // Import into scope the if_std! macro.
+
+const LOG_TARGET: &'static str = "runtime::subtensor::step";
 
 impl<T: Config> Pallet<T> {
 
@@ -19,24 +20,35 @@ impl<T: Config> Pallet<T> {
         let adjustment_interval: u64 = Self::get_adjustment_interval(); // Number of blocks average registrations are taken over.
         let current_difficulty: u64 = Self::get_difficulty_as_u64();
         let target_registrations_per_interval: I65F63 = I65F63::from_num( Self::get_target_registrations_per_interval() ); // Target number of registrations on average over interval.
-        if Self::debug() && false { if_std! {
-            println!( "current_difficulty: {:?}, max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}", current_difficulty, max_difficulty, min_difficulty, adjustment_interval, target_registrations_per_interval);
-        }}
+        log::trace!(
+            target: LOG_TARGET,
+            "current_difficulty: {:?}, max_difficulty: {:?}, min_difficulty: {:?}, adjustment_interval: {:?}, target_registrations_per_interval: {:?}",
+            current_difficulty,
+            max_difficulty,
+            min_difficulty,
+            adjustment_interval,
+            target_registrations_per_interval
+        );
 
         let current_block:u64 = Self::get_current_block_as_u64();
         let last_adjustment:u64 = LastDifficultyAdjustmentBlock::<T>::get();
-        if Self::debug() && false { if_std! {
-            println!( "current_block: {:?}, last_adjustment: {:?}", current_block, last_adjustment);
-        }}
+        log::trace!(
+            target: LOG_TARGET,
+            "current_block: {:?}, last_adjustment: {:?}",
+            current_block, last_adjustment
+        );
 
         // --- Check if we have reached out adjustment interval.
         if current_block - last_adjustment >= adjustment_interval {
 
             // --- Compute average registrations over the adjustment interval.
             let registrations_since_last_adjustment: I65F63 = I65F63::from_num( Self::get_registrations_this_interval() );
-            if Self::debug() && false { if_std! {
-                println!( " ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ", registrations_since_last_adjustment);
-            }}
+
+            log::trace!(
+                target: LOG_TARGET,
+                "ADJUSTMENT REACHED: registrations_since_last_adjustment: {:?} ",
+                registrations_since_last_adjustment
+            );
 
             // --- Compare average against target.
             if registrations_since_last_adjustment > target_registrations_per_interval {
@@ -48,9 +60,12 @@ impl<T: Config> Pallet<T> {
                     next_difficulty = max_difficulty
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
-                if Self::debug() && false { if_std! {
-                    println!( " next_difficulty: {:?}", next_difficulty );
-                }}
+
+                log::trace!(
+                    target: LOG_TARGET,
+                    "next_difficulty: {:?}",
+                    next_difficulty,
+                );
 
             } else {
                 // --- Halve difficulty.
@@ -60,9 +75,12 @@ impl<T: Config> Pallet<T> {
                     next_difficulty = min_difficulty
                 }
                 Self::set_difficulty_from_u64( next_difficulty );
-                if Self::debug() && false { if_std! {
-                    println!( " next_difficulty: {:?}", next_difficulty );
-                }}
+
+                log::trace!(
+                    target: LOG_TARGET,
+                    "next_difficulty: {:?}",
+                    next_difficulty,
+                );
             }
 
             // --- Update last adjustment to current block and zero the registrations since last difficulty.
@@ -146,9 +164,10 @@ impl<T: Config> Pallet<T> {
 
         // The amount this mechanism step emits on this block.
         let block_emission: I65F63 = I65F63::from_num( emission_this_step );
-        if_std! {
-            println!( "step" );
-        } 
+        log::info!(
+            target: LOG_TARGET,
+            "step"
+        );
 
         // === Complete foundation distribution ===
         //let foundation_distribution_per_hundred: u64 = Self::get_foundation_distribution();
@@ -231,12 +250,12 @@ impl<T: Config> Pallet<T> {
                     total_normalized_active_stake += normalized_active_stake;
                 }
             }
-        } 
-        if Self::debug() && false { 
-            if_std! {
-                println!( "stake: {:?}", stake );
-            }
         }
+		log::info!(
+			target: LOG_TARGET,
+			"stake: {:?}",
+			stake
+		);
 
         // Computational aspect starts here.
         
@@ -293,13 +312,9 @@ impl<T: Config> Pallet<T> {
                 trust[ *uid_i as usize ] = trust[ *uid_i as usize ] / total_normalized_active_stake; // Vector will sum to u64_max
             }
         }
-        if Self::debug() && false { 
-            if_std! {
-                println!("ranks: {:?}", ranks );
-                println!("trust: {:?}", trust );
-                println!("bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
-            }
-        }
+		 log::trace!(target: LOG_TARGET, "ranks: {:?}", ranks);
+		 log::trace!(target: LOG_TARGET, "trust: {:?}", trust);
+		 log::trace!(target: LOG_TARGET, "bonds: {:?}, {:?}, {:?}", bonds, bond_totals, total_bonds_purchased);
 
         // Compute consensus, incentive.
         let mut total_incentive: I65F63 = I65F63::from_num( 0.0 );
@@ -328,12 +343,7 @@ impl<T: Config> Pallet<T> {
                 incentive[ *uid_i as usize ] = incentive[ *uid_i as usize ] / total_incentive; // Vector will sum to u64_max
             }
         }
-        if Self::debug() && false { 
-            if_std! {
-                println!("incentive: {:?} ", incentive);
-                println!("consensus: {:?} ", consensus);
-            }
-        }
+        log::trace!(target: LOG_TARGET, "incentive: {:?}, consensus: {:?}", incentive, consensus);
 
         // Compute dividends.
         let mut total_dividends: I65F63 = I65F63::from_num( 0.0 );
@@ -390,12 +400,8 @@ impl<T: Config> Pallet<T> {
                 total_emission += emission_i;
             }
         }
-        if Self::debug() && false { 
-            if_std! {
-                println!( "dividends: {:?}", dividends );
-                println!( "emission: {:?}", emission );
-            }
-        }
+
+		 log::trace!(target: LOG_TARGET, "dividends: {:?}, emission: {:?}", dividends, emission);
 
         for ( uid_i, mut neuron_i ) in <Neurons<T> as IterableStorageMap<u32, NeuronMetadataOf<T>>>::iter() {
             // Update table entry.
@@ -414,7 +420,7 @@ impl<T: Config> Pallet<T> {
             // This where we remove the neurons to prune (clearing the table.)
             if NeuronsToPruneAtNextEpoch::<T>::contains_key( uid_i ) {
                 NeuronsToPruneAtNextEpoch::<T>::remove ( uid_i );
-            } 
+            }
         }
 
         // Amount distributed through mechanism in conjunction with amount distributed to foudation.
@@ -427,7 +433,7 @@ impl<T: Config> Pallet<T> {
         TotalStake::<T>::mutate( |val| *val += total_emission );
         LastMechansimStepBlock::<T>::set( block );
     }
-    
+
     pub fn get_current_block_as_u64( ) -> u64 {
         let block_as_u64: u64 = TryInto::try_into( system::Pallet::<T>::block_number() ).ok().expect("blockchain will not exceed 2^64 blocks; QED.");
         block_as_u64
