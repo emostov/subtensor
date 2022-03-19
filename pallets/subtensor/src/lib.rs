@@ -1319,6 +1319,16 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+		pub fn sudo_reset_bonds ( 
+			origin:OriginFor<T>
+		) -> DispatchResult {
+			ensure_root( origin )?;
+			Self::reset_bonds();
+			Self::deposit_event( Event::ResetBonds( ) );
+			Ok(())
+		}
+
 	}
 	
 	// ---- Subtensor helper functions.
