@@ -347,6 +347,57 @@ fn test_two_steps_with_many_outward_weights() {
     });
 }
 
+#[test]
+fn test_two_steps_with_reset_bonds() {
+    new_test_ext().execute_with( || {
+        Subtensor::set_max_registratations_per_block( 100 );
+        let initial_stake:u64 = 1000000000;
+        for i in 0..4 {
+            register_ok_neuron(i as u64, i as u64 );
+        }
+        // Set stake.
+        Subtensor::set_stake_from_vector( vec![ initial_stake; 4 ] );
+        // Shifted weights.
+        let weights_matrix: Vec<Vec<u32>> = vec! [
+            vec! [0, u32::max_value(), 0, 0 ],
+            vec! [0, 0, u32::max_value(), 0 ],
+            vec! [0, 0, 0, u32::max_value() ], 
+            vec! [u32::max_value(), 0, 0, 0 ],
+        ];
+        Subtensor::set_weights_from_matrix( weights_matrix.clone() );
+        assert_eq!( Subtensor::get_neuron_count(), 4 );
+        assert_eq!( Subtensor::get_stake(), vec![ initial_stake; 4 ] );
+        assert_eq!( Subtensor::get_weights(), weights_matrix );
+        step_block (1);
+        let expected_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 125000000, 0, 0 ],
+            vec! [0, 0, 125000000, 0 ],
+            vec! [0, 0, 0, 125000000 ], 
+            vec! [125000000, 0, 0, 0 ],
+        ]; // 250,000,000 * 1/2
+        println!(  "{:?} {:?}", expected_bonds, Subtensor::get_bonds() );
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 10) );
+        Subtensor::reset_bonds();
+        let expected_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 0, 0, 0 ],
+            vec! [0, 0, 0, 0 ],
+            vec! [0, 0, 0, 0 ], 
+            vec! [0, 0, 0, 0 ],
+        ];
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 0) );
+        step_block (1);
+        let expected_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 125000000, 0, 0 ],
+            vec! [0, 0, 125000000, 0 ],
+            vec! [0, 0, 0, 125000000 ], 
+            vec! [125000000, 0, 0, 0 ],
+        ]; // 250,000,000 * 1/2
+        println!(  "{:?} {:?}", expected_bonds, Subtensor::get_bonds() );
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &expected_bonds, 10) );
+    });
+}
+
+
 
 // #[test]
 // fn test_steps_with_foundation_distribution() {

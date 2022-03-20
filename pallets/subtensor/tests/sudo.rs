@@ -7,6 +7,41 @@ use mock::*;
 use frame_support::sp_runtime::DispatchError;
 
 
+pub fn approx_equals( a:u64, b: u64, eps: u64 ) -> bool {
+    if a > b {
+        if a - b > eps {
+            println!("a({:?}) - b({:?}) > {:?}", a, b, eps);
+            return false;
+        }
+    }
+    if b > a {
+        if b - a > eps {
+            println!("b({:?}) - a({:?}) > {:?}", b, a, eps);
+            return false;
+        }
+    }
+    return true;
+}
+
+pub fn vec_approx_equals( a_vec: &Vec<u64>, b_vec: &Vec<u64>, eps: u64 ) -> bool {
+    for (a, b) in a_vec.iter().zip(b_vec.iter()) {
+        if !approx_equals( *a, *b, eps ){
+            return false;
+        }
+    }
+    return true;
+}
+
+pub fn mat_approx_equals( a_vec: &Vec<Vec<u64>>, b_vec: &Vec<Vec<u64>>, eps: u64 ) -> bool {
+    for (a, b) in a_vec.iter().zip(b_vec.iter()) {
+        if !vec_approx_equals( a, b, eps ){
+            return false;
+        }
+    }
+    return true;
+}
+
+
 #[test]
 fn test_sudo_set_rho() {
 	new_test_ext().execute_with(|| {
@@ -179,6 +214,27 @@ fn test_sudo_validator_sequence_length() {
         let validator_sequence_length: u64 = 10;
 		assert_ok!(Subtensor::sudo_set_validator_sequence_length(<<Test as Config>::Origin>::root(), validator_sequence_length));
         assert_eq!(Subtensor::get_validator_sequence_length(), validator_sequence_length);
+    });
+}
+
+#[test]
+fn test_sudo_reset_bonds() {
+	new_test_ext().execute_with(|| {
+        let ten_bonds: Vec<Vec<u64>> = vec! [
+            vec! [10, 0, 0, 0 ],
+            vec! [0, 10, 0, 0 ],
+            vec! [0, 0, 10, 0 ], 
+            vec! [0, 0, 0, 10 ],
+        ];
+        Subtensor::set_bonds_from_matrix(ten_bonds);
+		assert_ok!(Subtensor::sudo_reset_bonds(<<Test as Config>::Origin>::root()));
+        let zero_bonds: Vec<Vec<u64>> = vec! [
+            vec! [0, 0, 0, 0 ],
+            vec! [0, 0, 0, 0 ],
+            vec! [0, 0, 0, 0 ], 
+            vec! [0, 0, 0, 0 ],
+        ];
+        assert!( mat_approx_equals ( &Subtensor::get_bonds(), &zero_bonds, 0) );
     });
 }
 
@@ -364,5 +420,13 @@ fn test_fails_sudo_set_validator_epochs_per_reset() {
         let init_validator_epochs_per_reset: u64 = Subtensor::get_validator_epochs_per_reset();
 		assert_eq!(Subtensor::sudo_set_validator_epochs_per_reset(<<Test as Config>::Origin>::signed(0), validator_epochs_per_reset),  Err(DispatchError::BadOrigin.into()));
         assert_eq!(Subtensor::get_validator_epochs_per_reset(), init_validator_epochs_per_reset);
+    });
+}
+
+
+#[test]
+fn test_fails_sudo_reset_bonds() {
+	new_test_ext().execute_with(|| {
+		assert_eq!(Subtensor::sudo_reset_bonds(<<Test as Config>::Origin>::signed(0)),  Err(DispatchError::BadOrigin.into()));
     });
 }
